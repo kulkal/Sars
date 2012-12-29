@@ -18,6 +18,7 @@ struct SimpleVertex
 {
     XMFLOAT3 Pos;  // Position
 	XMFLOAT3 Normal;
+	XMFLOAT2 Tex;
 };
 
 struct ConstantBuffer
@@ -56,8 +57,9 @@ ID3D11InputLayout*      g_pVertexLayout = NULL;
 ID3D11Buffer*           g_pVertexBuffer = NULL;
 ID3D11Buffer*           g_pIndexBuffer = NULL;
 ID3D11Buffer*           g_pConstantBuffer = NULL;
-
-
+ID3D11ShaderResourceView*           g_pTextureRV = NULL;
+ID3D11SamplerState*                 g_pSamplerLinear = NULL;
+ID3D11RasterizerState*	 g_pRS = NULL;
 XMMATRIX                g_World;
 XMMATRIX                g_World2;
 XMMATRIX                g_View;
@@ -337,8 +339,8 @@ HRESULT InitDevice()
     D3D11_INPUT_ELEMENT_DESC layout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 	UINT numElements = ARRAYSIZE( layout );
 
@@ -389,37 +391,38 @@ HRESULT InitDevice()
 	 // Create vertex buffer
     SimpleVertex vertices[] =
     {
-		{ XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f ) },
-		{ XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f ) },
-		{ XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f ) },
-		{ XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f ) },
+		{ XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f )	,XMFLOAT2( 0.0f, 0.0f )	},
+		{ XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f )	, XMFLOAT2( 1.0f, 0.0f )	 },
+		{ XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f )	, XMFLOAT2( 1.0f, 1.0f )	},
+		{ XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f )	,XMFLOAT2( 0.0f, 1.0f )	},
 
-		{ XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f ) },
-		{ XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f ) },
-		{ XMFLOAT3( 1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f ) },
-		{ XMFLOAT3( -1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f ) },
+		{ XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f ), XMFLOAT2( 0.0f, 0.0f )	 },
+		{ XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f )	, XMFLOAT2( 1.0f, 0.0f )	},
+		{ XMFLOAT3( 1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f )	,XMFLOAT2( 1.0f, 1.0f ) 	},
+		{ XMFLOAT3( -1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f )	, XMFLOAT2( 0.0f, 1.0f )	},
 
-		{ XMFLOAT3( -1.0f, -1.0f, 1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f ) },
-		{ XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f ) },
-		{ XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f ) },
-		{ XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f ) },
+		{ XMFLOAT3( -1.0f, -1.0f, 1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f )	, XMFLOAT2( 0.0f, 0.0f )	},
+		{ XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f ), XMFLOAT2( 1.0f, 0.0f )	 },
+		{ XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f )	,XMFLOAT2( 1.0f, 1.0f ) 	},
+		{ XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f )	,XMFLOAT2( 0.0f, 1.0f ) 	 },
 
-		{ XMFLOAT3( 1.0f, -1.0f, 1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f ) },
-		{ XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f ) },
-		{ XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f ) },
-		{ XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f ) },
+		{ XMFLOAT3( 1.0f, -1.0f, 1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f )	, XMFLOAT2( 0.0f, 0.0f )	},
+		{ XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f )	, XMFLOAT2( 1.0f, 0.0f )	 },
+		{ XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f )	, XMFLOAT2( 1.0f, 1.0f )	 },
+		{ XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f )	,XMFLOAT2( 0.0f, 1.0f )	},
 
-		{ XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f ) },
-		{ XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f ) },
-		{ XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f ) },
-		{ XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f ) },
+		{ XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f ),XMFLOAT2( 0.0f, 0.0f )	 },
+		{ XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f )	,XMFLOAT2( 1.0f, 0.0f )	},
+		{ XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f )	,XMFLOAT2( 1.0f, 1.0f )	},
+		{ XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f )	,XMFLOAT2( 0.0f, 1.0f )	 },
 
-		{ XMFLOAT3( -1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
-		{ XMFLOAT3( 1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
-		{ XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
-		{ XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
+		{ XMFLOAT3( -1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f )	 ,XMFLOAT2( 0.0f, 0.0f )},
+		{ XMFLOAT3( 1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f )	 ,XMFLOAT2( 1.0f, 0.0f ) },
+		{ XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f )	 ,XMFLOAT2( 1.0f, 1.0f )},
+		{ XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f )	 ,XMFLOAT2( 0.0f, 1.0f ) },
     };
-    D3D11_BUFFER_DESC bd;
+   
+	D3D11_BUFFER_DESC bd;
 	ZeroMemory( &bd, sizeof(bd) );
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof( SimpleVertex ) * 24;
@@ -488,7 +491,7 @@ HRESULT InitDevice()
 	g_World = XMMatrixIdentity();
 
     // Initialize the view matrix
-	XMVECTOR Eye = XMVectorSet( 0.0f, 1.0f, -7.f, 0.0f );
+	XMVECTOR Eye = XMVectorSet( 0.0f, 5.0f, -4.f, 0.0f );
 	XMVECTOR At = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
 	XMVECTOR Up = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
 	g_View = XMMatrixLookAtLH( Eye, At, Up );
@@ -510,13 +513,33 @@ HRESULT InitDevice()
             TRUE,//BOOL MultisampleEnable;
             FALSE//BOOL AntialiasedLineEnable;        
 	};
-    ID3D11RasterizerState* pRS = NULL;
-    hr = g_pd3dDevice->CreateRasterizerState(&drd, &pRS);
+
+    hr = g_pd3dDevice->CreateRasterizerState(&drd, &g_pRS);
     if ( FAILED( hr ) )
     {
+
     }
-   // GetDXUTState().SetD3D11RasterizerState(pRS);
-    g_pImmediateContext->RSSetState(pRS);
+    g_pImmediateContext->RSSetState(g_pRS);
+
+
+	// Load the Texture
+	hr = D3DX11CreateShaderResourceViewFromFile( g_pd3dDevice, L"seafloor.dds", NULL, NULL, &g_pTextureRV, NULL );
+	if( FAILED( hr ) )
+		return hr;
+
+	// Create the sample state
+	D3D11_SAMPLER_DESC sampDesc;
+	ZeroMemory( &sampDesc, sizeof(sampDesc) );
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	hr = g_pd3dDevice->CreateSamplerState( &sampDesc, &g_pSamplerLinear );
+	if( FAILED( hr ) )
+		return hr;
 
     return S_OK;
 }
@@ -566,7 +589,7 @@ void Render()
 	};
 
 	// Rotate the second light around the origin
-	XMMATRIX mRotate = XMMatrixRotationY( -2.0f * t );
+	XMMATRIX mRotate = XMMatrixRotationY( -2.0f * t *0.1f);
 	XMVECTOR vLightDir = XMLoadFloat4( &vLightDirs[1] );
 	vLightDir = XMVector3Transform( vLightDir, mRotate );
 	XMStoreFloat4( &vLightDirs[1], vLightDir );
@@ -604,6 +627,8 @@ void Render()
 	g_pImmediateContext->VSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
 	g_pImmediateContext->PSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
 
+	g_pImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
+	g_pImmediateContext->PSSetSamplers( 0, 1, &g_pSamplerLinear );
 	g_pImmediateContext->DrawIndexed( 36, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 
 
@@ -656,17 +681,26 @@ void CleanupDevice()
 {
 	if( g_pImmediateContext ) g_pImmediateContext->ClearState();
 
-	if( g_pConstantBuffer ) g_pConstantBuffer->Release();
+	if( g_pSamplerLinear ) g_pSamplerLinear->Release();
+	if( g_pTextureRV ) g_pTextureRV->Release();
+	
 	if( g_pVertexBuffer ) g_pVertexBuffer->Release();
 	if( g_pIndexBuffer ) g_pIndexBuffer->Release();
+	if( g_pConstantBuffer ) g_pConstantBuffer->Release();
+
+	
+
 	if( g_pVertexLayout ) g_pVertexLayout->Release();
 	if( g_pVertexShader ) g_pVertexShader->Release();
-	if( g_pPixelShaderSolid ) g_pPixelShaderSolid->Release();
 	if( g_pPixelShader ) g_pPixelShader->Release();
+	if( g_pPixelShaderSolid ) g_pPixelShaderSolid->Release();
+
 	if( g_pDepthStencil ) g_pDepthStencil->Release();
 	if( g_pDepthStencilView ) g_pDepthStencilView->Release();
 	if( g_pRenderTargetView ) g_pRenderTargetView->Release();
 	if( g_pSwapChain ) g_pSwapChain->Release();
 	if( g_pImmediateContext ) g_pImmediateContext->Release();
 	if( g_pd3dDevice ) g_pd3dDevice->Release();
+
+	if( g_pRS) g_pRS->Release();
 }

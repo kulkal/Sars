@@ -3,7 +3,8 @@
 //
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
-
+Texture2D txDiffuse : register( t0 );
+SamplerState samLinear : register( s0 );
 cbuffer ConstantBuffer : register( b0 )
 {
 	matrix World;
@@ -19,12 +20,14 @@ struct VS_INPUT
 {
     float4 Pos : POSITION;
     float3 Norm : NORMAL;
+	float2 Tex : TEXCOORD0;
 };
 
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
     float3 Norm : TEXCOORD0;
+	float2 Tex : TEXCOORD1;
 };
 
 //--------------------------------------------------------------------------------------
@@ -37,7 +40,7 @@ PS_INPUT VS(  VS_INPUT input )
     output.Pos = mul( output.Pos, View );
     output.Pos = mul( output.Pos, Projection );
 	output.Norm = mul( input.Norm, World );
-
+	output.Tex = input.Tex;
     return output;
 }
 
@@ -55,7 +58,8 @@ float4 PS( PS_INPUT input ) : SV_Target
         finalColor += saturate( dot( (float3)vLightDir[i],input.Norm) * vLightColor[i] );
     }
     finalColor.a = 1;
-    return finalColor;
+    return  finalColor*txDiffuse.Sample( samLinear, input.Tex );
+   //return  float4((sin(input.Tex.y*10)+1)*0.2, 0, 0, 1);
 }
 
 //--------------------------------------------------------------------------------------
