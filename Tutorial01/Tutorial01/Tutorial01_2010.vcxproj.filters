@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns:atg="http://atg.xbox.com" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{8e114980-c1a3-4ada-ad7c-83caadf5daeb}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="DXUT">
+      <UniqueIdentifier>{a43c5c25-0e86-4a20-b64a-883785ff74fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{901c3c98-4a18-4a6a-bac7-1d2329a3157a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{2d95301b-0a9d-46ec-b8a1-fe4cc8d5c55e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Tutorial01.fx">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Tutorial01.cpp" />
+    <ClCompile Include="BaseObject.cpp" />
+    <ClCompile Include="Entity.cpp" />
+    <ClCompile Include="StaticMeshEntity.cpp" />
+    <ClCompile Include="BaseComponent.cpp" />
+    <ClCompile Include="StaticMeshComponent.cpp" />
+    <ClCompile Include="StaticMesh.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CLInclude Include="resource.h">
+      <Filter>Resource Files</Filter>
+    </CLInclude>
+    <ResourceCompile Include="Tutorial01.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+    <ClInclude Include="BaseObject.h" />
+    <ClInclude Include="Entity.h" />
+    <ClInclude Include="StaticMeshEntity.h" />
+    <ClInclude Include="BaseComponent.h" />
+    <ClInclude Include="StaticMeshComponent.h" />
+    <ClInclude Include="StaticMesh.h" />
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+</Project>
