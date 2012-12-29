@@ -28,6 +28,7 @@
     <ClCompile Include="BaseComponent.cpp" />
     <ClCompile Include="StaticMeshComponent.cpp" />
     <ClCompile Include="StaticMesh.cpp" />
+    <ClCompile Include="FbxFileImporter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -42,6 +43,7 @@
     <ClInclude Include="BaseComponent.h" />
     <ClInclude Include="StaticMeshComponent.h" />
     <ClInclude Include="StaticMesh.h" />
+    <ClInclude Include="FbxFileImporter.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

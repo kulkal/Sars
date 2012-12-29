@@ -14,6 +14,7 @@
 #include <xnamath.h>
 #include <d3dcompiler.h>
 
+#include "FbxFileImporter.h"
 struct SimpleVertex
 {
     XMFLOAT3 Pos;  // Position
@@ -540,6 +541,8 @@ HRESULT InitDevice()
 	hr = g_pd3dDevice->CreateSamplerState( &sampDesc, &g_pSamplerLinear );
 	if( FAILED( hr ) )
 		return hr;
+
+	FbxFileImporter FbxImporterObj("test.fbx");
 
     return S_OK;
 }
