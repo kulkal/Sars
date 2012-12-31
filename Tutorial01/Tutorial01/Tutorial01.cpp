@@ -15,6 +15,9 @@
 #include <d3dcompiler.h>
 
 #include "FbxFileImporter.h"
+
+#include "Engine.h"
+#include "SimpleDrawingPolicy.h"
 struct SimpleVertex
 {
     XMFLOAT3 Pos;  // Position
@@ -22,7 +25,7 @@ struct SimpleVertex
 	XMFLOAT2 Tex;
 };
 
-struct ConstantBuffer
+struct ConstantBufferStruct
 {
 	XMMATRIX mWorld;
 	XMMATRIX mView;
@@ -65,6 +68,9 @@ XMMATRIX                g_World;
 XMMATRIX                g_World2;
 XMMATRIX                g_View;
 XMMATRIX                g_Projection;
+
+std::vector<StaticMesh*> StaticMeshArray;
+
 //--------------------------------------------------------------------------------------
 // Forward declarations
 //--------------------------------------------------------------------------------------
@@ -212,6 +218,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 //--------------------------------------------------------------------------------------
 HRESULT InitDevice()
 {
+	GEngine = new Engine;
     HRESULT hr = S_OK;
 
     RECT rc;
@@ -262,6 +269,11 @@ HRESULT InitDevice()
         if( SUCCEEDED( hr ) )
             break;
     }
+
+	GEngine->Device = g_pd3dDevice;
+	GEngine->ImmediateContext = g_pImmediateContext;
+	GEngine->InitDevice();
+
     if( FAILED( hr ) )
         return hr;
 
@@ -463,7 +475,8 @@ HRESULT InitDevice()
 		22,20,21,
 		23,20,22
     };
-    bd.Usage = D3D11_USAGE_DEFAULT;
+   
+	bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof( WORD ) * 36;        // 36 vertices needed for 12 triangles in a triangle list
     bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	bd.CPUAccessFlags = 0;
@@ -481,7 +494,7 @@ HRESULT InitDevice()
 
 	// Create the constant buffer
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(ConstantBuffer);
+	bd.ByteWidth = sizeof(ConstantBufferStruct);
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
     hr = g_pd3dDevice->CreateBuffer( &bd, NULL, &g_pConstantBuffer );
@@ -492,14 +505,15 @@ HRESULT InitDevice()
 	g_World = XMMatrixIdentity();
 
     // Initialize the view matrix
-	XMVECTOR Eye = XMVectorSet( 0.0f, 5.0f, -4.f, 0.0f );
+	XMVECTOR Eye = XMVectorSet( 0.0f, 230.0f, 170.f, 0.0f );
 	XMVECTOR At = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
 	XMVECTOR Up = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
 	g_View = XMMatrixLookAtLH( Eye, At, Up );
+	GEngine->ViewMat = g_View;
 
     // Initialize the projection matrix
-	g_Projection = XMMatrixPerspectiveFovLH( XM_PIDIV2, width / (FLOAT)height, 0.01f, 100.0f );
-
+	g_Projection = XMMatrixPerspectiveFovLH( XM_PIDIV2, width / (FLOAT)height, 0.01f, 1000.0f );
+	GEngine->ProjectionMat = g_Projection;
 
 	D3D11_RASTERIZER_DESC drd =
 	{
@@ -542,7 +556,8 @@ HRESULT InitDevice()
 	if( FAILED( hr ) )
 		return hr;
 
-	FbxFileImporter FbxImporterObj("test.fbx");
+	FbxFileImporter FbxImporterObj("humanoid.fbx");
+	FbxImporterObj.ImportStaticMesh(StaticMeshArray);
 
     return S_OK;
 }
@@ -554,7 +569,7 @@ HRESULT InitDevice()
 void Render()
 {
 	  // Just clear the backbuffer
-    float ClearColor[4] = { 1, 0, 0, 1.0f }; //red,green,blue,alpha
+    float ClearColor[4] = { 0.2, 0.2, 0.2, 1.0f }; //red,green,blue,alpha
     g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, ClearColor );
     g_pImmediateContext->ClearDepthStencilView( g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0 );
 
@@ -610,7 +625,7 @@ void Render()
     //
     // Update variables
     //
-    ConstantBuffer cb;
+    ConstantBufferStruct cb;
 	cb.mWorld = XMMatrixTranspose( g_World );
 	cb.mView = XMMatrixTranspose( g_View );
 	cb.mProjection = XMMatrixTranspose( g_Projection );
@@ -621,8 +636,11 @@ void Render()
 	g_pImmediateContext->UpdateSubresource( g_pConstantBuffer, 0, NULL, &cb, 0, 0 );
 
 
-  
-
+	g_pImmediateContext->IASetInputLayout( g_pVertexLayout );
+	g_pImmediateContext->IASetIndexBuffer( g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
+	UINT stride = sizeof( SimpleVertex );
+	UINT offset = 0;
+	g_pImmediateContext->IASetVertexBuffers( 0, 1, &g_pVertexBuffer, &stride, &offset );
 	  // Render a triangle
 	g_pImmediateContext->VSSetShader( g_pVertexShader, NULL, 0 );
 	g_pImmediateContext->PSSetShader( g_pPixelShader, NULL, 0 );
@@ -673,6 +691,11 @@ void Render()
 		g_pImmediateContext->DrawIndexed( 36, 0, 0 );
 	}
 
+	memcpy(GEngine->SimpleDrawer->vLightColors, vLightColors, sizeof(XMFLOAT4)*2);
+	memcpy(GEngine->SimpleDrawer->vLightDirs, vLightDirs, sizeof(XMFLOAT4)*2);
+
+	GEngine->SimpleDrawer->DrawStaticMesh(StaticMeshArray[0]);
+
     g_pSwapChain->Present( 0, 0 );
 }
 
@@ -706,4 +729,6 @@ void CleanupDevice()
 	if( g_pd3dDevice ) g_pd3dDevice->Release();
 
 	if( g_pRS) g_pRS->Release();
+
+	if(GEngine) delete GEngine;
 }

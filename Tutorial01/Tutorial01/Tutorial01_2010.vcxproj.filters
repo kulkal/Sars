@@ -19,6 +19,9 @@
     <None Include="Tutorial01.fx">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="SimpleShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Tutorial01.cpp" />
@@ -29,6 +32,9 @@
     <ClCompile Include="StaticMeshComponent.cpp" />
     <ClCompile Include="StaticMesh.cpp" />
     <ClCompile Include="FbxFileImporter.cpp" />
+    <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="DrawingPolicy.cpp" />
+    <ClCompile Include="SimpleDrawingPolicy.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -44,6 +50,9 @@
     <ClInclude Include="StaticMeshComponent.h" />
     <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="FbxFileImporter.h" />
+    <ClInclude Include="Engine.h" />
+    <ClInclude Include="DrawingPolicy.h" />
+    <ClInclude Include="SimpleDrawingPolicy.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
