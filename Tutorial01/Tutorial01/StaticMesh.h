@@ -6,7 +6,9 @@
 #include <string>
 #include <vector>
 
+#include "ShaderRes.h"
 #include "baseobject.h"
+#include "FbxFileImporter.h"
 
 struct NormalVertex
 {
@@ -25,28 +27,30 @@ class StaticMesh :
 	public BaseObject
 {
 public:
-	XMFLOAT3* PositionArray;
-	XMFLOAT3* NormalArray;
-	XMFLOAT2* TexCoordArray;
-	WORD*  IndiceArray;
+	ENumTexCoord _NumTexCoord;
+	XMFLOAT3* _PositionArray;
+	XMFLOAT3* _NormalArray;
+	XMFLOAT2* _TexCoordArray;
+	WORD*  _IndiceArray;
 
-	int NumTriangle;
-	int NumVertex;
+	int _NumTriangle;
+	int _NumVertex;
 
-	ID3D11Buffer*           VertexBuffer;
-	ID3D11Buffer*           IndexBuffer;
+	ID3D11Buffer*           _VertexBuffer;
+	ID3D11Buffer*           _IndexBuffer;
+	unsigned int _VertexStride;
 
 	class SubMesh
 	{
 	public:
-		int TriangleCount;
-		int IndexOffset;
+		int _TriangleCount;
+		int _IndexOffset;
 	};
 
-	std::vector<SubMesh*> SubMeshArray;
+	std::vector<SubMesh*> _SubMeshArray;
 public:
 
-	bool ImportFromFbxMesh(FbxMesh* pMesh);
+	bool ImportFromFbxMesh(FbxMesh* Mesh, FbxFileImporter* Importer);
 
 	StaticMesh(void);
 	virtual ~StaticMesh(void);

@@ -6,6 +6,7 @@ class StaticMesh;
 
 class FbxFileImporter
 {
+public:
 	enum Status
 	{
 		UNLOADED,               // Unload file or load failure;

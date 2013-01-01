@@ -2,13 +2,38 @@
 
 
 DrawingPolicy::DrawingPolicy(void)
-	:VertexLayout(NULL),
-	VertexShader(NULL),
-	PixelShader(NULL)
+	:FileName("")
+
 {
 }
 
 
 DrawingPolicy::~DrawingPolicy(void)
 {
+	std::map<ShaderMapKey, ShaderRes*>::iterator it;
+	for(it=ShaderMap.begin();it!=ShaderMap.end();it++)
+	{
+		delete it->second;
+	}
+}
+
+
+ShaderRes* DrawingPolicy::GetShaderRes( ENumTexCoord NumTex)
+{
+	ShaderMapKey SKey;
+	SKey.NumTex = NumTex;
+	SKey.VertexProcessingType = StaticVertex;
+	std::map<ShaderMapKey, ShaderRes*>::iterator it;
+	it = ShaderMap.find(SKey);
+	if (it != ShaderMap.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		ShaderRes* pShaderRes = new ShaderRes;
+		pShaderRes->CreateShader(FileName.c_str(), SKey);
+		ShaderMap.insert(std::pair<ShaderMapKey, ShaderRes*>(SKey, pShaderRes));
+		return pShaderRes;
+	}
 }

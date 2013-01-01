@@ -18,6 +18,8 @@
 
 #include "Engine.h"
 #include "SimpleDrawingPolicy.h"
+#include "StaticMesh.h"
+#include "StaticMeshComponent.h"
 struct SimpleVertex
 {
     XMFLOAT3 Pos;  // Position
@@ -70,6 +72,7 @@ XMMATRIX                g_View;
 XMMATRIX                g_Projection;
 
 std::vector<StaticMesh*> StaticMeshArray;
+//std::vector<StaticMesh*> StaticMeshArray2;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -505,20 +508,20 @@ HRESULT InitDevice()
 	g_World = XMMatrixIdentity();
 
     // Initialize the view matrix
-	XMVECTOR Eye = XMVectorSet( 0.0f, 230.0f, 170.f, 0.0f );
+	XMVECTOR Eye = XMVectorSet( 0, 250.0f, -250.f, 0.0f );
 	XMVECTOR At = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
 	XMVECTOR Up = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
-	g_View = XMMatrixLookAtLH( Eye, At, Up );
+	g_View = XMMatrixLookAtRH( Eye, At, Up );
 	GEngine->ViewMat = g_View;
 
     // Initialize the projection matrix
-	g_Projection = XMMatrixPerspectiveFovLH( XM_PIDIV2, width / (FLOAT)height, 0.01f, 1000.0f );
+	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, width / (FLOAT)height, 0.01f, 1000.0f );
 	GEngine->ProjectionMat = g_Projection;
 
 	D3D11_RASTERIZER_DESC drd =
 	{
             D3D11_FILL_SOLID, //D3D11_FILL_MODE FillMode;
-            D3D11_CULL_BACK,//D3D11_CULL_MODE CullMode;
+            D3D11_CULL_FRONT,//D3D11_CULL_MODE CullMode;
             FALSE, //BOOL FrontCounterClockwise;
             0, //INT DepthBias;
             0.0f,//FLOAT DepthBiasClamp;
@@ -556,8 +559,13 @@ HRESULT InitDevice()
 	if( FAILED( hr ) )
 		return hr;
 
-	FbxFileImporter FbxImporterObj("humanoid.fbx");
+	//FbxFileImporter FbxImporterObj("humanoid.fbx");
+	FbxFileImporter FbxImporterObj("other.fbx");
 	FbxImporterObj.ImportStaticMesh(StaticMeshArray);
+
+//	FbxFileImporter FbxImporterObj2("other.fbx");
+	//FbxImporterObj.ImportStaticMesh(StaticMeshArray2);
+
 
     return S_OK;
 }
@@ -607,7 +615,7 @@ void Render()
 	};
 
 	// Rotate the second light around the origin
-	XMMATRIX mRotate = XMMatrixRotationY( -2.0f * t *0.1f);
+	XMMATRIX mRotate = XMMatrixRotationY( -2.0f * t *0.7f);
 	XMVECTOR vLightDir = XMLoadFloat4( &vLightDirs[1] );
 	vLightDir = XMVector3Transform( vLightDir, mRotate );
 	XMStoreFloat4( &vLightDirs[1], vLightDir );
@@ -636,21 +644,21 @@ void Render()
 	g_pImmediateContext->UpdateSubresource( g_pConstantBuffer, 0, NULL, &cb, 0, 0 );
 
 
-	g_pImmediateContext->IASetInputLayout( g_pVertexLayout );
-	g_pImmediateContext->IASetIndexBuffer( g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
-	UINT stride = sizeof( SimpleVertex );
-	UINT offset = 0;
-	g_pImmediateContext->IASetVertexBuffers( 0, 1, &g_pVertexBuffer, &stride, &offset );
-	  // Render a triangle
-	g_pImmediateContext->VSSetShader( g_pVertexShader, NULL, 0 );
-	g_pImmediateContext->PSSetShader( g_pPixelShader, NULL, 0 );
-	
-	g_pImmediateContext->VSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
-	g_pImmediateContext->PSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
+	//g_pImmediateContext->IASetInputLayout( g_pVertexLayout );
+	//g_pImmediateContext->IASetIndexBuffer( g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
+	//UINT stride = sizeof( SimpleVertex );
+	//UINT offset = 0;
+	//g_pImmediateContext->IASetVertexBuffers( 0, 1, &g_pVertexBuffer, &stride, &offset );
+	//  // Render a triangle
+	//g_pImmediateContext->VSSetShader( g_pVertexShader, NULL, 0 );
+	//g_pImmediateContext->PSSetShader( g_pPixelShader, NULL, 0 );
+	//
+	//g_pImmediateContext->VSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
+	//g_pImmediateContext->PSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
 
 	g_pImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
-	g_pImmediateContext->PSSetSamplers( 0, 1, &g_pSamplerLinear );
-	g_pImmediateContext->DrawIndexed( 36, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
+	//g_pImmediateContext->PSSetSamplers( 0, 1, &g_pSamplerLinear );
+	//g_pImmediateContext->DrawIndexed( 36, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 
 
 	//// orbit
@@ -676,25 +684,29 @@ void Render()
 	//
 	// Render each light
 	//
-	for( int m = 0; m < 2; m++ )
-	{
-		XMMATRIX mLight = XMMatrixTranslationFromVector( 5.0f * XMLoadFloat4( &vLightDirs[m] ) );
-		XMMATRIX mLightScale = XMMatrixScaling( 0.2f, 0.2f, 0.2f );
-		mLight = mLightScale * mLight;
+	//for( int m = 0; m < 2; m++ )
+	//{
+	//	XMMATRIX mLight = XMMatrixTranslationFromVector( 5.0f * XMLoadFloat4( &vLightDirs[m] ) );
+	//	XMMATRIX mLightScale = XMMatrixScaling( 10.2f, 10.2f, 10.2f );
+	//	mLight = mLightScale * mLight;
 
-		// Update the world variable to reflect the current light
-		cb.mWorld = XMMatrixTranspose( mLight );
-		cb.vOutputColor = vLightColors[m];
-		g_pImmediateContext->UpdateSubresource( g_pConstantBuffer, 0, NULL, &cb, 0, 0 );
+	//	// Update the world variable to reflect the current light
+	//	cb.mWorld = XMMatrixTranspose( mLight );
+	//	cb.vOutputColor = vLightColors[m];
+	//	g_pImmediateContext->UpdateSubresource( g_pConstantBuffer, 0, NULL, &cb, 0, 0 );
 
-		g_pImmediateContext->PSSetShader( g_pPixelShaderSolid, NULL, 0 );
-		g_pImmediateContext->DrawIndexed( 36, 0, 0 );
-	}
+	//	g_pImmediateContext->PSSetShader( g_pPixelShaderSolid, NULL, 0 );
+	//	g_pImmediateContext->DrawIndexed( 36, 0, 0 );
+	//}
 
 	memcpy(GEngine->SimpleDrawer->vLightColors, vLightColors, sizeof(XMFLOAT4)*2);
 	memcpy(GEngine->SimpleDrawer->vLightDirs, vLightDirs, sizeof(XMFLOAT4)*2);
 
-	GEngine->SimpleDrawer->DrawStaticMesh(StaticMeshArray[0]);
+	for(INT i=0;i<StaticMeshArray.size();i++)
+		GEngine->SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
+	//for(INT i=0;i<StaticMeshArray2.size();i++)
+	//	GEngine->SimpleDrawer->DrawStaticMesh(StaticMeshArray2[0]);
+
 
     g_pSwapChain->Present( 0, 0 );
 }
@@ -729,6 +741,12 @@ void CleanupDevice()
 	if( g_pd3dDevice ) g_pd3dDevice->Release();
 
 	if( g_pRS) g_pRS->Release();
+
+	for(INT i=0;i<StaticMeshArray.size();i++)
+	{
+		StaticMesh* Mesh = StaticMeshArray[i];
+		delete Mesh;
+	}
 
 	if(GEngine) delete GEngine;
 }

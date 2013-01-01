@@ -376,6 +376,7 @@
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="FbxFileImporter.cpp" />
+    <ClCompile Include="ShaderRes.cpp" />
     <ClCompile Include="SimpleDrawingPolicy.cpp" />
     <ClCompile Include="StaticMesh.cpp" />
     <ClCompile Include="StaticMeshComponent.cpp" />
@@ -392,6 +393,7 @@
     <ClInclude Include="Entity.h" />
     <ClInclude Include="FbxFileImporter.h" />
     <CLInclude Include="resource.h" />
+    <ClInclude Include="ShaderRes.h" />
     <ClInclude Include="SimpleDrawingPolicy.h" />
     <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="StaticMeshComponent.h" />

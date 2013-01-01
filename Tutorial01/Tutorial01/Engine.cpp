@@ -19,7 +19,7 @@ void Engine::InitDevice()
 	SimpleDrawer = new SimpleDrawingPolicy;
 }
 
-HRESULT Engine::CompileShaderFromFile( WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut )
+HRESULT Engine::CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut )
 {
 	HRESULT hr = S_OK;
 
@@ -33,7 +33,7 @@ HRESULT Engine::CompileShaderFromFile( WCHAR* szFileName, LPCSTR szEntryPoint, L
 #endif
 
 	ID3DBlob* pErrorBlob;
-	hr = D3DX11CompileFromFile( szFileName, NULL, NULL, szEntryPoint, szShaderModel, 
+	hr = D3DX11CompileFromFile( szFileName, pDefines, NULL, szEntryPoint, szShaderModel, 
 		dwShaderFlags, 0, NULL, ppBlobOut, &pErrorBlob, NULL );
 	if( FAILED(hr) )
 	{

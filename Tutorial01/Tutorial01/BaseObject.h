@@ -2,7 +2,7 @@
 #include <string>
 class BaseObject
 {
-	std::string Name;
+	std::string _Name;
 
 public:
 	BaseObject();

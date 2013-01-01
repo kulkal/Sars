@@ -19,12 +19,18 @@ struct VS_INPUT
 {
     float4 Pos : POSITION;
     float3 Norm : NORMAL;
+#if TEXCOORD
+	float2 Tex : TEXCOORD0;
+#endif
 };
 
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
     float3 Norm : TEXCOORD0;
+#if TEXCOORD
+	float2 Tex : TEXCOORD1;
+#endif
 };
 
 //--------------------------------------------------------------------------------------
@@ -37,6 +43,9 @@ PS_INPUT VS(  VS_INPUT input )
     output.Pos = mul( output.Pos, View );
     output.Pos = mul( output.Pos, Projection );
 	output.Norm = mul( input.Norm, World );
+#if TEXCOORD
+	output.Tex = input.Tex;
+#endif
     return output;
 }
 
@@ -54,6 +63,11 @@ float4 PS( PS_INPUT input ) : SV_Target
         finalColor += saturate( dot( (float3)vLightDir[i],input.Norm) * vLightColor[i] );
     }
     finalColor.a = 1;
+#if TEXCOORD
+    return  float4(0.1f, 0.1f, 0.1f, 1.f) + finalColor*txDiffuse.Sample( samLinear, input.Tex );
+#else
     return  finalColor;
+#endif
+
 }
 

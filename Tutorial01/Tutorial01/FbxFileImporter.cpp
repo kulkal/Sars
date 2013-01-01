@@ -98,10 +98,15 @@ void FbxFileImporter::ImportStaticMesh(std::vector<StaticMesh*>& outStaticMeshAr
 
 			// Convert Axis System to what is used in this example, if needed
 			FbxAxisSystem SceneAxisSystem = mScene->GetGlobalSettings().GetAxisSystem();
-			FbxAxisSystem OurAxisSystem(FbxAxisSystem::eYAxis, FbxAxisSystem::eParityOdd, FbxAxisSystem::eRightHanded);
+		//	FbxAxisSystem OurAxisSystem(FbxAxisSystem::eZAxis, FbxAxisSystem::eYAxis, FbxAxisSystem::eRightHanded);
+
+			FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector)-FbxAxisSystem::eParityOdd;
+			const FbxAxisSystem OurAxisSystem(FbxAxisSystem::eYAxis, FrontVector, FbxAxisSystem::eLeftHanded);
+
 			if( SceneAxisSystem != OurAxisSystem )
 			{
-				OurAxisSystem.ConvertScene(mScene);
+				FbxRootNodeUtility::RemoveAllFbxRoots( mScene );
+				//OurAxisSystem.ConvertScene(mScene);
 			}
 
 			// Convert Unit System to what is used in this example, if needed
@@ -152,7 +157,7 @@ void FbxFileImporter::FillFbxMeshArray( FbxNode* pNode, std::vector<StaticMesh*>
 			if (pFbxMesh)
 			{
 				StaticMesh* pStaticMesh = new StaticMesh;
-				pStaticMesh->ImportFromFbxMesh(pFbxMesh);
+				pStaticMesh->ImportFromFbxMesh(pFbxMesh, this);
 				outStaticMeshArray.push_back(pStaticMesh);
 			}
 		}
