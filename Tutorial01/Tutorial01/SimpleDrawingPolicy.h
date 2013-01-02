@@ -17,6 +17,8 @@ public:
 
 
 	virtual void DrawStaticMesh(StaticMesh* pMesh);
+	virtual void DrawSkeletalMesh(SkeletalMesh* pMesh);
+
 
 	SimpleDrawingPolicy(void);
 	virtual ~SimpleDrawingPolicy(void);

@@ -18,11 +18,11 @@ DrawingPolicy::~DrawingPolicy(void)
 }
 
 
-ShaderRes* DrawingPolicy::GetShaderRes( ENumTexCoord NumTex)
+ShaderRes* DrawingPolicy::GetShaderRes( ENumTexCoord NumTex, EVertexProcessingType VPType)
 {
 	ShaderMapKey SKey;
 	SKey.NumTex = NumTex;
-	SKey.VertexProcessingType = StaticVertex;
+	SKey.VertexProcessingType = VPType;
 	std::map<ShaderMapKey, ShaderRes*>::iterator it;
 	it = ShaderMap.find(SKey);
 	if (it != ShaderMap.end())

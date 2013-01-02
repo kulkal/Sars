@@ -1,6 +1,7 @@
 #include "SimpleDrawingPolicy.h"
 #include "Engine.h"
 #include "StaticMesh.h"
+#include "SkeletalMesh.h"
 #include <cassert>
 
 struct ConstantBufferStruct
@@ -51,7 +52,7 @@ void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 	cb.vLightColor[1] = vLightColors[1];
 	GEngine->ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
 
-	ShaderRes* pShaderRes = GetShaderRes(pMesh->_NumTexCoord);
+	ShaderRes* pShaderRes = GetShaderRes(pMesh->_NumTexCoord, StaticVertex);
 
 
 	pShaderRes->SetShaderRes();
@@ -71,4 +72,38 @@ void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 	GEngine->ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }
 
+void SimpleDrawingPolicy::DrawSkeletalMesh(SkeletalMesh* pMesh)
+{
+	XMMATRIX World;
+
+	World = XMMatrixIdentity();
+	ConstantBufferStruct cb;
+	cb.mWorld = XMMatrixTranspose( World );
+	cb.mView = XMMatrixTranspose( GEngine->ViewMat );
+	cb.mProjection = XMMatrixTranspose( GEngine->ProjectionMat );
+	cb.vLightDir[0] = vLightDirs[0];
+	cb.vLightDir[1] = vLightDirs[1];
+	cb.vLightColor[0] = vLightColors[0];
+	cb.vLightColor[1] = vLightColors[1];
+	GEngine->ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
+
+	ShaderRes* pShaderRes = GetShaderRes(pMesh->_NumTexCoord, GpuSkinVertex);
+
+
+	pShaderRes->SetShaderRes();
+
+	UINT offset = 0;
+	GEngine->ImmediateContext->IASetVertexBuffers( 0, 1, &pMesh->_VertexBuffer, &pMesh->_VertexStride, &offset );
+	GEngine->ImmediateContext->IASetIndexBuffer( pMesh->_IndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
+
+	GEngine->ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+
+
+	GEngine->ImmediateContext->VSSetConstantBuffers( 0, 1, &ConstantBuffer );
+	GEngine->ImmediateContext->PSSetConstantBuffers( 0, 1, &ConstantBuffer );
+
+	//GEngine->ImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
+	//GEngine->ImmediateContext->PSSetSamplers( 0, 1, &g_pSamplerLinear );
+	GEngine->ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
+}
 

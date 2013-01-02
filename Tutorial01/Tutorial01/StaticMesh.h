@@ -27,12 +27,12 @@ class StaticMesh :
 	public BaseObject
 {
 public:
-	ENumTexCoord _NumTexCoord;
 	XMFLOAT3* _PositionArray;
 	XMFLOAT3* _NormalArray;
 	XMFLOAT2* _TexCoordArray;
 	WORD*  _IndiceArray;
 
+	ENumTexCoord _NumTexCoord;
 	int _NumTriangle;
 	int _NumVertex;
 
