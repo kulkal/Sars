@@ -36,6 +36,9 @@
     <ClCompile Include="DrawingPolicy.cpp" />
     <ClCompile Include="SimpleDrawingPolicy.cpp" />
     <ClCompile Include="ShaderRes.cpp" />
+    <ClCompile Include="RenderTargets.cpp" />
+    <ClCompile Include="SkeletalMesh.cpp" />
+    <ClCompile Include="SkeletalMeshComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -55,6 +58,9 @@
     <ClInclude Include="DrawingPolicy.h" />
     <ClInclude Include="SimpleDrawingPolicy.h" />
     <ClInclude Include="ShaderRes.h" />
+    <ClInclude Include="RenderTargets.h" />
+    <ClInclude Include="SkeletalMesh.h" />
+    <ClInclude Include="SkeletalMeshComponent.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
