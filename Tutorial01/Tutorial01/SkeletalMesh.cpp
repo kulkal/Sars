@@ -113,7 +113,8 @@ void ComputeLinearDeformation(FbxAMatrix& pGlobalPosition,
 					lClusterDeformation[lIndex] = lInfluence * lClusterDeformation[lIndex];
 
 					// Set the link to 1.0 just to know this vertex is influenced by a link.
-					lClusterWeight[lIndex] = 1.0;
+					
+					[lIndex] = 1.0;
 				}
 				else // lLinkMode == FbxCluster::eNormalize || lLinkMode == FbxCluster::eTotalOne
 				{
