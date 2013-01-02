@@ -8,11 +8,13 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <d3dx11.h>
+#include <xnamath.h>
+#include <d3dcompiler.h>
+
 #include "resource.h"
 
 //
-#include <xnamath.h>
-#include <d3dcompiler.h>
+
 
 #include "FbxFileImporter.h"
 
@@ -20,24 +22,7 @@
 #include "SimpleDrawingPolicy.h"
 #include "StaticMesh.h"
 #include "StaticMeshComponent.h"
-struct SimpleVertex
-{
-    XMFLOAT3 Pos;  // Position
-	XMFLOAT3 Normal;
-	XMFLOAT2 Tex;
-};
-
-struct ConstantBufferStruct
-{
-	XMMATRIX mWorld;
-	XMMATRIX mView;
-	XMMATRIX mProjection;
-	XMFLOAT4 vLightDir[2];
-	XMFLOAT4 vLightColor[2];
-	XMFLOAT4 vOutputColor;
-};
-//
-
+#include "SkeletalMesh.h"
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -54,24 +39,16 @@ ID3D11Texture2D*        g_pDepthStencil = NULL;
 ID3D11DepthStencilView* g_pDepthStencilView = NULL;
 
 //
+XMMATRIX                g_View;
 
-ID3D11VertexShader*     g_pVertexShader = NULL;
-ID3D11PixelShader*      g_pPixelShader = NULL;
-ID3D11PixelShader*      g_pPixelShaderSolid = NULL;
 
-ID3D11InputLayout*      g_pVertexLayout = NULL;
-ID3D11Buffer*           g_pVertexBuffer = NULL;
-ID3D11Buffer*           g_pIndexBuffer = NULL;
-ID3D11Buffer*           g_pConstantBuffer = NULL;
 ID3D11ShaderResourceView*           g_pTextureRV = NULL;
-ID3D11SamplerState*                 g_pSamplerLinear = NULL;
-ID3D11RasterizerState*	 g_pRS = NULL;
+
+XMMATRIX                g_Projection;
 XMMATRIX                g_World;
 XMMATRIX                g_World2;
-XMMATRIX                g_View;
-XMMATRIX                g_Projection;
-
 std::vector<StaticMesh*> StaticMeshArray;
+
 //std::vector<StaticMesh*> StaticMeshArray2;
 
 //--------------------------------------------------------------------------------------
@@ -275,7 +252,6 @@ HRESULT InitDevice()
 
 	GEngine->Device = g_pd3dDevice;
 	GEngine->ImmediateContext = g_pImmediateContext;
-	GEngine->InitDevice();
 
     if( FAILED( hr ) )
         return hr;
@@ -331,231 +307,29 @@ HRESULT InitDevice()
     vp.TopLeftY = 0;
     g_pImmediateContext->RSSetViewports( 1, &vp );
 
-	// vs, ps
-
-	// Compile the vertex shader
-    ID3DBlob* pVSBlob = NULL;
-    hr = CompileShaderFromFile( L"Tutorial01.fx", "VS", "vs_4_0", &pVSBlob );
-    if( FAILED( hr ) )
-    {
-        MessageBox( NULL,
-                    L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-        return hr;
-    }
-
-	// Create the vertex shader
-	hr = g_pd3dDevice->CreateVertexShader( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &g_pVertexShader );
-	if( FAILED( hr ) )
-	{	
-		pVSBlob->Release();
-        return hr;
-	}
-
-    // Define the input layout
-    D3D11_INPUT_ELEMENT_DESC layout[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    };
-	UINT numElements = ARRAYSIZE( layout );
-
-    // Create the input layout
-	hr = g_pd3dDevice->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
-                                          pVSBlob->GetBufferSize(), &g_pVertexLayout );
-	pVSBlob->Release();
-	if( FAILED( hr ) )
-        return hr;
-
-    // Set the input layout
-    g_pImmediateContext->IASetInputLayout( g_pVertexLayout );
-
-	// Compile the pixel shader
-	ID3DBlob* pPSBlob = NULL;
-    hr = CompileShaderFromFile( L"Tutorial01.fx", "PS", "ps_4_0", &pPSBlob );
-    if( FAILED( hr ) )
-    {
-        MessageBox( NULL,
-                    L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-        return hr;
-    }
-
-	// Create the pixel shader
-	hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pPixelShader );
-	pPSBlob->Release();
-    if( FAILED( hr ) )
-        return hr;
-
-	// Compile the pixel shader
-	pPSBlob = NULL;
-	hr = CompileShaderFromFile( L"Tutorial01.fx", "PSSolid", "ps_4_0", &pPSBlob );
-	if( FAILED( hr ) )
-	{
-		MessageBox( NULL,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-		return hr;
-	}
-
-	// Create the pixel shader
-	hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pPixelShaderSolid );
-	pPSBlob->Release();
-	if( FAILED( hr ) )
-		return hr;
-
-	// vb
-
-	 // Create vertex buffer
-    SimpleVertex vertices[] =
-    {
-		{ XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f )	,XMFLOAT2( 0.0f, 0.0f )	},
-		{ XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f )	, XMFLOAT2( 1.0f, 0.0f )	 },
-		{ XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f )	, XMFLOAT2( 1.0f, 1.0f )	},
-		{ XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 1.0f, 0.0f )	,XMFLOAT2( 0.0f, 1.0f )	},
-
-		{ XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f ), XMFLOAT2( 0.0f, 0.0f )	 },
-		{ XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f )	, XMFLOAT2( 1.0f, 0.0f )	},
-		{ XMFLOAT3( 1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f )	,XMFLOAT2( 1.0f, 1.0f ) 	},
-		{ XMFLOAT3( -1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, -1.0f, 0.0f )	, XMFLOAT2( 0.0f, 1.0f )	},
-
-		{ XMFLOAT3( -1.0f, -1.0f, 1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f )	, XMFLOAT2( 0.0f, 0.0f )	},
-		{ XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f ), XMFLOAT2( 1.0f, 0.0f )	 },
-		{ XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f )	,XMFLOAT2( 1.0f, 1.0f ) 	},
-		{ XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT3( -1.0f, 0.0f, 0.0f )	,XMFLOAT2( 0.0f, 1.0f ) 	 },
-
-		{ XMFLOAT3( 1.0f, -1.0f, 1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f )	, XMFLOAT2( 0.0f, 0.0f )	},
-		{ XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f )	, XMFLOAT2( 1.0f, 0.0f )	 },
-		{ XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f )	, XMFLOAT2( 1.0f, 1.0f )	 },
-		{ XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT3( 1.0f, 0.0f, 0.0f )	,XMFLOAT2( 0.0f, 1.0f )	},
-
-		{ XMFLOAT3( -1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f ),XMFLOAT2( 0.0f, 0.0f )	 },
-		{ XMFLOAT3( 1.0f, -1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f )	,XMFLOAT2( 1.0f, 0.0f )	},
-		{ XMFLOAT3( 1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f )	,XMFLOAT2( 1.0f, 1.0f )	},
-		{ XMFLOAT3( -1.0f, 1.0f, -1.0f ), XMFLOAT3( 0.0f, 0.0f, -1.0f )	,XMFLOAT2( 0.0f, 1.0f )	 },
-
-		{ XMFLOAT3( -1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f )	 ,XMFLOAT2( 0.0f, 0.0f )},
-		{ XMFLOAT3( 1.0f, -1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f )	 ,XMFLOAT2( 1.0f, 0.0f ) },
-		{ XMFLOAT3( 1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f )	 ,XMFLOAT2( 1.0f, 1.0f )},
-		{ XMFLOAT3( -1.0f, 1.0f, 1.0f ), XMFLOAT3( 0.0f, 0.0f, 1.0f )	 ,XMFLOAT2( 0.0f, 1.0f ) },
-    };
-   
-	D3D11_BUFFER_DESC bd;
-	ZeroMemory( &bd, sizeof(bd) );
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof( SimpleVertex ) * 24;
-    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.CPUAccessFlags = 0;
-    D3D11_SUBRESOURCE_DATA InitData;
-	ZeroMemory( &InitData, sizeof(InitData) );
-    InitData.pSysMem = vertices;
-    hr = g_pd3dDevice->CreateBuffer( &bd, &InitData, &g_pVertexBuffer );
-    if( FAILED( hr ) )
-        return hr;
-
-    // Set vertex buffer
-    UINT stride = sizeof( SimpleVertex );
-    UINT offset = 0;
-    g_pImmediateContext->IASetVertexBuffers( 0, 1, &g_pVertexBuffer, &stride, &offset );
-
-
-	 // Create index buffer
-    WORD indices[] =
-    {
-		3,1,0,
-		2,1,3,
-
-		6,4,5,
-		7,4,6,
-
-		11,9,8,
-		10,9,11,
-
-		14,12,13,
-		15,12,14,
-
-		19,17,16,
-		18,17,19,
-
-		22,20,21,
-		23,20,22
-    };
-   
-	bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof( WORD ) * 36;        // 36 vertices needed for 12 triangles in a triangle list
-    bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bd.CPUAccessFlags = 0;
-    InitData.pSysMem = indices;
-    hr = g_pd3dDevice->CreateBuffer( &bd, &InitData, &g_pIndexBuffer );
-    if( FAILED( hr ) )
-        return hr;
-
-    // Set index buffer
-    g_pImmediateContext->IASetIndexBuffer( g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
-
-    // Set primitive topology
-    g_pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 	
-
-	// Create the constant buffer
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(ConstantBufferStruct);
-	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bd.CPUAccessFlags = 0;
-    hr = g_pd3dDevice->CreateBuffer( &bd, NULL, &g_pConstantBuffer );
-    if( FAILED( hr ) )
-        return hr;
-
-    // Initialize the world matrix
-	g_World = XMMatrixIdentity();
+	XMFLOAT4 EyeVal = XMFLOAT4( 0, 250.0f, -250.f, 0.0f );
+	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
+	XMFLOAT4 UpVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 
     // Initialize the view matrix
-	XMVECTOR Eye = XMVectorSet( 0, 250.0f, -250.f, 0.0f );
-	XMVECTOR At = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
-	XMVECTOR Up = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
+	XMVECTOR Eye = XMLoadFloat4(&EyeVal);
+	XMVECTOR At = XMLoadFloat4(&AtVal);
+	XMVECTOR Up = XMLoadFloat4(&UpVal);
+	
+
 	g_View = XMMatrixLookAtRH( Eye, At, Up );
-	GEngine->ViewMat = g_View;
-
-    // Initialize the projection matrix
 	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, width / (FLOAT)height, 0.01f, 1000.0f );
-	GEngine->ProjectionMat = g_Projection;
+	g_World = XMMatrixIdentity();
+    // Initialize the projection matrix
 
-	D3D11_RASTERIZER_DESC drd =
-	{
-            D3D11_FILL_SOLID, //D3D11_FILL_MODE FillMode;
-            D3D11_CULL_FRONT,//D3D11_CULL_MODE CullMode;
-            FALSE, //BOOL FrontCounterClockwise;
-            0, //INT DepthBias;
-            0.0f,//FLOAT DepthBiasClamp;
-            0.0f,//FLOAT SlopeScaledDepthBias;
-            TRUE,//BOOL DepthClipEnable;
-            FALSE,//BOOL ScissorEnable;
-            TRUE,//BOOL MultisampleEnable;
-            FALSE//BOOL AntialiasedLineEnable;        
-	};
+	
 
-    hr = g_pd3dDevice->CreateRasterizerState(&drd, &g_pRS);
-    if ( FAILED( hr ) )
-    {
-
-    }
-    g_pImmediateContext->RSSetState(g_pRS);
+	
 
 
 	// Load the Texture
 	hr = D3DX11CreateShaderResourceViewFromFile( g_pd3dDevice, L"seafloor.dds", NULL, NULL, &g_pTextureRV, NULL );
-	if( FAILED( hr ) )
-		return hr;
-
-	// Create the sample state
-	D3D11_SAMPLER_DESC sampDesc;
-	ZeroMemory( &sampDesc, sizeof(sampDesc) );
-	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	sampDesc.MinLOD = 0;
-	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	hr = g_pd3dDevice->CreateSamplerState( &sampDesc, &g_pSamplerLinear );
 	if( FAILED( hr ) )
 		return hr;
 
@@ -566,6 +340,7 @@ HRESULT InitDevice()
 //	FbxFileImporter FbxImporterObj2("other.fbx");
 	//FbxImporterObj.ImportStaticMesh(StaticMeshArray2);
 
+	GEngine->InitDevice();
 
     return S_OK;
 }
@@ -576,6 +351,11 @@ HRESULT InitDevice()
 //--------------------------------------------------------------------------------------
 void Render()
 {
+	//memcpy(&GEngine->ViewMat, &g_View, sizeof(XMMATRIX));
+	//memcpy(&GEngine->ProjectionMat, &g_View, sizeof(g_Projection));
+
+	//GEngine->ViewMat = g_View;
+	//GEngine->ProjectionMat = g_Projection;
 	  // Just clear the backbuffer
     float ClearColor[4] = { 0.2, 0.2, 0.2, 1.0f }; //red,green,blue,alpha
     g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, ClearColor );
@@ -633,71 +413,10 @@ void Render()
     //
     // Update variables
     //
-    ConstantBufferStruct cb;
-	cb.mWorld = XMMatrixTranspose( g_World );
-	cb.mView = XMMatrixTranspose( g_View );
-	cb.mProjection = XMMatrixTranspose( g_Projection );
-	cb.vLightDir[0] = vLightDirs[0];
-	cb.vLightDir[1] = vLightDirs[1];
-	cb.vLightColor[0] = vLightColors[0];
-	cb.vLightColor[1] = vLightColors[1];
-	g_pImmediateContext->UpdateSubresource( g_pConstantBuffer, 0, NULL, &cb, 0, 0 );
-
-
-	//g_pImmediateContext->IASetInputLayout( g_pVertexLayout );
-	//g_pImmediateContext->IASetIndexBuffer( g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
-	//UINT stride = sizeof( SimpleVertex );
-	//UINT offset = 0;
-	//g_pImmediateContext->IASetVertexBuffers( 0, 1, &g_pVertexBuffer, &stride, &offset );
-	//  // Render a triangle
-	//g_pImmediateContext->VSSetShader( g_pVertexShader, NULL, 0 );
-	//g_pImmediateContext->PSSetShader( g_pPixelShader, NULL, 0 );
-	//
-	//g_pImmediateContext->VSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
-	//g_pImmediateContext->PSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
+   
 
 	g_pImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
-	//g_pImmediateContext->PSSetSamplers( 0, 1, &g_pSamplerLinear );
-	//g_pImmediateContext->DrawIndexed( 36, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 
-
-	//// orbit
-	//ConstantBuffer cb2;
-	//cb2.mWorld = XMMatrixTranspose( g_World2 );
-	//cb2.mView = XMMatrixTranspose( g_View );
-	//cb2.mProjection = XMMatrixTranspose( g_Projection );
-	//cb2.vLightDir[0] = vLightDirs[0];
-	//cb2.vLightDir[1] = vLightDirs[1];
-	//cb2.vLightColor[0] = vLightColors[0];
-	//cb2.vLightColor[1] = vLightColors[1];
-	//g_pImmediateContext->UpdateSubresource( g_pConstantBuffer, 0, NULL, &cb2, 0, 0 );
-
-	//g_pImmediateContext->VSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
-	//g_pImmediateContext->PSSetConstantBuffers( 0, 1, &g_pConstantBuffer );
-
- //   //
- //   // Render the second cube
- //   //
-	//g_pImmediateContext->DrawIndexed( 36, 0, 0 );
-
-
-	//
-	// Render each light
-	//
-	//for( int m = 0; m < 2; m++ )
-	//{
-	//	XMMATRIX mLight = XMMatrixTranslationFromVector( 5.0f * XMLoadFloat4( &vLightDirs[m] ) );
-	//	XMMATRIX mLightScale = XMMatrixScaling( 10.2f, 10.2f, 10.2f );
-	//	mLight = mLightScale * mLight;
-
-	//	// Update the world variable to reflect the current light
-	//	cb.mWorld = XMMatrixTranspose( mLight );
-	//	cb.vOutputColor = vLightColors[m];
-	//	g_pImmediateContext->UpdateSubresource( g_pConstantBuffer, 0, NULL, &cb, 0, 0 );
-
-	//	g_pImmediateContext->PSSetShader( g_pPixelShaderSolid, NULL, 0 );
-	//	g_pImmediateContext->DrawIndexed( 36, 0, 0 );
-	//}
 
 	memcpy(GEngine->SimpleDrawer->vLightColors, vLightColors, sizeof(XMFLOAT4)*2);
 	memcpy(GEngine->SimpleDrawer->vLightDirs, vLightDirs, sizeof(XMFLOAT4)*2);
@@ -719,20 +438,8 @@ void CleanupDevice()
 {
 	if( g_pImmediateContext ) g_pImmediateContext->ClearState();
 
-	if( g_pSamplerLinear ) g_pSamplerLinear->Release();
 	if( g_pTextureRV ) g_pTextureRV->Release();
 	
-	if( g_pVertexBuffer ) g_pVertexBuffer->Release();
-	if( g_pIndexBuffer ) g_pIndexBuffer->Release();
-	if( g_pConstantBuffer ) g_pConstantBuffer->Release();
-
-	
-
-	if( g_pVertexLayout ) g_pVertexLayout->Release();
-	if( g_pVertexShader ) g_pVertexShader->Release();
-	if( g_pPixelShader ) g_pPixelShader->Release();
-	if( g_pPixelShaderSolid ) g_pPixelShaderSolid->Release();
-
 	if( g_pDepthStencil ) g_pDepthStencil->Release();
 	if( g_pDepthStencilView ) g_pDepthStencilView->Release();
 	if( g_pRenderTargetView ) g_pRenderTargetView->Release();
@@ -740,7 +447,6 @@ void CleanupDevice()
 	if( g_pImmediateContext ) g_pImmediateContext->Release();
 	if( g_pd3dDevice ) g_pd3dDevice->Release();
 
-	if( g_pRS) g_pRS->Release();
 
 	for(INT i=0;i<StaticMeshArray.size();i++)
 	{

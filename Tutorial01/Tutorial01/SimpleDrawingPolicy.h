@@ -8,6 +8,7 @@ class SimpleDrawingPolicy :
 	public DrawingPolicy
 {
 	ID3D11Buffer*           ConstantBuffer;
+	ID3D11RasterizerState*	 RS;
 
 
 public:

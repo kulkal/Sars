@@ -14,7 +14,8 @@ struct ConstantBufferStruct
 };
 
 SimpleDrawingPolicy::SimpleDrawingPolicy(void)
-	:ConstantBuffer(NULL)
+	:ConstantBuffer(NULL),
+	RS(NULL)
 {
 	FileName = "SimpleShader.fx";
 
@@ -29,12 +30,34 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
 	hr = GEngine->Device->CreateBuffer( &bdc, NULL, &ConstantBuffer );
 	if( FAILED( hr ) )
 		assert(false);
+
+	D3D11_RASTERIZER_DESC drd =
+	{
+            D3D11_FILL_SOLID, //D3D11_FILL_MODE FillMode;
+            D3D11_CULL_FRONT,//D3D11_CULL_MODE CullMode;
+            FALSE, //BOOL FrontCounterClockwise;
+            0, //INT DepthBias;
+            0.0f,//FLOAT DepthBiasClamp;
+            0.0f,//FLOAT SlopeScaledDepthBias;
+            TRUE,//BOOL DepthClipEnable;
+            FALSE,//BOOL ScissorEnable;
+            TRUE,//BOOL MultisampleEnable;
+            FALSE//BOOL AntialiasedLineEnable;        
+	};
+
+    hr = GEngine->Device->CreateRasterizerState(&drd, &RS);
+    if ( FAILED( hr ) )
+    {
+
+    }
+    GEngine->ImmediateContext->RSSetState(RS);
 }
 
 
 SimpleDrawingPolicy::~SimpleDrawingPolicy(void)
 {
-	ConstantBuffer->Release();
+	if(ConstantBuffer) ConstantBuffer->Release();
+	if(RS) RS->Release();
 }
 
 void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
@@ -67,43 +90,41 @@ void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 	GEngine->ImmediateContext->VSSetConstantBuffers( 0, 1, &ConstantBuffer );
 	GEngine->ImmediateContext->PSSetConstantBuffers( 0, 1, &ConstantBuffer );
 
-	//GEngine->ImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
-	//GEngine->ImmediateContext->PSSetSamplers( 0, 1, &g_pSamplerLinear );
 	GEngine->ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }
 
 void SimpleDrawingPolicy::DrawSkeletalMesh(SkeletalMesh* pMesh)
 {
-	XMMATRIX World;
+	//XMMATRIX World;
 
-	World = XMMatrixIdentity();
-	ConstantBufferStruct cb;
-	cb.mWorld = XMMatrixTranspose( World );
-	cb.mView = XMMatrixTranspose( GEngine->ViewMat );
-	cb.mProjection = XMMatrixTranspose( GEngine->ProjectionMat );
-	cb.vLightDir[0] = vLightDirs[0];
-	cb.vLightDir[1] = vLightDirs[1];
-	cb.vLightColor[0] = vLightColors[0];
-	cb.vLightColor[1] = vLightColors[1];
-	GEngine->ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
+	//World = XMMatrixIdentity();
+	//ConstantBufferStruct cb;
+	//cb.mWorld = XMMatrixTranspose( World );
+	//cb.mView = XMMatrixTranspose( GEngine->ViewMat );
+	//cb.mProjection = XMMatrixTranspose( GEngine->ProjectionMat );
+	//cb.vLightDir[0] = vLightDirs[0];
+	//cb.vLightDir[1] = vLightDirs[1];
+	//cb.vLightColor[0] = vLightColors[0];
+	//cb.vLightColor[1] = vLightColors[1];
+	//GEngine->ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
 
-	ShaderRes* pShaderRes = GetShaderRes(pMesh->_NumTexCoord, GpuSkinVertex);
-
-
-	pShaderRes->SetShaderRes();
-
-	UINT offset = 0;
-	GEngine->ImmediateContext->IASetVertexBuffers( 0, 1, &pMesh->_VertexBuffer, &pMesh->_VertexStride, &offset );
-	GEngine->ImmediateContext->IASetIndexBuffer( pMesh->_IndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
-
-	GEngine->ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+	//ShaderRes* pShaderRes = GetShaderRes(pMesh->_NumTexCoord, GpuSkinVertex);
 
 
-	GEngine->ImmediateContext->VSSetConstantBuffers( 0, 1, &ConstantBuffer );
-	GEngine->ImmediateContext->PSSetConstantBuffers( 0, 1, &ConstantBuffer );
+	//pShaderRes->SetShaderRes();
 
-	//GEngine->ImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
-	//GEngine->ImmediateContext->PSSetSamplers( 0, 1, &g_pSamplerLinear );
-	GEngine->ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
+	//UINT offset = 0;
+	//GEngine->ImmediateContext->IASetVertexBuffers( 0, 1, &pMesh->_VertexBuffer, &pMesh->_VertexStride, &offset );
+	//GEngine->ImmediateContext->IASetIndexBuffer( pMesh->_IndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
+
+	//GEngine->ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+
+
+	//GEngine->ImmediateContext->VSSetConstantBuffers( 0, 1, &ConstantBuffer );
+	//GEngine->ImmediateContext->PSSetConstantBuffers( 0, 1, &ConstantBuffer );
+
+	////GEngine->ImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
+	////GEngine->ImmediateContext->PSSetSamplers( 0, 1, &g_pSamplerLinear );
+	//GEngine->ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }
 

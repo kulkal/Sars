@@ -32,7 +32,7 @@ class SkeletalMesh :
 	public BaseObject
 {
 public:
-	XMFLOAT3* _PositionArray;
+	/*XMFLOAT3* _PositionArray;
 	XMFLOAT3* _NormalArray;
 	XMFLOAT2* _TexCoordArray;
 
@@ -49,7 +49,7 @@ public:
 	ID3D11Buffer*           _IndexBuffer;
 	ID3D11Texture2D*		_BoneMatrices;
 
-	unsigned int _VertexStride;
+	unsigned int _VertexStride;*/
 public:
 	SkeletalMesh(void);
 	virtual ~SkeletalMesh(void);

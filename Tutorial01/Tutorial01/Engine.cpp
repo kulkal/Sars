@@ -5,7 +5,9 @@ Engine* GEngine;
 Engine::Engine(void)
 	:Device(NULL),
 	ImmediateContext(NULL),
-	SimpleDrawer(NULL)
+	SimpleDrawer(NULL),
+	ViewMat(XMMatrixIdentity()),
+	ProjectionMat(XMMatrixIdentity())
 {
 }
 
