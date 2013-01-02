@@ -1,5 +1,6 @@
 #include <windows.h>
 
+#include "SkeletalMesh.h"
 #include "StaticMesh.h"
 #include "FbxFileImporter.h"
 
@@ -190,5 +191,91 @@ void FbxFileImporter::TriangulateRecursive(FbxNode* pNode)
 	for (int lChildIndex = 0; lChildIndex < lChildCount; ++lChildIndex)
 	{
 		TriangulateRecursive(pNode->GetChild(lChildIndex));
+	}
+}
+
+void FbxFileImporter::ImportSkeletalMesh( std::vector<SkeletalMesh*>& outSkeletalMeshArray )
+{
+	bool lResult = false;
+	// Make sure that the scene is ready to load.
+	if (mStatus == MUST_BE_LOADED)
+	{
+		if (mImporter->Import(mScene) == true)
+		{
+			// Set the scene status flag to refresh 
+			// the scene in the first timer callback.
+			mStatus = MUST_BE_REFRESHED;
+
+			// Convert Axis System to what is used in this example, if needed
+			FbxAxisSystem SceneAxisSystem = mScene->GetGlobalSettings().GetAxisSystem();
+			//	FbxAxisSystem OurAxisSystem(FbxAxisSystem::eZAxis, FbxAxisSystem::eYAxis, FbxAxisSystem::eRightHanded);
+
+			FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector)-FbxAxisSystem::eParityOdd;
+			const FbxAxisSystem OurAxisSystem(FbxAxisSystem::eYAxis, FrontVector, FbxAxisSystem::eLeftHanded);
+
+			if( SceneAxisSystem != OurAxisSystem )
+			{
+				FbxRootNodeUtility::RemoveAllFbxRoots( mScene );
+				//OurAxisSystem.ConvertScene(mScene);
+			}
+
+			// Convert Unit System to what is used in this example, if needed
+			FbxSystemUnit SceneSystemUnit = mScene->GetGlobalSettings().GetSystemUnit();
+			if( SceneSystemUnit.GetScaleFactor() != 1.0 )
+			{
+				//The unit in this example is centimeter.
+				FbxSystemUnit::cm.ConvertScene( mScene);
+			}
+
+			// Get the list of all the animation stack.
+			mScene->FillAnimStackNameArray(mAnimStackNameArray);
+			for(int i=0;i<mAnimStackNameArray.Size();i++)
+			{
+				char* AnimStackname = mAnimStackNameArray[i]->Buffer();
+				OutputDebugStringA(AnimStackname);
+				OutputDebugStringA("\n");
+			}
+
+			//TriangulateRecursive(mScene->GetRootNode());
+			FillFbxSkelMeshArray(mScene->GetRootNode(), outSkeletalMeshArray);
+
+
+			lResult = true;
+		}
+		else
+		{
+			// Import failed, set the scene status flag accordingly.
+			mStatus = UNLOADED;
+		}
+
+		// Destroy the importer to release the file.
+		mImporter->Destroy();
+		mImporter = NULL;
+	}
+}
+
+void FbxFileImporter::FillFbxSkelMeshArray( FbxNode* pNode, std::vector<SkeletalMesh*>& outSkeletalMeshArray )
+{
+	OutputDebugStringA(pNode->GetName());
+	OutputDebugStringA("\n");
+	FbxNodeAttribute* NodeAttribute = pNode->GetNodeAttribute();
+	if ( NodeAttribute )
+	{
+		if (NodeAttribute->GetAttributeType() == FbxNodeAttribute::eMesh)
+		{
+			FbxMesh * pFbxMesh = pNode->GetMesh();
+			if (pFbxMesh)
+			{
+				SkeletalMesh* Mesh = new SkeletalMesh;
+				Mesh->ImportFromFbxMesh(pFbxMesh, this);
+				outSkeletalMeshArray.push_back(Mesh);
+			}
+		}
+	}
+
+	const int lChildCount = pNode->GetChildCount();
+	for (int lChildIndex = 0; lChildIndex < lChildCount; ++lChildIndex)
+	{
+		FillFbxSkelMeshArray(pNode->GetChild(lChildIndex), outSkeletalMeshArray);
 	}
 }

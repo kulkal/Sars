@@ -48,6 +48,8 @@ XMMATRIX                g_Projection;
 XMMATRIX                g_World;
 XMMATRIX                g_World2;
 std::vector<StaticMesh*> StaticMeshArray;
+std::vector<SkeletalMesh*> SkeletalMeshArray;
+
 
 //std::vector<StaticMesh*> StaticMeshArray2;
 
@@ -339,7 +341,9 @@ HRESULT InitDevice()
 
 	//FbxFileImporter FbxImporterObj("humanoid.fbx");
 	FbxFileImporter FbxImporterObj("humanoid.fbx");
-	FbxImporterObj.ImportStaticMesh(StaticMeshArray);
+	//FbxImporterObj.ImportStaticMesh(StaticMeshArray);
+
+	FbxImporterObj.ImportSkeletalMesh(SkeletalMeshArray);
 
 //	FbxFileImporter FbxImporterObj2("other.fbx");
 	//FbxImporterObj.ImportStaticMesh(StaticMeshArray2);

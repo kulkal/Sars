@@ -2,7 +2,9 @@
 #include <fbxsdk.h>
 #include <string>
 #include <vector>
+
 class StaticMesh;
+class SkeletalMesh;
 
 class FbxFileImporter
 {
@@ -29,9 +31,10 @@ public:
 public:
 	void TriangulateRecursive(FbxNode* pNode);
 	void FillFbxMeshArray(FbxNode* pNode, std::vector<StaticMesh*>& outStaticMeshArray);
+	void FillFbxSkelMeshArray(FbxNode* pNode, std::vector<SkeletalMesh*>& outSkeletalMeshArray);
 
 	void ImportStaticMesh(std::vector<StaticMesh*>& outStaticMeshArray);
-
+	void ImportSkeletalMesh(std::vector<SkeletalMesh*>& outSkeletalMeshArray);
 
 	FbxFileImporter( std::string Path);
 	~FbxFileImporter(void);
