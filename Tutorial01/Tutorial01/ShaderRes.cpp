@@ -51,7 +51,7 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 	}
 
 	// Create the vertex shader
-	hr = GEngine->Device->CreateVertexShader( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &VertexShader );
+	hr = GEngine->_Device->CreateVertexShader( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &VertexShader );
 	if( FAILED( hr ) )
 	{	
 
@@ -71,7 +71,7 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 			UINT numElements = ARRAYSIZE( layout );
 
 			// Create the input layout
-			hr = GEngine->Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
+			hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
 				pVSBlob->GetBufferSize(), &VertexLayout );
 		}
 		else if(SKey.VertexProcessingType == GpuSkinVertex)
@@ -86,7 +86,7 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 			UINT numElements = ARRAYSIZE( layout );
 
 			// Create the input layout
-			hr = GEngine->Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
+			hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
 				pVSBlob->GetBufferSize(), &VertexLayout );
 		}
 	}
@@ -103,7 +103,7 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 			UINT numElements = ARRAYSIZE( layout );
 
 			// Create the input layout
-			hr = GEngine->Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
+			hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
 				pVSBlob->GetBufferSize(), &VertexLayout );
 		}
 		else if(SKey.VertexProcessingType == GpuSkinVertex)
@@ -119,7 +119,7 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 			UINT numElements = ARRAYSIZE( layout );
 
 			// Create the input layout
-			hr = GEngine->Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
+			hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
 				pVSBlob->GetBufferSize(), &VertexLayout );
 		}
 	}
@@ -142,7 +142,7 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 	}
 
 	// Create the pixel shader
-	hr = GEngine->Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &PixelShader );
+	hr = GEngine->_Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &PixelShader );
 	pPSBlob->Release();
 	if( FAILED( hr ) )
 		assert(false);
@@ -150,7 +150,7 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 
 void ShaderRes::SetShaderRes()
 {
-	GEngine->ImmediateContext->IASetInputLayout( VertexLayout );
-	GEngine->ImmediateContext->VSSetShader( VertexShader, NULL, 0 );
-	GEngine->ImmediateContext->PSSetShader( PixelShader, NULL, 0 );
+	GEngine->_ImmediateContext->IASetInputLayout( VertexLayout );
+	GEngine->_ImmediateContext->VSSetShader( VertexShader, NULL, 0 );
+	GEngine->_ImmediateContext->PSSetShader( PixelShader, NULL, 0 );
 }

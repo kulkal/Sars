@@ -8,18 +8,11 @@ enum EVertexProcessingType
 	GpuSkinVertex
 };
 
-enum ENumTexCoord
-{
-	NumTexCoord0,
-	NumTexCoord1,
-	NumTexCoord2,
-	NumTexCoord3,
-	NumTexCoord4,
-};
+
 
 struct ShaderMapKey
 {
-	ENumTexCoord NumTex;
+	int NumTex;
 	EVertexProcessingType VertexProcessingType;
 	bool operator<(const ShaderMapKey& other) const        
 	{             

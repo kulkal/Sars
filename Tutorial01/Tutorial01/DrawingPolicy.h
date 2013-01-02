@@ -19,7 +19,7 @@ public:
 	virtual void DrawStaticMesh(StaticMesh* pMesh) = 0;
 	virtual void DrawSkeletalMesh(SkeletalMesh* pMesh) = 0;
 
-	ShaderRes* GetShaderRes(ENumTexCoord NumTex, EVertexProcessingType VPType);
+	ShaderRes* GetShaderRes(int NumTex, EVertexProcessingType VPType);
 
 	DrawingPolicy(void);
 	virtual ~DrawingPolicy(void);

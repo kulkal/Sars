@@ -13,7 +13,13 @@ StaticMesh::StaticMesh(void)
 	:
 	_VertexBuffer(NULL),
 	_IndexBuffer(NULL),
-	_VertexStride(0)
+	_VertexStride(0),
+	_PositionArray(NULL),
+	_NormalArray(NULL),
+	_TexCoordArray(NULL),
+	_NumTexCoord(0),
+	_NumTriangle(0),
+	_NumVertex(0)
 {
 }
 
@@ -31,7 +37,6 @@ StaticMesh::~StaticMesh(void)
 
 bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 {
-	char StrLog[1024];
 	if (!Mesh->GetNode())
 		return false;
 
@@ -361,7 +366,7 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			Vertices[i].Normal = _NormalArray[i];
 		}
 		InitData.pSysMem = Vertices;
-		hr = GEngine->Device->CreateBuffer( &bd, &InitData, &_VertexBuffer );
+		hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_VertexBuffer );
 		if( FAILED( hr ) )
 		{
 			assert(false);
@@ -380,7 +385,7 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			Vertices[i].TexCoord = _TexCoordArray[i];
 		}
 		InitData.pSysMem = Vertices;
-		hr = GEngine->Device->CreateBuffer( &bd, &InitData, &_VertexBuffer );
+		hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_VertexBuffer );
 		if( FAILED( hr ) )
 		{
 			assert(false);
@@ -395,7 +400,7 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 	InitData.pSysMem = _IndiceArray;
-	hr = GEngine->Device->CreateBuffer( &bd, &InitData, &_IndexBuffer );
+	hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_IndexBuffer );
 	if( FAILED( hr ) )
 	{
 		assert(false);
@@ -408,12 +413,12 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	if(_NormalArray != NULL && _TexCoordArray == NULL)
 	{
 		_VertexStride = sizeof(NormalVertex);
-		_NumTexCoord = NumTexCoord0;
+		_NumTexCoord = 0;
 	}
 	else if(_NormalArray != NULL && _TexCoordArray != NULL)
 	{
 		_VertexStride = sizeof(NormalTexVertex);
-		_NumTexCoord = NumTexCoord1;
+		_NumTexCoord = 1;
 	}
 
 	return true;

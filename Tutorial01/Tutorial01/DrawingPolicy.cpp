@@ -18,7 +18,7 @@ DrawingPolicy::~DrawingPolicy(void)
 }
 
 
-ShaderRes* DrawingPolicy::GetShaderRes( ENumTexCoord NumTex, EVertexProcessingType VPType)
+ShaderRes* DrawingPolicy::GetShaderRes( int NumTex, EVertexProcessingType VPType)
 {
 	ShaderMapKey SKey;
 	SKey.NumTex = NumTex;

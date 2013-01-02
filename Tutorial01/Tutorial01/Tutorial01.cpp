@@ -250,8 +250,8 @@ HRESULT InitDevice()
             break;
     }
 
-	GEngine->Device = g_pd3dDevice;
-	GEngine->ImmediateContext = g_pImmediateContext;
+	GEngine->_Device = g_pd3dDevice;
+	GEngine->_ImmediateContext = g_pImmediateContext;
 
     if( FAILED( hr ) )
         return hr;
@@ -308,7 +308,7 @@ HRESULT InitDevice()
     g_pImmediateContext->RSSetViewports( 1, &vp );
 
 	
-	XMFLOAT4 EyeVal = XMFLOAT4( 0, 250.0f, -250.f, 0.0f );
+	XMFLOAT4 EyeVal = XMFLOAT4( 0, 450.0f, 450.f, 0.0f );
 	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 	XMFLOAT4 UpVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 
@@ -321,6 +321,10 @@ HRESULT InitDevice()
 	g_View = XMMatrixLookAtRH( Eye, At, Up );
 	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, width / (FLOAT)height, 0.01f, 1000.0f );
 	g_World = XMMatrixIdentity();
+
+	XMStoreFloat4x4(&GEngine->_ViewMat, g_View);
+	XMStoreFloat4x4(&GEngine->_ProjectionMat, g_Projection);
+
     // Initialize the projection matrix
 
 	
@@ -334,7 +338,7 @@ HRESULT InitDevice()
 		return hr;
 
 	//FbxFileImporter FbxImporterObj("humanoid.fbx");
-	FbxFileImporter FbxImporterObj("other.fbx");
+	FbxFileImporter FbxImporterObj("humanoid.fbx");
 	FbxImporterObj.ImportStaticMesh(StaticMeshArray);
 
 //	FbxFileImporter FbxImporterObj2("other.fbx");
@@ -418,11 +422,11 @@ void Render()
 	g_pImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
 
 
-	memcpy(GEngine->SimpleDrawer->vLightColors, vLightColors, sizeof(XMFLOAT4)*2);
-	memcpy(GEngine->SimpleDrawer->vLightDirs, vLightDirs, sizeof(XMFLOAT4)*2);
+	memcpy(GEngine->_SimpleDrawer->vLightColors, vLightColors, sizeof(XMFLOAT4)*2);
+	memcpy(GEngine->_SimpleDrawer->vLightDirs, vLightDirs, sizeof(XMFLOAT4)*2);
 
-	for(INT i=0;i<StaticMeshArray.size();i++)
-		GEngine->SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
+	for(unsigned int i=0;i<StaticMeshArray.size();i++)
+		GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
 	//for(INT i=0;i<StaticMeshArray2.size();i++)
 	//	GEngine->SimpleDrawer->DrawStaticMesh(StaticMeshArray2[0]);
 
@@ -448,7 +452,7 @@ void CleanupDevice()
 	if( g_pd3dDevice ) g_pd3dDevice->Release();
 
 
-	for(INT i=0;i<StaticMeshArray.size();i++)
+	for(unsigned int i=0;i<StaticMeshArray.size();i++)
 	{
 		StaticMesh* Mesh = StaticMeshArray[i];
 		delete Mesh;

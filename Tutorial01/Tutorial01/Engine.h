@@ -11,13 +11,14 @@ class SimpleDrawingPolicy;
 class Engine
 {
 public:
-	ID3D11Device*           Device;
-	ID3D11DeviceContext*    ImmediateContext;
+	ID3D11Device*           _Device;
+	ID3D11DeviceContext*    _ImmediateContext;
 
-	SimpleDrawingPolicy* SimpleDrawer;
+	SimpleDrawingPolicy* _SimpleDrawer;
 
-	XMMATRIX ViewMat;
-	XMMATRIX ProjectionMat;
+
+	XMFLOAT4X4 _ViewMat;
+	XMFLOAT4X4 _ProjectionMat;
 
 public:
 

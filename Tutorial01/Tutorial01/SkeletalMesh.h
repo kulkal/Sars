@@ -32,7 +32,7 @@ class SkeletalMesh :
 	public BaseObject
 {
 public:
-	/*XMFLOAT3* _PositionArray;
+	XMFLOAT3* _PositionArray;
 	XMFLOAT3* _NormalArray;
 	XMFLOAT2* _TexCoordArray;
 
@@ -41,7 +41,7 @@ public:
 	DWORD* _WeightArray;
 	DWORD* _BoneIndexArray;
 
-	ENumTexCoord _NumTexCoord;
+	int _NumTexCoord;
 	int _NumTriangle;
 	int _NumVertex;
 
@@ -49,8 +49,21 @@ public:
 	ID3D11Buffer*           _IndexBuffer;
 	ID3D11Texture2D*		_BoneMatrices;
 
-	unsigned int _VertexStride;*/
+	unsigned int _VertexStride;
+
+	class SubMesh
+	{
+	public:
+		int _TriangleCount;
+		int _IndexOffset;
+	};
+
+	std::vector<SubMesh*> _SubMeshArray;
+
+
 public:
+	bool ImportFromFbxMesh(FbxMesh* Mesh, FbxFileImporter* Importer);
+
 	SkeletalMesh(void);
 	virtual ~SkeletalMesh(void);
 };

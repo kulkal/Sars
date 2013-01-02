@@ -32,7 +32,7 @@ public:
 	XMFLOAT2* _TexCoordArray;
 	WORD*  _IndiceArray;
 
-	ENumTexCoord _NumTexCoord;
+	int _NumTexCoord;
 	int _NumTriangle;
 	int _NumVertex;
 

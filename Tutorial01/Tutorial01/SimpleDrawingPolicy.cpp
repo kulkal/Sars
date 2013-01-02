@@ -27,7 +27,7 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
 	bdc.ByteWidth = sizeof(ConstantBufferStruct);
 	bdc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bdc.CPUAccessFlags = 0;
-	hr = GEngine->Device->CreateBuffer( &bdc, NULL, &ConstantBuffer );
+	hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &ConstantBuffer );
 	if( FAILED( hr ) )
 		assert(false);
 
@@ -45,12 +45,12 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
             FALSE//BOOL AntialiasedLineEnable;        
 	};
 
-    hr = GEngine->Device->CreateRasterizerState(&drd, &RS);
+    hr = GEngine->_Device->CreateRasterizerState(&drd, &RS);
     if ( FAILED( hr ) )
     {
 
     }
-    GEngine->ImmediateContext->RSSetState(RS);
+    GEngine->_ImmediateContext->RSSetState(RS);
 }
 
 
@@ -67,13 +67,13 @@ void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 	World = XMMatrixIdentity();
 	ConstantBufferStruct cb;
 	cb.mWorld = XMMatrixTranspose( World );
-	cb.mView = XMMatrixTranspose( GEngine->ViewMat );
-	cb.mProjection = XMMatrixTranspose( GEngine->ProjectionMat );
+	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
+	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
 	cb.vLightDir[0] = vLightDirs[0];
 	cb.vLightDir[1] = vLightDirs[1];
 	cb.vLightColor[0] = vLightColors[0];
 	cb.vLightColor[1] = vLightColors[1];
-	GEngine->ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
+	GEngine->_ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
 
 	ShaderRes* pShaderRes = GetShaderRes(pMesh->_NumTexCoord, StaticVertex);
 
@@ -81,16 +81,16 @@ void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 	pShaderRes->SetShaderRes();
 
 	UINT offset = 0;
-	GEngine->ImmediateContext->IASetVertexBuffers( 0, 1, &pMesh->_VertexBuffer, &pMesh->_VertexStride, &offset );
-	GEngine->ImmediateContext->IASetIndexBuffer( pMesh->_IndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
+	GEngine->_ImmediateContext->IASetVertexBuffers( 0, 1, &pMesh->_VertexBuffer, &pMesh->_VertexStride, &offset );
+	GEngine->_ImmediateContext->IASetIndexBuffer( pMesh->_IndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
 
-	GEngine->ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+	GEngine->_ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 
 
-	GEngine->ImmediateContext->VSSetConstantBuffers( 0, 1, &ConstantBuffer );
-	GEngine->ImmediateContext->PSSetConstantBuffers( 0, 1, &ConstantBuffer );
+	GEngine->_ImmediateContext->VSSetConstantBuffers( 0, 1, &ConstantBuffer );
+	GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &ConstantBuffer );
 
-	GEngine->ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
+	GEngine->_ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }
 
 void SimpleDrawingPolicy::DrawSkeletalMesh(SkeletalMesh* pMesh)

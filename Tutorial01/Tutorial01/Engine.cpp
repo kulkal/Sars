@@ -3,22 +3,22 @@
 
 Engine* GEngine;
 Engine::Engine(void)
-	:Device(NULL),
-	ImmediateContext(NULL),
-	SimpleDrawer(NULL),
-	ViewMat(XMMatrixIdentity()),
-	ProjectionMat(XMMatrixIdentity())
+	:_Device(NULL),
+	_ImmediateContext(NULL),
+	_SimpleDrawer(NULL)
+	//ViewMat(XMMatrixIdentity()),
+	//ProjectionMat(XMMatrixIdentity())
 {
 }
 
 Engine::~Engine(void)
 {
-	if(SimpleDrawer) delete SimpleDrawer;
+	if(_SimpleDrawer) delete _SimpleDrawer;
 }
 
 void Engine::InitDevice()
 {
-	SimpleDrawer = new SimpleDrawingPolicy;
+	_SimpleDrawer = new SimpleDrawingPolicy;
 }
 
 HRESULT Engine::CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut )
