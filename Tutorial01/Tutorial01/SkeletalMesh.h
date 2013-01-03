@@ -35,6 +35,11 @@ struct SkinInfo
 	unsigned int Bones[MAX_BONELINKE];
 };
 
+struct Skeleton
+{
+	XMFLOAT4X4* _Pose;
+};
+
 class SkeletalMesh :
 	public BaseObject
 {
