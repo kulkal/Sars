@@ -2,9 +2,31 @@
 #include <fbxsdk.h>
 #include <string>
 #include <vector>
+#include <map>
 
 class StaticMesh;
 class SkeletalMesh;
+
+struct BoneIndexInfo
+{
+	std::string BoneName;
+	int Index;
+	bool IsUsedLink;
+	BoneIndexInfo(std::string Name, int idx):
+		BoneName(Name),
+		Index(idx),
+		IsUsedLink(false)
+	{
+	}
+	
+	bool operator<(const BoneIndexInfo& other) const        
+	{             
+		if( Index < other.Index )
+			return true;
+		else
+			return false;
+	};
+};
 
 class FbxFileImporter
 {
@@ -24,8 +46,9 @@ public:
 	FbxArray<FbxNode*> mCameraArray;
 	FbxArray<FbxPose*> mPoseArray;
 	FbxArray<FbxNode*> FbxMeshArray;
-
-
+	
+	std::map<std::string, BoneIndexInfo> BoneIndexMap;
+	std::vector<BoneIndexInfo> BoneArray;
 	mutable Status mStatus;
 	std::string FilePath;
 public:

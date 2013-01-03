@@ -1,254 +1,64 @@
 #include "SkeletalMesh.h"
 #include "Engine.h"
 #include <cassert>
+#include <algorithm>
 
 const int TRIANGLE_VERTEX_COUNT = 3;
 const int VERTEX_STRIDE = 4;
 const int NORMAL_STRIDE = 3;
 const int UV_STRIDE = 2;
-void MatrixScale(FbxAMatrix& pMatrix, double pValue)
-{
-	int i,j;
-
-	for (i = 0; i < 4; i++)
-	{
-		for (j = 0; j < 4; j++)
-		{
-			pMatrix[i][j] *= pValue;
-		}
-	}
-}
-
-
-// Add a value to all the elements in the diagonal of the matrix.
-void MatrixAddToDiagonal(FbxAMatrix& pMatrix, double pValue)
-{
-	pMatrix[0][0] += pValue;
-	pMatrix[1][1] += pValue;
-	pMatrix[2][2] += pValue;
-	pMatrix[3][3] += pValue;
-}
-
-
-// Sum two matrices element by element.
-void MatrixAdd(FbxAMatrix& pDstMatrix, FbxAMatrix& pSrcMatrix)
-{
-	int i,j;
-
-	for (i = 0; i < 4; i++)
-	{
-		for (j = 0; j < 4; j++)
-		{
-			pDstMatrix[i][j] += pSrcMatrix[i][j];
-		}
-	}
-}
-
-void ComputeLinearDeformation(FbxAMatrix& pGlobalPosition, 
-	FbxMesh* pMesh, 
-	FbxTime& pTime, 
-	FbxVector4* pVertexArray,
-	FbxPose* pPose)
-{
-	// All the links must have the same link mode.
-	FbxCluster::ELinkMode lClusterMode = ((FbxSkin*)pMesh->GetDeformer(0, FbxDeformer::eSkin))->GetCluster(0)->GetLinkMode();
-
-	int lVertexCount = pMesh->GetControlPointsCount();
-	FbxAMatrix* lClusterDeformation = new FbxAMatrix[lVertexCount];
-	memset(lClusterDeformation, 0, lVertexCount * sizeof(FbxAMatrix));
-
-	double* lClusterWeight = new double[lVertexCount];
-	memset(lClusterWeight, 0, lVertexCount * sizeof(double));
-
-	if (lClusterMode == FbxCluster::eAdditive)
-	{
-		for (int i = 0; i < lVertexCount; ++i)
-		{
-			lClusterDeformation[i].SetIdentity();
-		}
-	}
-
-	// For all skins and all clusters, accumulate their deformation and weight
-	// on each vertices and store them in lClusterDeformation and lClusterWeight.
-	int lSkinCount = pMesh->GetDeformerCount(FbxDeformer::eSkin);
-	for ( int lSkinIndex=0; lSkinIndex<lSkinCount; ++lSkinIndex)
-	{
-		FbxSkin * lSkinDeformer = (FbxSkin *)pMesh->GetDeformer(lSkinIndex, FbxDeformer::eSkin);
-
-		int lClusterCount = lSkinDeformer->GetClusterCount();
-		for ( int lClusterIndex=0; lClusterIndex<lClusterCount; ++lClusterIndex)
-		{
-			FbxCluster* lCluster = lSkinDeformer->GetCluster(lClusterIndex);
-			if (!lCluster->GetLink())
-				continue;
-
-			FbxAMatrix lVertexTransformMatrix;
-			//ComputeClusterDeformation(pGlobalPosition, pMesh, lCluster, lVertexTransformMatrix, pTime, pPose);
-
-			int lVertexIndexCount = lCluster->GetControlPointIndicesCount();
-			for (int k = 0; k < lVertexIndexCount; ++k) 
-			{            
-				int lIndex = lCluster->GetControlPointIndices()[k];
-
-				// Sometimes, the mesh can have less points than at the time of the skinning
-				// because a smooth operator was active when skinning but has been deactivated during export.
-				if (lIndex >= lVertexCount)
-					continue;
-
-				double lWeight = lCluster->GetControlPointWeights()[k];
-
-				if (lWeight == 0.0)
-				{
-					continue;
-				}
-
-				// Compute the influence of the link on the vertex.
-				FbxAMatrix lInfluence = lVertexTransformMatrix;
-				MatrixScale(lInfluence, lWeight);
-
-				if (lClusterMode == FbxCluster::eAdditive)
-				{    
-					// Multiply with the product of the deformations on the vertex.
-					MatrixAddToDiagonal(lInfluence, 1.0 - lWeight);
-					lClusterDeformation[lIndex] = lInfluence * lClusterDeformation[lIndex];
-
-					// Set the link to 1.0 just to know this vertex is influenced by a link.
-					
-					[lIndex] = 1.0;
-				}
-				else // lLinkMode == FbxCluster::eNormalize || lLinkMode == FbxCluster::eTotalOne
-				{
-					// Add to the sum of the deformations on the vertex.
-					MatrixAdd(lClusterDeformation[lIndex], lInfluence);
-
-					// Add to the sum of weights to either normalize or complete the vertex.
-					lClusterWeight[lIndex] += lWeight;
-				}
-			}//For each vertex			
-		}//lClusterCount
-	}
-
-	//Actually deform each vertices here by information stored in lClusterDeformation and lClusterWeight
-	for (int i = 0; i < lVertexCount; i++) 
-	{
-		FbxVector4 lSrcVertex = pVertexArray[i];
-		FbxVector4& lDstVertex = pVertexArray[i];
-		double lWeight = lClusterWeight[i];
-
-		// Deform the vertex if there was at least a link with an influence on the vertex,
-		if (lWeight != 0.0) 
-		{
-			lDstVertex = lClusterDeformation[i].MultT(lSrcVertex);
-			if (lClusterMode == FbxCluster::eNormalize)
-			{
-				// In the normalized link mode, a vertex is always totally influenced by the links. 
-				lDstVertex /= lWeight;
-			}
-			else if (lClusterMode == FbxCluster::eTotalOne)
-			{
-				// In the total 1 link mode, a vertex can be partially influenced by the links. 
-				lSrcVertex *= (1.0 - lWeight);
-				lDstVertex += lSrcVertex;
-			}
-		} 
-	}
-
-	delete [] lClusterDeformation;
-	delete [] lClusterWeight;
-}
-
-void ComputeSkinDeformation(FbxAMatrix& pGlobalPosition, 
-	FbxMesh* pMesh, 
-	FbxTime& pTime, 
-	FbxVector4* pVertexArray,
-	FbxPose* pPose)
-{
-	FbxSkin * lSkinDeformer = (FbxSkin *)pMesh->GetDeformer(0, FbxDeformer::eSkin);
-	FbxSkin::EType lSkinningType = lSkinDeformer->GetSkinningType();
-
-	if(lSkinningType == FbxSkin::eLinear || lSkinningType == FbxSkin::eRigid)
-	{
-		ComputeLinearDeformation(pGlobalPosition, pMesh, pTime, pVertexArray, pPose);
-	}
-	else if(lSkinningType == FbxSkin::eDualQuaternion)
-	{
-		//ComputeDualQuaternionDeformation(pGlobalPosition, pMesh, pTime, pVertexArray, pPose);
-	}
-	else if(lSkinningType == FbxSkin::eBlend)
-	{
-		int lVertexCount = pMesh->GetControlPointsCount();
-
-		FbxVector4* lVertexArrayLinear = new FbxVector4[lVertexCount];
-		memcpy(lVertexArrayLinear, pMesh->GetControlPoints(), lVertexCount * sizeof(FbxVector4));
-
-		FbxVector4* lVertexArrayDQ = new FbxVector4[lVertexCount];
-		memcpy(lVertexArrayDQ, pMesh->GetControlPoints(), lVertexCount * sizeof(FbxVector4));
-
-		//ComputeLinearDeformation(pGlobalPosition, pMesh, pTime, lVertexArrayLinear, pPose);
-		//ComputeDualQuaternionDeformation(pGlobalPosition, pMesh, pTime, lVertexArrayDQ, pPose);
-
-		// To blend the skinning according to the blend weights
-		// Final vertex = DQSVertex * blend weight + LinearVertex * (1- blend weight)
-		// DQSVertex: vertex that is deformed by dual quaternion skinning method;
-		// LinearVertex: vertex that is deformed by classic linear skinning method;
-		int lBlendWeightsCount = lSkinDeformer->GetControlPointIndicesCount();
-		for(int lBWIndex = 0; lBWIndex<lBlendWeightsCount; ++lBWIndex)
-		{
-			double lBlendWeight = lSkinDeformer->GetControlPointBlendWeights()[lBWIndex];
-			pVertexArray[lBWIndex] = lVertexArrayDQ[lBWIndex] * lBlendWeight + lVertexArrayLinear[lBWIndex] * (1 - lBlendWeight);
-		}
-	}
-}
-
-void ReadVertexCacheData(FbxMesh* pMesh, 
-	FbxTime& pTime, 
-	FbxVector4* pVertexArray)
-{
-	FbxVertexCacheDeformer* lDeformer     = static_cast<FbxVertexCacheDeformer*>(pMesh->GetDeformer(0, FbxDeformer::eVertexCache));
-	FbxCache*               lCache        = lDeformer->GetCache();
-	int                      lChannelIndex = -1;
-	unsigned int             lVertexCount  = (unsigned int)pMesh->GetControlPointsCount();
-	bool                     lReadSucceed  = false;
-	double*                  lReadBuf      = new double[3*lVertexCount];
-
-	if (lCache->GetCacheFileFormat() == FbxCache::eMayaCache)
-	{
-		if ((lChannelIndex = lCache->GetChannelIndex(lDeformer->GetCacheChannel())) > -1)
-		{
-			lReadSucceed = lCache->Read(lChannelIndex, pTime, lReadBuf, lVertexCount);
-		}
-	}
-	else // eMaxPointCacheV2
-	{
-		lReadSucceed = lCache->Read((unsigned int)pTime.GetFrameCount(), lReadBuf, lVertexCount);
-	}
-
-	if (lReadSucceed)
-	{
-		unsigned int lReadBufIndex = 0;
-
-		while (lReadBufIndex < 3*lVertexCount)
-		{
-			// In statements like "pVertexArray[lReadBufIndex/3].SetAt(2, lReadBuf[lReadBufIndex++])", 
-			// on Mac platform, "lReadBufIndex++" is evaluated before "lReadBufIndex/3". 
-			// So separate them.
-			pVertexArray[lReadBufIndex/3].mData[0] = lReadBuf[lReadBufIndex]; lReadBufIndex++;
-			pVertexArray[lReadBufIndex/3].mData[1] = lReadBuf[lReadBufIndex]; lReadBufIndex++;
-			pVertexArray[lReadBufIndex/3].mData[2] = lReadBuf[lReadBufIndex]; lReadBufIndex++;
-		}
-	}
-
-	delete [] lReadBuf;
-}
 
 SkeletalMesh::SkeletalMesh(void)
+	:_VertexBuffer(NULL),
+	_IndexBuffer(NULL),
+	_VertexStride(0),
+	_PositionArray(NULL),
+	_NormalArray(NULL),
+	_TexCoordArray(NULL),
+	_SkinInfoArray(NULL),
+	_NumTexCoord(0),
+	_NumTriangle(0),
+	_NumVertex(0),
+	_BoneMatricesBuffer(NULL),
+	_BoneMatrices(NULL)
 {
 }
 
 
 SkeletalMesh::~SkeletalMesh(void)
 {
+	if(_PositionArray) delete[] _PositionArray;
+	if(_NormalArray) delete[] _NormalArray;
+	if(_TexCoordArray) delete[] _TexCoordArray;
+	if(_IndiceArray) delete[] _IndiceArray;
+
+	if(_SkinInfoArray) delete[] _SkinInfoArray;
+
+	if(_BoneMatrices) delete[] _BoneMatrices;
+
+	if(_VertexBuffer) _VertexBuffer->Release();
+	if(_IndexBuffer) _IndexBuffer->Release();
+	if(_BoneMatricesBuffer) _BoneMatricesBuffer->Release();
 }
+
+#define MAXBONE_VERTEX 4
+struct BoneInf
+{
+	std::string BoneName;
+	float Weight;
+	bool operator<(const BoneInf& other) const        
+	{             
+		if( Weight > other.Weight )
+			return true;
+		else
+			return false;
+	};
+};
+struct VertexSkinInfo
+{
+	std::vector<BoneInf> BoneLink;
+
+};
 
 bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 {
@@ -388,21 +198,15 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	_PositionArray = new XMFLOAT3[lPolygonVertexCount];
 	_IndiceArray = new WORD[PolygonCount * TRIANGLE_VERTEX_COUNT];
 
-	//float * lVertices = new float[lPolygonVertexCount * VERTEX_STRIDE];
-	//unsigned int * lIndices = new unsigned int[PolygonCount * TRIANGLE_VERTEX_COUNT];
-	//float * lNormals = NULL;
 	if (mHasNormal)
 	{
-		//lNormals = new float[lPolygonVertexCount * NORMAL_STRIDE];
 		_NormalArray = new XMFLOAT3[lPolygonVertexCount];
 	}
-	//float * lUVs = NULL;
 	FbxStringList lUVNames;
 	Mesh->GetUVSetNames(lUVNames);
 	const char * lUVName = NULL;
 	if (mHasUV && lUVNames.GetCount())
 	{
-		//lUVs = new float[lPolygonVertexCount * UV_STRIDE];
 		_TexCoordArray = new XMFLOAT2[lPolygonVertexCount];
 		lUVName = lUVNames[0];
 	}
@@ -428,10 +232,6 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		{
 			// Save the vertex position.
 			lCurrentVertex = lControlPoints[lIndex];
-			//lVertices[lIndex * VERTEX_STRIDE] = static_cast<float>(lCurrentVertex[0]);
-			//lVertices[lIndex * VERTEX_STRIDE + 1] = static_cast<float>(lCurrentVertex[1]);
-			//lVertices[lIndex * VERTEX_STRIDE + 2] = static_cast<float>(lCurrentVertex[2]);
-			//lVertices[lIndex * VERTEX_STRIDE + 3] = 1;
 			FbxVector4 FinalPosition = TotalMatrix.MultT(lCurrentVertex);
 
 
@@ -439,10 +239,6 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			_PositionArray[lIndex].y = static_cast<float>(FinalPosition[1]);
 			_PositionArray[lIndex].z = static_cast<float>(FinalPosition[2]);
 
-			/*sprintf(StrLog, "Vertex %d %d\n", lIndex);
-			sprintf(StrLog, "x : %d, y : %d, z : %d\n", PositionArray[lIndex].x, PositionArray[lIndex].y, PositionArray[lIndex].z);
-			OutputDebugStringA(StrLog);
-*/
 			// Save the normal.
 			if (mHasNormal)
 			{
@@ -452,9 +248,6 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 					lNormalIndex = lNormalElement->GetIndexArray().GetAt(lIndex);
 				}
 				lCurrentNormal = lNormalElement->GetDirectArray().GetAt(lNormalIndex);
-				//lNormals[lIndex * NORMAL_STRIDE] = static_cast<float>(lCurrentNormal[0]);
-				//lNormals[lIndex * NORMAL_STRIDE + 1] = static_cast<float>(lCurrentNormal[1]);
-				//lNormals[lIndex * NORMAL_STRIDE + 2] = static_cast<float>(lCurrentNormal[2]);
 
 				FbxVector4 FinalNormal = TotalMatrixForNormal.MultT(lCurrentNormal);
 
@@ -472,8 +265,6 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 					lUVIndex = lUVElement->GetIndexArray().GetAt(lIndex);
 				}
 				lCurrentUV = lUVElement->GetDirectArray().GetAt(lUVIndex);
-				//lUVs[lIndex * UV_STRIDE] = static_cast<float>(lCurrentUV[0]);
-				//lUVs[lIndex * UV_STRIDE + 1] = static_cast<float>(lCurrentUV[1]);
 				_TexCoordArray[lIndex].x = static_cast<float>(lCurrentUV[0]);
 				_TexCoordArray[lIndex].y = static_cast<float>(lCurrentUV[1]);
 			}
@@ -484,9 +275,6 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	int lVertexCount = 0;
 	for (int lPolygonIndex = 0; lPolygonIndex < PolygonCount; ++lPolygonIndex)
 	{
-	/*	sprintf(StrLog, "\npolygon %d\n", lPolygonIndex);
-		OutputDebugStringA(StrLog);
-*/
 		// The material for current face.
 		int lMaterialIndex = 0;
 		if (MaterialIndice && MaterialMappingMode == FbxGeometryElement::eByPolygon)
@@ -503,25 +291,16 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 
 			if (mAllByControlPoint)
 			{
-				//lIndices[lIndexOffset + lVerticeIndex] = static_cast<unsigned int>(lControlPointIndex);
 				_IndiceArray[lIndexOffset + lVerticeIndex] = static_cast<WORD>(lControlPointIndex);
 
-			/*	sprintf(StrLog, "%d, \n", IndiceArray[lIndexOffset + lVerticeIndex]);
-				OutputDebugStringA(StrLog);*/
 			}
 			// Populate the array with vertex attribute, if by polygon vertex.
 			else
 			{
-				//lIndices[lIndexOffset + lVerticeIndex] = static_cast<unsigned int>(lVertexCount);
 				_IndiceArray[lIndexOffset + lVerticeIndex] = static_cast<WORD>(lVertexCount);
 
 
 				lCurrentVertex = lControlPoints[lControlPointIndex];
-				///lVertices[lVertexCount * VERTEX_STRIDE] = static_cast<float>(lCurrentVertex[0]);
-				//lVertices[lVertexCount * VERTEX_STRIDE + 1] = static_cast<float>(lCurrentVertex[1]);
-				//lVertices[lVertexCount * VERTEX_STRIDE + 2] = static_cast<float>(lCurrentVertex[2]);
-				//lVertices[lVertexCount * VERTEX_STRIDE + 3] = 1;
-				//lCurrentVertex[0] = -lCurrentVertex[0];
 				FbxVector4 FinalPosition = TotalMatrix.MultT(lCurrentVertex);
 
 				_PositionArray[lVertexCount].x =  static_cast<float>(FinalPosition[0]);
@@ -533,10 +312,6 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 				if (mHasNormal)
 				{
 					Mesh->GetPolygonVertexNormal(lPolygonIndex, lVerticeIndex, lCurrentNormal);
-					//lNormals[lVertexCount * NORMAL_STRIDE] = static_cast<float>(lCurrentNormal[0]);
-					//lNormals[lVertexCount * NORMAL_STRIDE + 1] = static_cast<float>(lCurrentNormal[1]);
-					//lNormals[lVertexCount * NORMAL_STRIDE + 2] = static_cast<float>(lCurrentNormal[2]);
-
 					FbxVector4 FinalNormal = TotalMatrixForNormal.MultT(lCurrentNormal);
 
 					_NormalArray[lVertexCount].x = static_cast<float>(FinalNormal[0]);
@@ -548,8 +323,6 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 				if (mHasUV)
 				{
 					Mesh->GetPolygonVertexUV(lPolygonIndex, lVerticeIndex, lUVName, lCurrentUV);
-					//lUVs[lVertexCount * UV_STRIDE] = static_cast<float>(lCurrentUV[0]);
-					//lUVs[lVertexCount * UV_STRIDE + 1] = static_cast<float>(lCurrentUV[1]);
 
 					_TexCoordArray[lVertexCount].x = static_cast<float>(lCurrentUV[0]);
 					_TexCoordArray[lVertexCount].y = static_cast<float>(lCurrentUV[1]);
@@ -584,16 +357,9 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		// Active vertex cache deformer will overwrite any other deformer
 		if (lHasVertexCache)
 		{
-			ReadVertexCacheData(Mesh, lTimeLineTimeSpan.GetStart(), lVertexArray);
 		}
 		else
 		{
-			if (lHasShape)
-			{
-				// Deform the vertex array with the shapes.
-				//ComputeShapeDeformation(lMesh, pTime, pAnimLayer, lVertexArray);
-			}
-
 			//we need to get the number of clusters
 			const int lSkinCount = Mesh->GetDeformerCount(FbxDeformer::eSkin);
 			int lClusterCount = 0;
@@ -604,7 +370,219 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			if (lClusterCount)
 			{
 				// Deform the vertex array with the skin deformer.
-				ComputeSkinDeformation(pGlobalPosition, Mesh, lTimeLineTimeSpan.GetStart(), lVertexArray, lPose);
+				FbxSkin * lSkinDeformer = (FbxSkin *)Mesh->GetDeformer(0, FbxDeformer::eSkin);
+				FbxSkin::EType lSkinningType = lSkinDeformer->GetSkinningType();
+
+				if(lSkinningType == FbxSkin::eLinear || lSkinningType == FbxSkin::eRigid)
+				{
+					//ComputeLinearDeformation(pGlobalPosition, pMesh, pTime, pVertexArray, pPose);
+					// All the links must have the same link mode.
+					FbxCluster::ELinkMode lClusterMode = ((FbxSkin*)Mesh->GetDeformer(0, FbxDeformer::eSkin))->GetCluster(0)->GetLinkMode();
+
+					int lVertexCount = Mesh->GetControlPointsCount();
+					VertexSkinInfo* SkinInfoArray = new VertexSkinInfo[lVertexCount];
+
+					if (lClusterMode == FbxCluster::eAdditive)
+					{
+						for (int i = 0; i < lVertexCount; ++i)
+						{
+							//lClusterDeformation[i].SetIdentity();
+						}
+					}
+
+					int lSkinCount = Mesh->GetDeformerCount(FbxDeformer::eSkin);
+					for ( int lSkinIndex=0; lSkinIndex<lSkinCount; ++lSkinIndex)
+					{
+						FbxSkin * lSkinDeformer = (FbxSkin *)Mesh->GetDeformer(lSkinIndex, FbxDeformer::eSkin);
+
+						int lClusterCount = lSkinDeformer->GetClusterCount();
+						for ( int lClusterIndex=0; lClusterIndex<lClusterCount; ++lClusterIndex)
+						{
+							FbxCluster* lCluster = lSkinDeformer->GetCluster(lClusterIndex);
+							if (!lCluster->GetLink())
+								continue;
+
+							FbxNode* Bone = lCluster->GetLink();
+
+
+							FbxAMatrix lVertexTransformMatrix;
+							//ComputeClusterDeformation(pGlobalPosition, pMesh, lCluster, lVertexTransformMatrix, pTime, pPose);
+
+							int lVertexIndexCount = lCluster->GetControlPointIndicesCount();
+							for (int k = 0; k < lVertexIndexCount; ++k) 
+							{            
+								int lIndex = lCluster->GetControlPointIndices()[k];
+								
+								double lWeight = lCluster->GetControlPointWeights()[k];
+								
+								BoneInf Inf;
+								Inf.BoneName = Bone->GetName();
+								Inf.Weight = lWeight;
+								SkinInfoArray[lIndex].BoneLink.push_back(Inf);
+								// Sometimes, the mesh can have less points than at the time of the skinning
+								// because a smooth operator was active when skinning but has been deactivated during export.
+								if (lIndex >= lVertexCount)
+									continue;
+
+
+								if (lWeight == 0.0)
+								{
+									continue;
+								}
+							
+							}//For each vertex			
+						}//lClusterCount
+					}
+
+					int numOverLink = 0;
+					char Str[64];
+					for(int i=0;i<lVertexCount;i++)
+					{
+						VertexSkinInfo& SkinInfo = SkinInfoArray[i];
+						if(SkinInfo.BoneLink.size() > 4)
+						{
+							numOverLink++;
+							sprintf(Str, "link bone number is more that 4 : %d\n", SkinInfo.BoneLink.size());
+							OutputDebugStringA(Str);
+							std::sort (SkinInfo.BoneLink.begin(), SkinInfo.BoneLink.end());
+							for(int OverIndex=4;OverIndex<SkinInfo.BoneLink.size();OverIndex++)
+							{
+								sprintf(Str, "Removing over linked bone : %s, %f\n", SkinInfo.BoneLink[OverIndex].BoneName.c_str(), SkinInfo.BoneLink[OverIndex].Weight);
+								OutputDebugStringA(Str);
+								for(int k=0;k<4;k++)
+								{
+									SkinInfo.BoneLink[k].Weight += SkinInfo.BoneLink[OverIndex].Weight/4.f;
+								}
+							}
+							int NumErase = SkinInfo.BoneLink.size() - 4;
+							SkinInfo.BoneLink.erase(SkinInfo.BoneLink.end()-NumErase, SkinInfo.BoneLink.end());
+						}
+						float WeightTotal = 0.f;
+						for(int k=0;k<SkinInfo.BoneLink.size();k++)
+						{
+							WeightTotal += SkinInfo.BoneLink[k].Weight;
+							sprintf(Str, "%s : %f, ", SkinInfo.BoneLink[k].BoneName.c_str(), SkinInfo.BoneLink[k].Weight);
+							OutputDebugStringA(Str);
+						}
+
+						sprintf(Str, "total : %f, ", WeightTotal);
+						OutputDebugStringA(Str);
+						OutputDebugStringA("\n");
+
+						assert(WeightTotal >= 0.999f);
+					}
+
+					std::map<std::string, BoneIndexInfo>& BoneIndexMap = Importer->BoneIndexMap;
+					for(int i=0;i<lVertexCount;i++)
+					{
+						VertexSkinInfo& SkinInfo = SkinInfoArray[i];
+						for(int k=0;k<SkinInfo.BoneLink.size();k++)
+						{
+							std::string& LinkedBoneName = SkinInfo.BoneLink[k].BoneName;
+							std::map<std::string, BoneIndexInfo>::iterator it;
+							it = BoneIndexMap.find(LinkedBoneName);
+							if(it != BoneIndexMap.end())
+							{
+								BoneIndexInfo& LinkInfo = it->second;
+								LinkInfo.IsUsedLink = true;
+							}
+						}
+					}
+
+					std::map<std::string, BoneIndexInfo>::iterator it;
+					for(it=BoneIndexMap.begin();it!=BoneIndexMap.end();)
+					{
+						BoneIndexInfo& LinkInfo = it->second;
+						if(LinkInfo.IsUsedLink == false)
+						{
+							it = BoneIndexMap.erase(it);
+						}
+						else
+							it++;
+					}
+
+					sprintf(Str, "\nnum used Bone : %d\n\n", BoneIndexMap.size());
+					OutputDebugStringA(Str);
+
+					std::vector<BoneIndexInfo>& BoneLinkArray = Importer->BoneArray;
+
+					for(it=BoneIndexMap.begin();it!=BoneIndexMap.end();it++)
+					{
+						BoneIndexInfo& LinkInfo = it->second;
+						sprintf(Str, "%s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
+						OutputDebugStringA(Str);
+						BoneLinkArray.push_back(LinkInfo);
+					}
+
+					std::sort(BoneLinkArray.begin(),BoneLinkArray.end());
+
+					for(int BoneIndex=0;BoneIndex<BoneLinkArray.size();BoneIndex++)
+					{
+						BoneIndexInfo& LinkInfo = BoneLinkArray[BoneIndex];
+
+						std::map<std::string, BoneIndexInfo>::iterator it;
+						it = BoneIndexMap.find(LinkInfo.BoneName);
+						if(it != BoneIndexMap.end())
+						{
+							BoneIndexInfo& LinkInfoMap = it->second;
+							LinkInfoMap.Index = BoneIndex;
+						}
+						sprintf(Str, "sorted %s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
+						OutputDebugStringA(Str);
+					}
+
+
+					for(it=BoneIndexMap.begin();it!=BoneIndexMap.end();it++)
+					{
+						BoneIndexInfo& LinkInfo = it->second;
+						sprintf(Str, "%s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
+						OutputDebugStringA(Str);
+					}
+
+					_SkinInfoArray = new SkinInfo[lVertexCount];
+					for(int Vert=0;Vert<lVertexCount;Vert++)
+					{
+						VertexSkinInfo& SkinInfo = SkinInfoArray[Vert];
+						for(int BIdx=0;BIdx<SkinInfo.BoneLink.size();BIdx++)
+						{
+							_SkinInfoArray[Vert].Weights[BIdx] = SkinInfo.BoneLink[BIdx].Weight;
+
+							// find real bone index
+							std::map<std::string, BoneIndexInfo>::iterator it;
+							it = BoneIndexMap.find(SkinInfo.BoneLink[BIdx].BoneName);
+							if(it != BoneIndexMap.end())
+							{
+								BoneIndexInfo& LinkInfoMap = it->second;
+								_SkinInfoArray[Vert].Bones[BIdx] = LinkInfoMap.Index;
+							}
+							//_SkinInfoArray[Vert].Bones = 
+						}
+						int Remain = 4-SkinInfo.BoneLink.size();
+						for(int r=0;r<Remain;r++)
+						{
+							int RIndex = 3-r;
+							_SkinInfoArray[Vert].Weights[RIndex] = 0.f;
+							_SkinInfoArray[Vert].Bones[RIndex] = 0;
+						}
+					}
+
+					for(int j=0;j<lVertexCount;j++)
+					{
+						SkinInfo& SInfo = _SkinInfoArray[j];
+						for(int BIdx=0;BIdx<4;BIdx++)
+						{
+							sprintf(Str, " %d: %d, %f, ",j,  SInfo.Bones[BIdx], SInfo.Weights[BIdx]);
+							OutputDebugStringA(Str);
+						}
+						OutputDebugStringA("\n");
+					}
+
+					// fill ref pose matrices
+					_NumBone = BoneLinkArray.size();
+					_BoneMatrices = new XMFLOAT4X4[_NumBone];
+
+					delete[] SkinInfoArray;
+				}
 			}
 		}
 

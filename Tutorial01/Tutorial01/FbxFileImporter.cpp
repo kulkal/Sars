@@ -194,6 +194,18 @@ void FbxFileImporter::TriangulateRecursive(FbxNode* pNode)
 	}
 }
 
+void FillBoneIndexMapRecursive(FbxNode* Node, std::map<std::string, BoneIndexInfo>& BoneIndexMap, int& NumBone)
+{
+	BoneIndexMap.insert(std::pair<std::string, BoneIndexInfo>(Node->GetName(), BoneIndexInfo(Node->GetName(), NumBone)));
+	NumBone++;
+
+	const int lChildCount = Node->GetChildCount();
+	for (int lChildIndex = 0; lChildIndex < lChildCount; ++lChildIndex)
+	{
+		FillBoneIndexMapRecursive(Node->GetChild(lChildIndex), BoneIndexMap, NumBone);
+	}
+}
+
 void FbxFileImporter::ImportSkeletalMesh( std::vector<SkeletalMesh*>& outSkeletalMeshArray )
 {
 	bool lResult = false;
@@ -234,6 +246,19 @@ void FbxFileImporter::ImportSkeletalMesh( std::vector<SkeletalMesh*>& outSkeleta
 				char* AnimStackname = mAnimStackNameArray[i]->Buffer();
 				OutputDebugStringA(AnimStackname);
 				OutputDebugStringA("\n");
+			}
+
+			int NumBone = 0;
+			FillBoneIndexMapRecursive(mScene->GetRootNode(), BoneIndexMap, NumBone);
+
+			char Str[64];
+			std::map<std::string, BoneIndexInfo>::iterator it;
+			for(it=BoneIndexMap.begin();it!=BoneIndexMap.end();it++)
+			{
+				std::string BoneName = it->first;
+				BoneIndexInfo& BoneIndexInfo = it->second;
+				sprintf(Str, "%s %d\n", BoneName.c_str(), BoneIndexInfo.Index);
+				OutputDebugStringA(Str);
 			}
 
 			//TriangulateRecursive(mScene->GetRootNode());
