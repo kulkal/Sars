@@ -3,9 +3,10 @@
 #include <string>
 #include <vector>
 #include <map>
-
+#include "Skeleton.h"
 class StaticMesh;
 class SkeletalMesh;
+
 
 struct BoneIndexInfo
 {
@@ -55,6 +56,9 @@ public:
 	void TriangulateRecursive(FbxNode* pNode);
 	void FillFbxMeshArray(FbxNode* pNode, std::vector<StaticMesh*>& outStaticMeshArray);
 	void FillFbxSkelMeshArray(FbxNode* pNode, std::vector<SkeletalMesh*>& outSkeletalMeshArray);
+
+	Skeleton* ImportSkeleton();
+	void FillSkeletonJointRecursive(FbxNode* pNode, std::vector<SkeletonJoint>& outJounts);
 
 	void ImportStaticMesh(std::vector<StaticMesh*>& outStaticMeshArray);
 	void ImportSkeletalMesh(std::vector<SkeletalMesh*>& outSkeletalMeshArray);

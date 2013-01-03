@@ -265,6 +265,21 @@ void FbxFileImporter::ImportSkeletalMesh( std::vector<SkeletalMesh*>& outSkeleta
 			FillFbxSkelMeshArray(mScene->GetRootNode(), outSkeletalMeshArray);
 
 
+			FbxAnimStack * lCurrentAnimationStack = mScene->FindMember<FbxAnimStack>(mAnimStackNameArray[0]->Buffer());
+			if (lCurrentAnimationStack == NULL)
+			{
+				// this is a problem. The anim stack should be found in the scene!
+				return;
+			}
+
+			// we assume that the first animation layer connected to the animation stack is the base layer
+			// (this is the assumption made in the FBXSDK)
+			FbxAnimLayer* mCurrentAnimLayer = lCurrentAnimationStack->GetMember<FbxAnimLayer>();
+			mScene->GetEvaluator()->SetContext(lCurrentAnimationStack);
+
+			int PoseCount = mScene->GetPoseCount();
+
+
 			lResult = true;
 		}
 		else
@@ -302,5 +317,47 @@ void FbxFileImporter::FillFbxSkelMeshArray( FbxNode* pNode, std::vector<Skeletal
 	for (int lChildIndex = 0; lChildIndex < lChildCount; ++lChildIndex)
 	{
 		FillFbxSkelMeshArray(pNode->GetChild(lChildIndex), outSkeletalMeshArray);
+	}
+}
+
+Skeleton* FbxFileImporter::ImportSkeleton()
+{
+	return NULL;
+}
+
+void FbxFileImporter::FillSkeletonJointRecursive( FbxNode* pNode, std::vector<SkeletonJoint>& outJounts )
+{
+	FbxMesh * pFbxMesh = pNode->GetMesh();
+	if (pFbxMesh)
+	{
+		const int lSkinCount = pFbxMesh->GetDeformerCount(FbxDeformer::eSkin);
+		if(lSkinCount > 0)
+		{
+			for ( int lSkinIndex=0; lSkinIndex<lSkinCount; ++lSkinIndex)
+			{
+				FbxSkin * lSkinDeformer = (FbxSkin *)pFbxMesh->GetDeformer(lSkinIndex, FbxDeformer::eSkin);
+				int lClusterCount = lSkinDeformer->GetClusterCount();
+				for ( int lClusterIndex=0; lClusterIndex<lClusterCount; ++lClusterIndex)
+				{
+					FbxCluster* lCluster = lSkinDeformer->GetCluster(lClusterIndex);
+					if (!lCluster->GetLink())
+						continue;
+
+					lClu
+						ster->GetTransformMatrix(lReferenceGlobalInitPosition);
+
+				}
+			}
+
+		}
+	}
+	SkeletonJoint Joint;
+
+
+
+	const int lChildCount = pNode->GetChildCount();
+	for (int lChildIndex = 0; lChildIndex < lChildCount; ++lChildIndex)
+	{
+		FillSkeletonJointRecursive(pNode->GetChild(lChildIndex), outJounts);
 	}
 }

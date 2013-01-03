@@ -8,6 +8,7 @@
 
 #include "ShaderRes.h"
 #include "FbxFileImporter.h"
+#include "Skeleton.h"
 
 #include "baseobject.h"
 
@@ -31,14 +32,11 @@ struct NormalTexVertexGpuSkin
 
 struct SkinInfo
 {
-	float Weights[MAX_BONELINKE];
-	unsigned int Bones[MAX_BONELINKE];
+	float			Weights[MAX_BONELINKE];
+	unsigned int	Bones[MAX_BONELINKE];
 };
 
-struct Skeleton
-{
-	XMFLOAT4X4* _Pose;
-};
+
 
 class SkeletalMesh :
 	public BaseObject
@@ -52,8 +50,7 @@ public:
 
 	SkinInfo* _SkinInfoArray;
 
-	int _NumBone;
-	XMFLOAT4X4* _BoneMatrices;
+	
 
 	int _NumTexCoord;
 	int _NumTriangle;
@@ -74,7 +71,10 @@ public:
 
 	std::vector<SubMesh*> _SubMeshArray;
 
-
+	int _NumBone;
+	XMFLOAT4X4* _BoneMatrices;
+	Skeleton*	_Skeleton;
+	SkeletonPose* _Pose;
 public:
 	bool ImportFromFbxMesh(FbxMesh* Mesh, FbxFileImporter* Importer);
 

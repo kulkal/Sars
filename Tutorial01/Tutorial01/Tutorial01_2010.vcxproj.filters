@@ -61,6 +61,7 @@
     <ClInclude Include="RenderTargets.h" />
     <ClInclude Include="SkeletalMesh.h" />
     <ClInclude Include="SkeletalMeshComponent.h" />
+    <ClInclude Include="Skeleton.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
