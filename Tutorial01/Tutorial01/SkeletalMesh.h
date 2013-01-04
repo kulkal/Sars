@@ -58,7 +58,7 @@ public:
 
 	ID3D11Buffer*           _VertexBuffer;
 	ID3D11Buffer*           _IndexBuffer;
-	ID3D11Buffer*		_BoneMatricesBuffer;
+	ID3D11Buffer*			_BoneMatricesBuffer;
 
 	unsigned int _VertexStride;
 
