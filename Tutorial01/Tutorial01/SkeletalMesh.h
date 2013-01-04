@@ -58,7 +58,7 @@ public:
 
 	ID3D11Buffer*           _VertexBuffer;
 	ID3D11Buffer*           _IndexBuffer;
-	ID3D11Texture2D*		_BoneMatricesBuffer;
+	ID3D11Buffer*		_BoneMatricesBuffer;
 
 	unsigned int _VertexStride;
 
@@ -71,12 +71,19 @@ public:
 
 	std::vector<SubMesh*> _SubMeshArray;
 
+	// linked bone data.
 	int _NumBone;
 	XMFLOAT4X4* _BoneMatrices;
+	XMFLOAT4X4* _BoneWorld;
+
+	int* _RequiredBoneArray;
+	
 	Skeleton*	_Skeleton;
 	SkeletonPose* _Pose;
 public:
 	bool ImportFromFbxMesh(FbxMesh* Mesh, FbxFileImporter* Importer);
+
+	void UpdateBoneMatrices();
 
 	SkeletalMesh(void);
 	virtual ~SkeletalMesh(void);

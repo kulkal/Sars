@@ -20,7 +20,9 @@ SkeletalMesh::SkeletalMesh(void)
 	_NumTriangle(0),
 	_NumVertex(0),
 	_BoneMatricesBuffer(NULL),
-	_BoneMatrices(NULL)
+	_RequiredBoneArray(NULL),
+	_BoneMatrices(NULL),
+	_BoneWorld(NULL)
 {
 }
 
@@ -35,6 +37,8 @@ SkeletalMesh::~SkeletalMesh(void)
 	if(_SkinInfoArray) delete[] _SkinInfoArray;
 
 	if(_BoneMatrices) delete[] _BoneMatrices;
+	if(_BoneWorld) delete[] _BoneWorld;
+	if(_RequiredBoneArray) delete[] _RequiredBoneArray;
 
 	if(_VertexBuffer) _VertexBuffer->Release();
 	if(_IndexBuffer) _IndexBuffer->Release();
@@ -417,7 +421,7 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 								
 								BoneInf Inf;
 								Inf.BoneName = Bone->GetName();
-								Inf.Weight = lWeight;
+								Inf.Weight = (float)lWeight;
 								SkinInfoArray[lIndex].BoneLink.push_back(Inf);
 								// Sometimes, the mesh can have less points than at the time of the skinning
 								// because a smooth operator was active when skinning but has been deactivated during export.
@@ -442,13 +446,13 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 						if(SkinInfo.BoneLink.size() > 4)
 						{
 							numOverLink++;
-							sprintf(Str, "link bone number is more that 4 : %d\n", SkinInfo.BoneLink.size());
-							OutputDebugStringA(Str);
+						/*	sprintf(Str, "link bone number is more that 4 : %d\n", SkinInfo.BoneLink.size());
+							OutputDebugStringA(Str);*/
 							std::sort (SkinInfo.BoneLink.begin(), SkinInfo.BoneLink.end());
-							for(int OverIndex=4;OverIndex<SkinInfo.BoneLink.size();OverIndex++)
+							for(unsigned int OverIndex=4;OverIndex<SkinInfo.BoneLink.size();OverIndex++)
 							{
-								sprintf(Str, "Removing over linked bone : %s, %f\n", SkinInfo.BoneLink[OverIndex].BoneName.c_str(), SkinInfo.BoneLink[OverIndex].Weight);
-								OutputDebugStringA(Str);
+							/*	sprintf(Str, "Removing over linked bone : %s, %f\n", SkinInfo.BoneLink[OverIndex].BoneName.c_str(), SkinInfo.BoneLink[OverIndex].Weight);
+								OutputDebugStringA(Str);*/
 								for(int k=0;k<4;k++)
 								{
 									SkinInfo.BoneLink[k].Weight += SkinInfo.BoneLink[OverIndex].Weight/4.f;
@@ -458,16 +462,16 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 							SkinInfo.BoneLink.erase(SkinInfo.BoneLink.end()-NumErase, SkinInfo.BoneLink.end());
 						}
 						float WeightTotal = 0.f;
-						for(int k=0;k<SkinInfo.BoneLink.size();k++)
+						for(unsigned int k=0;k<SkinInfo.BoneLink.size();k++)
 						{
 							WeightTotal += SkinInfo.BoneLink[k].Weight;
-							sprintf(Str, "%s : %f, ", SkinInfo.BoneLink[k].BoneName.c_str(), SkinInfo.BoneLink[k].Weight);
-							OutputDebugStringA(Str);
+							/*sprintf(Str, "%s : %f, ", SkinInfo.BoneLink[k].BoneName.c_str(), SkinInfo.BoneLink[k].Weight);
+							OutputDebugStringA(Str);*/
 						}
 
-						sprintf(Str, "total : %f, ", WeightTotal);
+					/*	sprintf(Str, "total : %f, ", WeightTotal);
 						OutputDebugStringA(Str);
-						OutputDebugStringA("\n");
+						OutputDebugStringA("\n");*/
 
 						assert(WeightTotal >= 0.999f);
 					}
@@ -476,7 +480,7 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 					for(int i=0;i<lVertexCount;i++)
 					{
 						VertexSkinInfo& SkinInfo = SkinInfoArray[i];
-						for(int k=0;k<SkinInfo.BoneLink.size();k++)
+						for(unsigned int k=0;k<SkinInfo.BoneLink.size();k++)
 						{
 							std::string& LinkedBoneName = SkinInfo.BoneLink[k].BoneName;
 							std::map<std::string, BoneIndexInfo>::iterator it;
@@ -501,22 +505,22 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 							it++;
 					}
 
-					sprintf(Str, "\nnum used Bone : %d\n\n", BoneIndexMap.size());
-					OutputDebugStringA(Str);
+					/*sprintf(Str, "\nnum used Bone : %d\n\n", BoneIndexMap.size());
+					OutputDebugStringA(Str);*/
 
 					std::vector<BoneIndexInfo>& BoneLinkArray = Importer->BoneArray;
 
 					for(it=BoneIndexMap.begin();it!=BoneIndexMap.end();it++)
 					{
 						BoneIndexInfo& LinkInfo = it->second;
-						sprintf(Str, "%s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
-						OutputDebugStringA(Str);
+						/*sprintf(Str, "%s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
+						OutputDebugStringA(Str);*/
 						BoneLinkArray.push_back(LinkInfo);
 					}
 
 					std::sort(BoneLinkArray.begin(),BoneLinkArray.end());
 
-					for(int BoneIndex=0;BoneIndex<BoneLinkArray.size();BoneIndex++)
+					for(unsigned int BoneIndex=0;BoneIndex<BoneLinkArray.size();BoneIndex++)
 					{
 						BoneIndexInfo& LinkInfo = BoneLinkArray[BoneIndex];
 
@@ -527,23 +531,23 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 							BoneIndexInfo& LinkInfoMap = it->second;
 							LinkInfoMap.Index = BoneIndex;
 						}
-						sprintf(Str, "sorted %s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
-						OutputDebugStringA(Str);
+						/*sprintf(Str, "sorted %s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
+						OutputDebugStringA(Str);*/
 					}
 
 
-					for(it=BoneIndexMap.begin();it!=BoneIndexMap.end();it++)
-					{
-						BoneIndexInfo& LinkInfo = it->second;
-						sprintf(Str, "%s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
-						OutputDebugStringA(Str);
-					}
+					//for(it=BoneIndexMap.begin();it!=BoneIndexMap.end();it++)
+					//{
+					//	BoneIndexInfo& LinkInfo = it->second;
+					//	/*sprintf(Str, "%s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
+					//	OutputDebugStringA(Str);*/
+					//}
 
 					_SkinInfoArray = new SkinInfo[lVertexCount];
 					for(int Vert=0;Vert<lVertexCount;Vert++)
 					{
 						VertexSkinInfo& SkinInfo = SkinInfoArray[Vert];
-						for(int BIdx=0;BIdx<SkinInfo.BoneLink.size();BIdx++)
+						for(unsigned int BIdx=0;BIdx<SkinInfo.BoneLink.size();BIdx++)
 						{
 							_SkinInfoArray[Vert].Weights[BIdx] = SkinInfo.BoneLink[BIdx].Weight;
 
@@ -566,7 +570,7 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 						}
 					}
 
-					for(int j=0;j<lVertexCount;j++)
+ 					/*for(int j=0;j<lVertexCount;j++)
 					{
 						SkinInfo& SInfo = _SkinInfoArray[j];
 						for(int BIdx=0;BIdx<4;BIdx++)
@@ -575,12 +579,19 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 							OutputDebugStringA(Str);
 						}
 						OutputDebugStringA("\n");
-					}
+					}*/
 
 					// fill ref pose matrices
 					_NumBone = BoneLinkArray.size();
-					_BoneMatrices = new XMFLOAT4X4[_NumBone];
 
+					
+					_RequiredBoneArray = new int[_NumBone];
+					for(int i=0;i<_NumBone;i++)
+					{
+						_RequiredBoneArray[i] = BoneLinkArray[i].SkeletonIndex;
+						/*sprintf(Str, " %d: %d\n",i, _RequiredBoneArray[i]);
+						OutputDebugStringA(Str);*/
+					}
 					delete[] SkinInfoArray;
 				}
 			}
@@ -668,4 +679,63 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	}
 
 	return true;
+}
+
+// this function should be moved to Component instance
+void SkeletalMesh::UpdateBoneMatrices()
+{
+	// calc world matrix for entire bone array
+	// BoneMatrices[i] = LocalBoneMat[i] * BoneMatrices[ParentIndex]
+
+	// calc Bone matrices for linked bones
+	// BoneMatricesLinked[i] = Skeleton._Joint[i] * BoneMatrices[i]
+
+	if( _BoneMatrices == NULL)
+		_BoneMatrices = new XMFLOAT4X4[_Skeleton->_JointCount];
+	if( _BoneWorld == NULL)
+		_BoneWorld = new XMFLOAT4X4[_Skeleton->_JointCount];
+
+	for(int i=0;i<_Skeleton->_JointCount;i++)
+	{
+		//int SkeletonIndex = _RequiredBoneArray[i];
+		//XMFLOAT4X4& RefInv = _Skeleton->_Joints[SkeletonIndex]._InvRefPose;
+		SkeletonJoint& RefPose = _Skeleton->_Joints[i];
+		JointPose& LocalPose = _Pose->_LocalPoseArray[i];
+		XMMATRIX MatScale = XMMatrixScaling(LocalPose._Scale.x, LocalPose._Scale.y, LocalPose._Scale.z);
+		XMVECTOR QuatVec = XMLoadFloat4(&LocalPose._Rot);
+		XMMATRIX MatRot = XMMatrixRotationQuaternion(QuatVec);
+		XMMATRIX MatTrans = XMMatrixTranslation(LocalPose._Trans.x, LocalPose._Trans.y, LocalPose._Trans.z);
+
+		XMMATRIX MatLocal;
+		if(RefPose._ParentIndex < 0) // root
+		{
+			MatLocal = MatScale * MatRot * MatTrans;
+			XMStoreFloat4x4(&_BoneWorld[i], MatLocal);
+		}
+		else
+		{
+			XMMATRIX MatParent;
+			XMFLOAT4X4 MatParentF = _BoneWorld[RefPose._ParentIndex];
+			MatParent = XMLoadFloat4x4(&MatParentF);
+
+			MatLocal = MatScale * MatRot * MatTrans * MatParent;
+			XMStoreFloat4x4(&_BoneWorld[i], MatLocal);
+		}
+	}
+
+	for(int i=0;i<_NumBone;i++)
+	{
+		int SkeletonIndex = _RequiredBoneArray[i];
+		XMFLOAT4X4& RefInvF = _Skeleton->_Joints[SkeletonIndex]._InvRefPose;
+
+		XMMATRIX RefInv;
+		RefInv = XMLoadFloat4x4(&RefInvF);
+
+		XMMATRIX World;
+		World = XMLoadFloat4x4(&_BoneWorld[SkeletonIndex]);
+
+		XMMATRIX MatBone;
+		MatBone = RefInv * World;
+		XMStoreFloat4x4(&_BoneMatrices[i], MatBone);
+	}
 }

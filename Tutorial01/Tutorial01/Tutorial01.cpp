@@ -430,9 +430,14 @@ void Render()
 	memcpy(GEngine->_SimpleDrawer->vLightDirs, vLightDirs, sizeof(XMFLOAT4)*2);
 
 	for(unsigned int i=0;i<StaticMeshArray.size();i++)
+	{
 		GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
-	//for(INT i=0;i<StaticMeshArray2.size();i++)
-	//	GEngine->SimpleDrawer->DrawStaticMesh(StaticMeshArray2[0]);
+	}
+	for(unsigned i=0;i<SkeletalMeshArray.size();i++)
+	{
+		SkeletalMeshArray[i]->UpdateBoneMatrices();
+		GEngine->_SimpleDrawer->DrawSkeletalMesh(SkeletalMeshArray[i]);
+	}
 
 
     g_pSwapChain->Present( 0, 0 );

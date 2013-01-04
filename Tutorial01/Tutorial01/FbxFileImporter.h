@@ -11,11 +11,13 @@ class SkeletalMesh;
 struct BoneIndexInfo
 {
 	std::string BoneName;
+	int SkeletonIndex;
 	int Index;
 	bool IsUsedLink;
 	BoneIndexInfo(std::string Name, int idx):
 		BoneName(Name),
 		Index(idx),
+		SkeletonIndex(idx),
 		IsUsedLink(false)
 	{
 	}
@@ -56,8 +58,10 @@ public:
 	void TriangulateRecursive(FbxNode* pNode);
 	void FillFbxMeshArray(FbxNode* pNode, std::vector<StaticMesh*>& outStaticMeshArray);
 	void FillFbxSkelMeshArray(FbxNode* pNode, std::vector<SkeletalMesh*>& outSkeletalMeshArray);
+	void FillFbxNodeArray(FbxNode* pNode, std::vector<FbxNode*>& outNodeArray);
+	void FillFbxClusterArray(FbxNode* pNode, std::vector<FbxCluster*>& outClusterArray);
 
-	Skeleton* ImportSkeleton();
+	void ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutRefPose);
 	void FillSkeletonJointRecursive(FbxNode* pNode, std::vector<SkeletonJoint>& outJounts);
 
 	void ImportStaticMesh(std::vector<StaticMesh*>& outStaticMeshArray);

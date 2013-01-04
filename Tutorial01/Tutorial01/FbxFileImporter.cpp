@@ -264,6 +264,8 @@ void FbxFileImporter::ImportSkeletalMesh( std::vector<SkeletalMesh*>& outSkeleta
 			//TriangulateRecursive(mScene->GetRootNode());
 			FillFbxSkelMeshArray(mScene->GetRootNode(), outSkeletalMeshArray);
 
+			ImportSkeleton(&outSkeletalMeshArray[0]->_Skeleton, &outSkeletalMeshArray[0]->_Pose);
+
 
 			FbxAnimStack * lCurrentAnimationStack = mScene->FindMember<FbxAnimStack>(mAnimStackNameArray[0]->Buffer());
 			if (lCurrentAnimationStack == NULL)
@@ -320,9 +322,228 @@ void FbxFileImporter::FillFbxSkelMeshArray( FbxNode* pNode, std::vector<Skeletal
 	}
 }
 
-Skeleton* FbxFileImporter::ImportSkeleton()
+void FbxFileImporter::FillFbxNodeArray(FbxNode* pNode, std::vector<FbxNode*>& outNodeArray)
 {
-	return NULL;
+	outNodeArray.push_back(pNode);
+
+	const int lChildCount = pNode->GetChildCount();
+	for (int lChildIndex = 0; lChildIndex < lChildCount; ++lChildIndex)
+	{
+		FillFbxNodeArray(pNode->GetChild(lChildIndex), outNodeArray);
+	}
+}
+
+void FbxFileImporter::FillFbxClusterArray(FbxNode* pNode, std::vector<FbxCluster*>& outClusterArray)
+{
+	FbxMesh * pFbxMesh = pNode->GetMesh();
+	if (pFbxMesh)
+	{
+		const int lSkinCount = pFbxMesh->GetDeformerCount(FbxDeformer::eSkin);
+		if(lSkinCount > 0)
+		{
+			for ( int lSkinIndex=0; lSkinIndex<lSkinCount; ++lSkinIndex)
+			{
+				FbxSkin * lSkinDeformer = (FbxSkin *)pFbxMesh->GetDeformer(lSkinIndex, FbxDeformer::eSkin);
+				int lClusterCount = lSkinDeformer->GetClusterCount();
+				for ( int lClusterIndex=0; lClusterIndex<lClusterCount; ++lClusterIndex)
+				{
+					FbxCluster* lCluster = lSkinDeformer->GetCluster(lClusterIndex);
+					if (!lCluster->GetLink())
+						continue;
+					
+					outClusterArray.push_back(lCluster);
+				}
+			}
+
+		}
+	}
+	const int lChildCount = pNode->GetChildCount();
+	for (int lChildIndex = 0; lChildIndex < lChildCount; ++lChildIndex)
+	{
+		FillFbxClusterArray(pNode->GetChild(lChildIndex), outClusterArray);
+	}
+}
+
+
+void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutRefPose)
+{
+	std::vector<FbxNode*> NodeArray;
+	std::vector<FbxCluster*> ClusterArray;
+	std::vector<FbxAMatrix> GlobalMatArray;
+
+	FillFbxNodeArray(mScene->GetRootNode(), NodeArray);
+	FillFbxClusterArray(mScene->GetRootNode(), ClusterArray);
+
+	
+	SkeletonJoint* Joints = new SkeletonJoint[NodeArray.size()];
+	JointPose* RefPose = new JointPose[NodeArray.size()];
+
+	GlobalMatArray.resize(NodeArray.size());
+	for(int NodeIndex=0;NodeIndex<NodeArray.size();NodeIndex++)
+	{
+		FbxNode* Node = NodeArray[NodeIndex];
+
+		GlobalMatArray[NodeIndex] = Node->EvaluateGlobalTransform();
+	}
+
+	for(int NodeIndex=0;NodeIndex<NodeArray.size();NodeIndex++)
+	{
+		FbxNode* Node = NodeArray[NodeIndex];
+		SkeletonJoint& Joint = Joints[NodeIndex];
+		Joint._Name = Node->GetName();
+		// finding parent index
+		for(int OtherNodeIndex=0;OtherNodeIndex<NodeArray.size();OtherNodeIndex++)
+		{
+			FbxNode* OtherNode = NodeArray[OtherNodeIndex];
+			if(Node->GetParent() )
+			{
+				
+			}
+
+			if(Node->GetParent() == OtherNode)
+			{
+				Joint._ParentIndex = OtherNodeIndex;
+			}
+		}
+		/*char Str[64];
+		sprintf(Str, "%s, %d, %d\n", Joint._Name.c_str(), NodeIndex, Joint._ParentIndex);
+		OutputDebugStringA(Str);*/
+	}
+
+	for(int NodeIndex=0;NodeIndex<NodeArray.size();NodeIndex++)
+	{
+		FbxNode* Node = NodeArray[NodeIndex];
+		SkeletonJoint& Joint = Joints[NodeIndex];
+		Joint._Name = Node->GetName();
+		JointPose& RefPosJoint = RefPose[NodeIndex];
+		
+		bool IsBoneCluser = false;
+		for(int ClusterIndex=0;ClusterIndex<ClusterArray.size();ClusterIndex++)
+		{
+			FbxCluster* Cluster = ClusterArray[ClusterIndex];
+
+		
+			if(Node == Cluster->GetLink())
+			{
+				// this node has cluster, so it has bind pose
+				FbxAMatrix BoneGlobal;
+				FbxAMatrix ParentGlobal;
+				Cluster->GetTransformLinkMatrix(BoneGlobal);
+				if(Joint._ParentIndex >= 0)
+					ParentGlobal = GlobalMatArray[Joint._ParentIndex] ;
+				else
+					ParentGlobal.SetIdentity();
+
+
+
+				// ref inverse
+				FbxVector4 S = BoneGlobal.GetS();
+				FbxVector4 T = BoneGlobal.GetT();
+				FbxQuaternion Q = BoneGlobal.GetQ();
+
+				XMFLOAT4 QQ;
+				QQ.x = Q[0];
+				QQ.y = Q[1];
+				QQ.z = Q[2];
+				QQ.w = Q[3];
+				XMVECTOR Quat = XMLoadFloat4((XMFLOAT4*)&QQ);
+				
+				XMMATRIX MatRot = XMMatrixRotationQuaternion(Quat);
+				XMMATRIX MatTrans = XMMatrixTranslation(T[0], T[1], T[2]);
+				XMMATRIX MatScale = XMMatrixScaling(S[0], S[1], S[2]);
+
+				XMMATRIX RefWorldInv = MatScale * MatRot * MatTrans;//XMMatrixMultiply(MatRot, MatTrans);
+				XMVECTOR Det;
+				RefWorldInv = XMMatrixInverse(&Det, RefWorldInv);
+
+				XMStoreFloat4x4(&Joint._InvRefPose, RefWorldInv);
+			
+				// pose
+				FbxAMatrix BoneMatLocal = ParentGlobal.Inverse() * BoneGlobal;
+
+				FbxVector4 LocalT = BoneMatLocal.GetT();
+				FbxQuaternion LocalQ = BoneMatLocal.GetQ();
+				FbxVector4 LocalS = BoneMatLocal.GetS();
+
+				RefPosJoint._Rot.x = LocalQ[0];
+				RefPosJoint._Rot.y = LocalQ[1];
+				RefPosJoint._Rot.z = LocalQ[2];
+				RefPosJoint._Rot.w = LocalQ[3];
+
+				RefPosJoint._Trans.x = LocalT[0];
+				RefPosJoint._Trans.y = LocalT[1];
+				RefPosJoint._Trans.z = LocalT[2];
+				
+				RefPosJoint._Scale.x = LocalS[0];
+				RefPosJoint._Scale.y = LocalS[1];
+				RefPosJoint._Scale.z = LocalS[2];
+
+				IsBoneCluser = true;
+			}
+		}
+		if( IsBoneCluser == false)
+		{
+				FbxAMatrix BoneGlobal;
+				FbxAMatrix ParentGlobal;
+				BoneGlobal = GlobalMatArray[NodeIndex];
+				if(Joint._ParentIndex >= 0)
+					ParentGlobal = GlobalMatArray[Joint._ParentIndex] ;
+				else
+					ParentGlobal.SetIdentity();
+
+				// ref inverse
+				FbxVector4 S = BoneGlobal.GetS();
+				FbxVector4 T = BoneGlobal.GetT();
+				FbxQuaternion Q = BoneGlobal.GetQ();
+				XMFLOAT4 QQ;
+				QQ.x = Q[0];
+				QQ.y = Q[1];
+				QQ.z = Q[2];
+				QQ.w = Q[3];
+				XMVECTOR Quat = XMLoadFloat4((XMFLOAT4*)&QQ);
+				
+				XMMATRIX MatRot = XMMatrixRotationQuaternion(Quat);
+				XMMATRIX MatTrans = XMMatrixTranslation(T[0], T[1], T[2]);
+				XMMATRIX MatScale = XMMatrixScaling(S[0], S[1], S[2]);
+
+				XMMATRIX RefWorldInv = MatScale * MatRot * MatTrans;//XMMatrixMultiply(MatRot, MatTrans);
+				XMVECTOR Det;
+				RefWorldInv = XMMatrixInverse(&Det, RefWorldInv);
+
+				XMStoreFloat4x4(&Joint._InvRefPose, RefWorldInv);
+			
+				// pose
+				FbxAMatrix BoneMatLocal = ParentGlobal.Inverse() * BoneGlobal;
+
+				FbxVector4 LocalT = BoneMatLocal.GetT();
+				FbxQuaternion LocalQ = BoneMatLocal.GetQ();
+				FbxVector4 LocalS = BoneMatLocal.GetS();
+
+				RefPosJoint._Rot.x = LocalQ[0];
+				RefPosJoint._Rot.y = LocalQ[1];
+				RefPosJoint._Rot.z = LocalQ[2];
+				RefPosJoint._Rot.w = LocalQ[3];
+
+				RefPosJoint._Trans.x = LocalT[0];
+				RefPosJoint._Trans.y = LocalT[1];
+				RefPosJoint._Trans.z = LocalT[2];
+				
+				RefPosJoint._Scale.x = LocalS[0];
+				RefPosJoint._Scale.y = LocalS[1];
+				RefPosJoint._Scale.z = LocalS[2];
+		}
+	}
+
+	Skeleton* NewSkeleton = new Skeleton;
+	NewSkeleton->_Joints = Joints;
+	NewSkeleton->_JointCount = NodeArray.size();
+	*OutSkeleton = NewSkeleton;
+
+	SkeletonPose* NewRefPose = new SkeletonPose;
+	NewRefPose->_LocalPoseArray = RefPose;
+	*OutRefPose = NewRefPose;
+
+	return;
 }
 
 void FbxFileImporter::FillSkeletonJointRecursive( FbxNode* pNode, std::vector<SkeletonJoint>& outJounts )
@@ -342,9 +563,8 @@ void FbxFileImporter::FillSkeletonJointRecursive( FbxNode* pNode, std::vector<Sk
 					FbxCluster* lCluster = lSkinDeformer->GetCluster(lClusterIndex);
 					if (!lCluster->GetLink())
 						continue;
+					
 
-					lClu
-						ster->GetTransformMatrix(lReferenceGlobalInitPosition);
 
 				}
 			}

@@ -12,21 +12,38 @@ struct SkeletonJoint
 	std::string _Name;
 	int			_ParentIndex;
 	XMFLOAT4X4	_InvRefPose;
+
+	SkeletonJoint()
+		:_Name(""),
+		_ParentIndex(-1)
+	{
+	}
+
 };
 struct Skeleton
 {
 	int				_JointCount;
 	SkeletonJoint*	_Joints;
+	Skeleton()
+		:_JointCount(0),
+		_Joints(NULL)
+	{
+	}
 };
 
 struct JointPose
 {
 	XMFLOAT4	_Rot;
 	XMFLOAT3	_Trans;
-	float		_Scale;
+	XMFLOAT3	_Scale;
 };
 
 struct SkeletonPose
 {
 	JointPose*	_LocalPoseArray;
+
+	SkeletonPose()
+		:_LocalPoseArray(NULL)
+	{
+	}
 };
