@@ -324,6 +324,7 @@ void FbxFileImporter::FillFbxSkelMeshArray( FbxNode* pNode, std::vector<Skeletal
 
 void FbxFileImporter::FillFbxNodeArray(FbxNode* pNode, std::vector<FbxNode*>& outNodeArray)
 {
+
 	outNodeArray.push_back(pNode);
 
 	const int lChildCount = pNode->GetChildCount();
@@ -452,7 +453,9 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 				XMMATRIX MatTrans = XMMatrixTranslation(T[0], T[1], T[2]);
 				XMMATRIX MatScale = XMMatrixScaling(S[0], S[1], S[2]);
 
-				XMMATRIX RefWorldInv = MatScale * MatRot * MatTrans;//XMMatrixMultiply(MatRot, MatTrans);
+				//XMMATRIX RefWorldInv = MatScale * MatRot * MatTrans;//XMMatrixMultiply(MatRot, MatTrans);
+				XMMATRIX RefWorldInv =XMMatrixMultiply(XMMatrixMultiply( MatScale , MatRot), MatTrans);//XMMatrixMultiply(MatRot, MatTrans);
+
 				XMVECTOR Det;
 				RefWorldInv = XMMatrixInverse(&Det, RefWorldInv);
 
@@ -506,7 +509,9 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 				XMMATRIX MatTrans = XMMatrixTranslation(T[0], T[1], T[2]);
 				XMMATRIX MatScale = XMMatrixScaling(S[0], S[1], S[2]);
 
-				XMMATRIX RefWorldInv = MatScale * MatRot * MatTrans;//XMMatrixMultiply(MatRot, MatTrans);
+				//XMMATRIX RefWorldInv = MatScale * MatRot * MatTrans;//XMMatrixMultiply(MatRot, MatTrans);
+				XMMATRIX RefWorldInv =XMMatrixMultiply(XMMatrixMultiply( MatScale , MatRot), MatTrans);//XMMatrixMultiply(MatRot, MatTrans);
+
 				XMVECTOR Det;
 				RefWorldInv = XMMatrixInverse(&Det, RefWorldInv);
 

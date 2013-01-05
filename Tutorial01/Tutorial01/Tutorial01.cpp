@@ -310,7 +310,7 @@ HRESULT InitDevice()
     g_pImmediateContext->RSSetViewports( 1, &vp );
 
 	
-	XMFLOAT4 EyeVal = XMFLOAT4( 0, 450.0f, 450.f, 0.0f );
+	XMFLOAT4 EyeVal = XMFLOAT4( 0,150.f, 150.f, 0.0f );
 	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 	XMFLOAT4 UpVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 
@@ -321,7 +321,7 @@ HRESULT InitDevice()
 	
 
 	g_View = XMMatrixLookAtRH( Eye, At, Up );
-	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, width / (FLOAT)height, 0.01f, 1000.0f );
+	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, width / (FLOAT)height, 0.01f, 2000 );
 	g_World = XMMatrixIdentity();
 
 	XMStoreFloat4x4(&GEngine->_ViewMat, g_View);
@@ -345,8 +345,8 @@ HRESULT InitDevice()
 
 	FbxImporterObj.ImportSkeletalMesh(SkeletalMeshArray);
 
-//	FbxFileImporter FbxImporterObj2("other.fbx");
-	//FbxImporterObj.ImportStaticMesh(StaticMeshArray2);
+	FbxFileImporter FbxImporterObj2("other.fbx");
+	FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
 
 	GEngine->InitDevice();
 

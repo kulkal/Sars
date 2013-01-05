@@ -12,13 +12,13 @@
 
 #include "baseobject.h"
 
-#define MAX_BONELINKE 4
+#define MAX_BONELINK 4
 struct NormalVertexGpuSkin
 {
 	XMFLOAT3 Position;
 	XMFLOAT3 Normal;
-	unsigned int Weights[MAX_BONELINKE];
-	unsigned int Bones[MAX_BONELINKE];
+	float Weights[MAX_BONELINK];
+	unsigned int Bones[MAX_BONELINK];
 };
 
 struct NormalTexVertexGpuSkin
@@ -26,14 +26,14 @@ struct NormalTexVertexGpuSkin
 	XMFLOAT3 Position;
 	XMFLOAT3 Normal;
 	XMFLOAT2 TexCoord;
-	unsigned int Weights[MAX_BONELINKE];
-	unsigned int Bones[MAX_BONELINKE];
+	float Weights[MAX_BONELINK];
+	unsigned int Bones[MAX_BONELINK];
 };
 
 struct SkinInfo
 {
-	float			Weights[MAX_BONELINKE];
-	unsigned int	Bones[MAX_BONELINKE];
+	float			Weights[MAX_BONELINK];
+	unsigned int	Bones[MAX_BONELINK];
 };
 
 
@@ -56,10 +56,10 @@ public:
 	int _NumTriangle;
 	int _NumVertex;
 
-	ID3D11Buffer*           _VertexBuffer;
-	ID3D11Buffer*           _IndexBuffer;
-	ID3D11Buffer*			_BoneMatricesBuffer;
-
+	ID3D11Buffer*				_VertexBuffer;
+	ID3D11Buffer*				_IndexBuffer;
+	ID3D11Buffer*				_BoneMatricesBuffer;
+	ID3D11ShaderResourceView*	_BoneMatricesBufferRV;
 	unsigned int _VertexStride;
 
 	class SubMesh

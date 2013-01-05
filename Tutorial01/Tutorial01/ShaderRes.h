@@ -16,11 +16,13 @@ struct ShaderMapKey
 	EVertexProcessingType VertexProcessingType;
 	bool operator<(const ShaderMapKey& other) const        
 	{             
-		if( NumTex < other.NumTex 
-			&& VertexProcessingType < other.VertexProcessingType)
-			return true;
-		else
-			return false;
+		if( NumTex < other.NumTex ) return true;
+		if( NumTex > other.NumTex ) return false;
+
+		if( VertexProcessingType < other.VertexProcessingType ) return true;
+		if( VertexProcessingType > other.VertexProcessingType ) return false;
+
+		return false;
 	};
 };
 

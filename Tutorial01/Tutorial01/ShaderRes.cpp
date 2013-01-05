@@ -31,6 +31,18 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 		D3D10_SHADER_MACRO Define = {"TEXCOORD", "1"};
 		Defines.push_back(Define);
 	}
+
+	if(SKey.VertexProcessingType == GpuSkinVertex)
+	{
+		D3D10_SHADER_MACRO Define = {"GPUSKINNING", "1"};
+		Defines.push_back(Define);
+	}
+	else if(SKey.VertexProcessingType == StaticVertex)
+	{
+		D3D10_SHADER_MACRO Define = {"GPUSKINNING", "0"};
+		Defines.push_back(Define);
+	}
+
 	D3D10_SHADER_MACRO Define;
 	memset(&Define, 0, sizeof(D3D10_SHADER_MACRO));
 	Defines.push_back(Define);

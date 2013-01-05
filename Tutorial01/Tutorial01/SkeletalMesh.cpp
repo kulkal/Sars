@@ -20,6 +20,7 @@ SkeletalMesh::SkeletalMesh(void)
 	_NumTriangle(0),
 	_NumVertex(0),
 	_BoneMatricesBuffer(NULL),
+	_BoneMatricesBufferRV(NULL),
 	_RequiredBoneArray(NULL),
 	_BoneMatrices(NULL),
 	_BoneWorld(NULL)
@@ -43,6 +44,7 @@ SkeletalMesh::~SkeletalMesh(void)
 	if(_VertexBuffer) _VertexBuffer->Release();
 	if(_IndexBuffer) _IndexBuffer->Release();
 	if(_BoneMatricesBuffer) _BoneMatricesBuffer->Release();
+	if(_BoneMatricesBufferRV) _BoneMatricesBufferRV->Release();
 }
 
 #define MAXBONE_VERTEX 4
@@ -621,6 +623,14 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		{
 			Vertices[i].Position = _PositionArray[i];
 			Vertices[i].Normal = _NormalArray[i];
+			for(int k=0;k<MAX_BONELINK;k++)
+			{
+				Vertices[i].Weights[k] = _SkinInfoArray[i].Weights[k];
+			}
+			for(int k=0;k<MAX_BONELINK;k++)
+			{
+				Vertices[i].Bones[k] = _SkinInfoArray[i].Bones[k];
+			}
 		}
 		InitData.pSysMem = Vertices;
 		hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_VertexBuffer );
@@ -640,6 +650,14 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			Vertices[i].Position = _PositionArray[i];
 			Vertices[i].Normal = _NormalArray[i];
 			Vertices[i].TexCoord = _TexCoordArray[i];
+			for(int k=0;k<MAX_BONELINK;k++)
+			{
+				Vertices[i].Weights[k] = _SkinInfoArray[i].Weights[k];
+			}
+			for(int k=0;k<MAX_BONELINK;k++)
+			{
+				Vertices[i].Bones[k] = _SkinInfoArray[i].Bones[k];
+			}
 		}
 		InitData.pSysMem = Vertices;
 		hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_VertexBuffer );
@@ -684,16 +702,35 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 // this function should be moved to Component instance
 void SkeletalMesh::UpdateBoneMatrices()
 {
-	// calc world matrix for entire bone array
-	// BoneMatrices[i] = LocalBoneMat[i] * BoneMatrices[ParentIndex]
-
-	// calc Bone matrices for linked bones
-	// BoneMatricesLinked[i] = Skeleton._Joint[i] * BoneMatrices[i]
-
 	if( _BoneMatrices == NULL)
 		_BoneMatrices = new XMFLOAT4X4[_Skeleton->_JointCount];
 	if( _BoneWorld == NULL)
 		_BoneWorld = new XMFLOAT4X4[_Skeleton->_JointCount];
+	if(_BoneMatricesBuffer == NULL)
+	{
+
+		HRESULT hr;
+		D3D11_BUFFER_DESC bdc;
+		ZeroMemory( &bdc, sizeof(bdc) );
+		bdc.Usage = D3D11_USAGE_DYNAMIC;
+		bdc.ByteWidth = _NumBone* sizeof(XMFLOAT4X4);
+		bdc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		bdc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
+		hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &_BoneMatricesBuffer );
+		if( FAILED( hr ) )
+			assert(false);
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		ZeroMemory( &SRVDesc, sizeof( SRVDesc ) );
+		SRVDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		SRVDesc.Buffer.ElementOffset = 0;
+		SRVDesc.Buffer.ElementWidth = _NumBone * 4;
+		hr = GEngine->_Device->CreateShaderResourceView( _BoneMatricesBuffer, &SRVDesc, &_BoneMatricesBufferRV );
+		if( FAILED( hr ) )
+			assert(false);
+
+	}
 
 	for(int i=0;i<_Skeleton->_JointCount;i++)
 	{
@@ -709,7 +746,12 @@ void SkeletalMesh::UpdateBoneMatrices()
 		XMMATRIX MatLocal;
 		if(RefPose._ParentIndex < 0) // root
 		{
-			MatLocal = MatScale * MatRot * MatTrans;
+			//MatLocal = MatScale * MatRot * MatTrans;
+			//MatLocal = MatTrans * MatRot * MatScale;
+			MatLocal = XMMatrixIdentity();
+			MatLocal = XMMatrixMultiply(MatScale, MatRot);
+			MatLocal = XMMatrixMultiply(MatLocal, MatTrans);
+
 			XMStoreFloat4x4(&_BoneWorld[i], MatLocal);
 		}
 		else
@@ -718,7 +760,13 @@ void SkeletalMesh::UpdateBoneMatrices()
 			XMFLOAT4X4 MatParentF = _BoneWorld[RefPose._ParentIndex];
 			MatParent = XMLoadFloat4x4(&MatParentF);
 
-			MatLocal = MatScale * MatRot * MatTrans * MatParent;
+			//MatLocal = MatScale * MatRot * MatTrans * MatParent;
+			//MatLocal = MatParent * MatTrans * MatRot * MatScale;
+			MatLocal = XMMatrixIdentity();
+			MatLocal = XMMatrixMultiply(MatScale, MatRot);
+			MatLocal = XMMatrixMultiply(MatLocal, MatTrans);
+			MatLocal = XMMatrixMultiply(MatLocal, MatParent);
+
 			XMStoreFloat4x4(&_BoneWorld[i], MatLocal);
 		}
 	}
@@ -734,8 +782,24 @@ void SkeletalMesh::UpdateBoneMatrices()
 		XMMATRIX World;
 		World = XMLoadFloat4x4(&_BoneWorld[SkeletonIndex]);
 
-		XMMATRIX MatBone;
-		MatBone = RefInv * World;
+		XMMATRIX MatBone = XMMatrixIdentity();
+		//MatBone = RefInv * World;
+		//MatBone = World * RefInv;
+		MatBone = XMMatrixMultiply(RefInv, World);
+
 		XMStoreFloat4x4(&_BoneMatrices[i], MatBone);
 	}
+
+	HRESULT hr = S_OK;
+	D3D11_MAPPED_SUBRESOURCE MSR;
+	GEngine->_ImmediateContext->Map( _BoneMatricesBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
+	XMFLOAT4X4* pMatrices = (XMFLOAT4X4*)MSR.pData;
+
+	for( unsigned int i = 0; i < _NumBone; i++ )
+	{
+		pMatrices[i] = _BoneMatrices[i];
+	}
+
+	//memcpy(pMatrices, &XMFLOAT4(1, 0, 0, 1), sizeof(XMFLOAT4));
+	GEngine->_ImmediateContext->Unmap( _BoneMatricesBuffer, 0 );
 }
