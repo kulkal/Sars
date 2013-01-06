@@ -427,20 +427,14 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 			if(Node == Cluster->GetLink())
 			{
 				// this node has cluster, so it has bind pose
-				FbxAMatrix BoneGlobal;
-				FbxAMatrix ParentGlobal;
-				Cluster->GetTransformLinkMatrix(BoneGlobal);
-				if(Joint._ParentIndex >= 0)
-					ParentGlobal = GlobalMatArray[Joint._ParentIndex] ;
-				else
-					ParentGlobal.SetIdentity();
-
+				FbxAMatrix BoneGlobalBind;
+				Cluster->GetTransformLinkMatrix(BoneGlobalBind);
 
 
 				// ref inverse
-				FbxVector4 S = BoneGlobal.GetS();
-				FbxVector4 T = BoneGlobal.GetT();
-				FbxQuaternion Q = BoneGlobal.GetQ();
+				FbxVector4 S = BoneGlobalBind.GetS();
+				FbxVector4 T = BoneGlobalBind.GetT();
+				FbxQuaternion Q = BoneGlobalBind.GetQ();
 
 				XMFLOAT4 QQ;
 				QQ.x = Q[0];
@@ -462,11 +456,22 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 				XMStoreFloat4x4(&Joint._InvRefPose, RefWorldInv);
 			
 				// pose
-				FbxAMatrix BoneMatLocal = ParentGlobal.Inverse() * BoneGlobal;
 
-				FbxVector4 LocalT = BoneMatLocal.GetT();
-				FbxQuaternion LocalQ = BoneMatLocal.GetQ();
-				FbxVector4 LocalS = BoneMatLocal.GetS();
+				FbxAMatrix ParentGlobalPose;
+				FbxAMatrix GlobalPose;
+				if(Joint._ParentIndex >= 0)
+					ParentGlobalPose = GlobalMatArray[Joint._ParentIndex] ;
+				else
+					ParentGlobalPose.SetIdentity();
+
+				GlobalPose = Cluster->GetLink()->EvaluateGlobalTransform();;
+				char Str[256];
+
+				FbxAMatrix BoneMatLocalPose = ParentGlobalPose.Inverse() * GlobalPose;
+
+				FbxVector4 LocalT = BoneMatLocalPose.GetT();
+				FbxQuaternion LocalQ = BoneMatLocalPose.GetQ();
+				FbxVector4 LocalS = BoneMatLocalPose.GetS();
 
 				RefPosJoint._Rot.x = LocalQ[0];
 				RefPosJoint._Rot.y = LocalQ[1];
@@ -480,24 +485,24 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 				RefPosJoint._Scale.x = LocalS[0];
 				RefPosJoint._Scale.y = LocalS[1];
 				RefPosJoint._Scale.z = LocalS[2];
+
+				FbxVector4 GlobalT = ParentGlobalPose.GetT();
+				//sprintf(Str, "%s : %d, %d, [%f %f %f]\n", Joint._Name.c_str(), NodeIndex, Joint._ParentIndex, GlobalT[0], GlobalT[1], GlobalT[2]);
+				//OutputDebugStringA(Str);
 
 				IsBoneCluser = true;
 			}
 		}
 		if( IsBoneCluser == false)
 		{
-				FbxAMatrix BoneGlobal;
-				FbxAMatrix ParentGlobal;
-				BoneGlobal = GlobalMatArray[NodeIndex];
-				if(Joint._ParentIndex >= 0)
-					ParentGlobal = GlobalMatArray[Joint._ParentIndex] ;
-				else
-					ParentGlobal.SetIdentity();
+				FbxAMatrix BoneGlobalBind;
+				BoneGlobalBind = GlobalMatArray[NodeIndex];
+				
 
 				// ref inverse
-				FbxVector4 S = BoneGlobal.GetS();
-				FbxVector4 T = BoneGlobal.GetT();
-				FbxQuaternion Q = BoneGlobal.GetQ();
+				FbxVector4 S = BoneGlobalBind.GetS();
+				FbxVector4 T = BoneGlobalBind.GetT();
+				FbxQuaternion Q = BoneGlobalBind.GetQ();
 				XMFLOAT4 QQ;
 				QQ.x = Q[0];
 				QQ.y = Q[1];
@@ -518,7 +523,12 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 				XMStoreFloat4x4(&Joint._InvRefPose, RefWorldInv);
 			
 				// pose
-				FbxAMatrix BoneMatLocal = ParentGlobal.Inverse() * BoneGlobal;
+				FbxAMatrix ParentGlobalPose;
+				if(Joint._ParentIndex >= 0)
+					ParentGlobalPose = GlobalMatArray[Joint._ParentIndex] ;
+				else
+					ParentGlobalPose.SetIdentity();
+				FbxAMatrix BoneMatLocal = ParentGlobalPose.Inverse() * BoneGlobalBind;
 
 				FbxVector4 LocalT = BoneMatLocal.GetT();
 				FbxQuaternion LocalQ = BoneMatLocal.GetQ();
@@ -536,6 +546,9 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 				RefPosJoint._Scale.x = LocalS[0];
 				RefPosJoint._Scale.y = LocalS[1];
 				RefPosJoint._Scale.z = LocalS[2];
+				//char Str[128];
+				//sprintf(Str, "%s is dummy bone, %d\n", Joint._Name.c_str(), NodeIndex);
+				//OutputDebugStringA(Str);
 		}
 	}
 

@@ -310,7 +310,7 @@ HRESULT InitDevice()
     g_pImmediateContext->RSSetViewports( 1, &vp );
 
 	
-	XMFLOAT4 EyeVal = XMFLOAT4( 0,150.f, 150.f, 0.0f );
+	XMFLOAT4 EyeVal = XMFLOAT4( 0,450.f, 450.f, 0.0f );
 	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 	XMFLOAT4 UpVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 

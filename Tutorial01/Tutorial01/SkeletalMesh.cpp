@@ -732,10 +732,12 @@ void SkeletalMesh::UpdateBoneMatrices()
 
 	}
 
+	//char Str[256];
 	for(int i=0;i<_Skeleton->_JointCount;i++)
 	{
 		//int SkeletonIndex = _RequiredBoneArray[i];
 		//XMFLOAT4X4& RefInv = _Skeleton->_Joints[SkeletonIndex]._InvRefPose;
+	
 		SkeletonJoint& RefPose = _Skeleton->_Joints[i];
 		JointPose& LocalPose = _Pose->_LocalPoseArray[i];
 		XMMATRIX MatScale = XMMatrixScaling(LocalPose._Scale.x, LocalPose._Scale.y, LocalPose._Scale.z);
@@ -743,32 +745,37 @@ void SkeletalMesh::UpdateBoneMatrices()
 		XMMATRIX MatRot = XMMatrixRotationQuaternion(QuatVec);
 		XMMATRIX MatTrans = XMMatrixTranslation(LocalPose._Trans.x, LocalPose._Trans.y, LocalPose._Trans.z);
 
-		XMMATRIX MatLocal;
+		
+		XMMATRIX MatBone;
 		if(RefPose._ParentIndex < 0) // root
 		{
 			//MatLocal = MatScale * MatRot * MatTrans;
 			//MatLocal = MatTrans * MatRot * MatScale;
-			MatLocal = XMMatrixIdentity();
-			MatLocal = XMMatrixMultiply(MatScale, MatRot);
-			MatLocal = XMMatrixMultiply(MatLocal, MatTrans);
+			MatBone = XMMatrixIdentity();
+			MatBone = XMMatrixMultiply(MatScale, MatRot);
+			MatBone = XMMatrixMultiply(MatBone, MatTrans);
 
-			XMStoreFloat4x4(&_BoneWorld[i], MatLocal);
+			XMStoreFloat4x4(&_BoneWorld[i], MatBone);
 		}
 		else
 		{
 			XMMATRIX MatParent;
-			XMFLOAT4X4 MatParentF = _BoneWorld[RefPose._ParentIndex];
+			XMFLOAT4X4& MatParentF = _BoneWorld[RefPose._ParentIndex];
 			MatParent = XMLoadFloat4x4(&MatParentF);
 
 			//MatLocal = MatScale * MatRot * MatTrans * MatParent;
 			//MatLocal = MatParent * MatTrans * MatRot * MatScale;
-			MatLocal = XMMatrixIdentity();
-			MatLocal = XMMatrixMultiply(MatScale, MatRot);
-			MatLocal = XMMatrixMultiply(MatLocal, MatTrans);
-			MatLocal = XMMatrixMultiply(MatLocal, MatParent);
+			MatBone = XMMatrixIdentity();
+			MatBone = XMMatrixMultiply(MatScale, MatRot);
+			MatBone = XMMatrixMultiply(MatBone, MatTrans);
+			MatBone = XMMatrixMultiply(MatBone, MatParent);
 
-			XMStoreFloat4x4(&_BoneWorld[i], MatLocal);
+			//sprintf(Str, "%s : %d, %d [%f %f %f]\n", _Skeleton->_Joints[i]._Name.c_str(), i, RefPose._ParentIndex, MatBone._41, MatBone._42, MatBone._43);
+			//OutputDebugStringA(Str);
+
+			XMStoreFloat4x4(&_BoneWorld[i], MatBone);
 		}
+
 	}
 
 	for(int i=0;i<_NumBone;i++)

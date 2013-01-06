@@ -405,6 +405,7 @@
     <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="StaticMeshComponent.h" />
     <ClInclude Include="StaticMeshEntity.h" />
+    <ClInclude Include="Util.h" />
     <ResourceCompile Include="Tutorial01.rc" />
   </ItemGroup>
   <ItemGroup>

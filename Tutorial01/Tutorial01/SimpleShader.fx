@@ -61,7 +61,7 @@ float4x4 CalcBoneMatrix(VS_INPUT input)
 		
 		TotalMat += Mat * input.Weigts[i];
 	}
-	uint iBone = 0 * 4;
+	uint iBone = 50 * 4;
 	float4 row1 = BoneMatrices.Load( iBone );
 	float4 row2 = BoneMatrices.Load( iBone + 1 );
 	float4 row3 = BoneMatrices.Load( iBone + 2 );
@@ -79,13 +79,13 @@ PS_INPUT VS(  VS_INPUT input )
     VS_INPUT output = (VS_INPUT)0;
 #if GPUSKINNING
 	float4x4 BoneMat = CalcBoneMatrix(input);
-	output.Pos = mul(input.Pos, BoneMat);
-	output.Pos = mul( output.Pos, World );
+	output.Pos = mul( input.Pos, World );
+	output.Pos = mul(output.Pos, BoneMat);
     output.Pos = mul( output.Pos, View );
     output.Pos = mul( output.Pos, Projection);
 
-	output.Norm = mul(input.Norm, BoneMat);
-	output.Norm = mul( output.Norm, World );
+	output.Norm = mul( input.Norm, World );
+	output.Norm = mul(output.Norm, BoneMat);
 #else
     output.Pos = mul( input.Pos, World );
     output.Pos = mul( output.Pos, View );
