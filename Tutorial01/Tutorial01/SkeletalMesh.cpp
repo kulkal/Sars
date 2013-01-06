@@ -623,13 +623,17 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		{
 			Vertices[i].Position = _PositionArray[i];
 			Vertices[i].Normal = _NormalArray[i];
+			
+			Vertices[i].Weights = 0x00000000;
+			Vertices[i].Bones = 0x00000000;
+
 			for(int k=0;k<MAX_BONELINK;k++)
 			{
-				Vertices[i].Weights[k] = _SkinInfoArray[i].Weights[k];
+				Vertices[i].Weights |=  (unsigned int)(_SkinInfoArray[i].Weights[k] * 255.f) << k*8;
 			}
 			for(int k=0;k<MAX_BONELINK;k++)
 			{
-				Vertices[i].Bones[k] = _SkinInfoArray[i].Bones[k];
+				Vertices[i].Bones |= (unsigned int)_SkinInfoArray[i].Bones[k] << k*8;
 			}
 		}
 		InitData.pSysMem = Vertices;
@@ -650,13 +654,17 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			Vertices[i].Position = _PositionArray[i];
 			Vertices[i].Normal = _NormalArray[i];
 			Vertices[i].TexCoord = _TexCoordArray[i];
+			
+			Vertices[i].Weights = 0x00000000;
+			Vertices[i].Bones = 0x00000000;
+			
 			for(int k=0;k<MAX_BONELINK;k++)
 			{
-				Vertices[i].Weights[k] = _SkinInfoArray[i].Weights[k];
+				Vertices[i].Weights |=  (unsigned int)(_SkinInfoArray[i].Weights[k] * 255.f) << k*8;
 			}
 			for(int k=0;k<MAX_BONELINK;k++)
 			{
-				Vertices[i].Bones[k] = _SkinInfoArray[i].Bones[k];
+				Vertices[i].Bones |= (unsigned int)_SkinInfoArray[i].Bones[k] << k*8;
 			}
 		}
 		InitData.pSysMem = Vertices;
@@ -807,6 +815,5 @@ void SkeletalMesh::UpdateBoneMatrices()
 		pMatrices[i] = _BoneMatrices[i];
 	}
 
-	//memcpy(pMatrices, &XMFLOAT4(1, 0, 0, 1), sizeof(XMFLOAT4));
 	GEngine->_ImmediateContext->Unmap( _BoneMatricesBuffer, 0 );
 }

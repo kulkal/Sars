@@ -22,7 +22,7 @@ struct VS_INPUT
     float4 Pos : POSITION;
     float3 Norm : NORMAL;
 #if GPUSKINNING
-	float4 Weigts: WEIGHTS;
+	float4 Weights: WEIGHTS;
 	uint4 Bones : BONES;
 #endif
 #if TEXCOORD
@@ -36,7 +36,7 @@ struct PS_INPUT
     float4 Pos : SV_POSITION;
     float3 Norm : TEXCOORD0;
 #if GPUSKINNING
-	float4 Weigts :  BLENDWEIGHTS;
+	float4 Weights :  BLENDWEIGHTS;
 	uint4 Bones :  BLENDINDICES;
 #endif
 #if TEXCOORD
@@ -50,23 +50,42 @@ struct PS_INPUT
 float4x4 CalcBoneMatrix(VS_INPUT input)
 {
 	float4x4 TotalMat = (float4x4)0;
-	for(int i=0;i<MAX_BONELINK;i++)
-	{
-		uint iBone = input.Bones[i] * 4;
-		float4 row1 = BoneMatrices.Load( iBone );
-		float4 row2 = BoneMatrices.Load( iBone + 1 );
-		float4 row3 = BoneMatrices.Load( iBone + 2 );
-		float4 row4 = BoneMatrices.Load( iBone + 3 );
-        float4x4 Mat = float4x4( row1, row2, row3, row4 );
-		
-		TotalMat += Mat * input.Weigts[i];
-	}
-	uint iBone = 50 * 4;
+	uint iBone = 1 * 4;
 	float4 row1 = BoneMatrices.Load( iBone );
 	float4 row2 = BoneMatrices.Load( iBone + 1 );
 	float4 row3 = BoneMatrices.Load( iBone + 2 );
 	float4 row4 = BoneMatrices.Load( iBone + 3 );
-	TotalMat =  float4x4( row1, row2, row3, row4 );
+    float4x4 Mat = float4x4( row1, row2, row3, row4 );
+		
+	TotalMat += Mat *input.Weights.x;
+
+	//iBone = input.Bones.y * 4;
+	//row1 = BoneMatrices.Load( iBone );
+	//row2 = BoneMatrices.Load( iBone + 1 );
+	//row3 = BoneMatrices.Load( iBone + 2 );
+	//row4 = BoneMatrices.Load( iBone + 3 );
+ //   Mat = float4x4( row1, row2, row3, row4 );
+		
+	//TotalMat += Mat * input.Weights.y;
+
+	//iBone = input.Bones.z * 4;
+	//row1 = BoneMatrices.Load( iBone );
+	//row2 = BoneMatrices.Load( iBone + 1 );
+	//row3 = BoneMatrices.Load( iBone + 2 );
+	//row4 = BoneMatrices.Load( iBone + 3 );
+ //   Mat = float4x4( row1, row2, row3, row4 );
+		
+	//TotalMat += Mat * input.Weights.z;
+
+	//iBone = input.Bones.w * 4;
+	//row1 = BoneMatrices.Load( iBone );
+	//row2 = BoneMatrices.Load( iBone + 1 );
+	//row3 = BoneMatrices.Load( iBone + 2 );
+	//row4 = BoneMatrices.Load( iBone + 3 );
+ //   Mat = float4x4( row1, row2, row3, row4 );
+		
+	//TotalMat += Mat * input.Weights.w;
+	
 	return TotalMat;
 }
 #endif

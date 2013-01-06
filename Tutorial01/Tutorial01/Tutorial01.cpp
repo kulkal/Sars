@@ -310,7 +310,7 @@ HRESULT InitDevice()
     g_pImmediateContext->RSSetViewports( 1, &vp );
 
 	
-	XMFLOAT4 EyeVal = XMFLOAT4( 0,450.f, 450.f, 0.0f );
+	XMFLOAT4 EyeVal = XMFLOAT4( 0,250.f, 250.f, 0.0f );
 	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 	XMFLOAT4 UpVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 
@@ -340,7 +340,7 @@ HRESULT InitDevice()
 		return hr;
 
 	//FbxFileImporter FbxImporterObj("humanoid.fbx");
-	FbxFileImporter FbxImporterObj("humanoid.fbx");
+	FbxFileImporter FbxImporterObj("box_skin.fbx");
 	//FbxImporterObj.ImportStaticMesh(StaticMeshArray);
 
 	FbxImporterObj.ImportSkeletalMesh(SkeletalMeshArray);
@@ -431,7 +431,7 @@ void Render()
 
 	for(unsigned int i=0;i<StaticMeshArray.size();i++)
 	{
-		GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
+		//GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
 	}
 	for(unsigned i=0;i<SkeletalMeshArray.size();i++)
 	{
