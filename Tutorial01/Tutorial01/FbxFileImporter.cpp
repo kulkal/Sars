@@ -429,12 +429,13 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 				// this node has cluster, so it has bind pose
 				FbxAMatrix BoneGlobalBind;
 				Cluster->GetTransformLinkMatrix(BoneGlobalBind);
+				//BoneGlobalBind = Cluster->GetLink()->EvaluateGlobalTransform();
 
-
+				FbxAMatrix BoneGlobalBindInv = BoneGlobalBind.Inverse();
 				// ref inverse
-				FbxVector4 S = BoneGlobalBind.GetS();
-				FbxVector4 T = BoneGlobalBind.GetT();
-				FbxQuaternion Q = BoneGlobalBind.GetQ();
+				FbxVector4 S = BoneGlobalBindInv.GetS();
+				FbxVector4 T = BoneGlobalBindInv.GetT();
+				FbxQuaternion Q = BoneGlobalBindInv.GetQ();
 
 				XMFLOAT4 QQ;
 				QQ.x = Q[0];
@@ -448,10 +449,13 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 				XMMATRIX MatScale = XMMatrixScaling(S[0], S[1], S[2]);
 
 				//XMMATRIX RefWorldInv = MatScale * MatRot * MatTrans;//XMMatrixMultiply(MatRot, MatTrans);
-				XMMATRIX RefWorldInv =XMMatrixMultiply(XMMatrixMultiply( MatScale , MatRot), MatTrans);//XMMatrixMultiply(MatRot, MatTrans);
-
-				XMVECTOR Det;
-				RefWorldInv = XMMatrixInverse(&Det, RefWorldInv);
+				//XMMATRIX RefWorldInv =XMMatrixMultiply(XMMatrixMultiply( MatScale , MatRot), MatTrans);//XMMatrixMultiply(MatRot, MatTrans);
+			
+				XMMATRIX RefWorldInv = XMMatrixIdentity();
+				RefWorldInv = XMMatrixMultiply(MatScale, MatRot);
+				RefWorldInv = XMMatrixMultiply(RefWorldInv, MatTrans);
+				//XMVECTOR Det;
+				//RefWorldInv = XMMatrixInverse(&Det, RefWorldInv);
 
 				XMStoreFloat4x4(&Joint._InvRefPose, RefWorldInv);
 			
