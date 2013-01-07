@@ -7,7 +7,6 @@ cbuffer ConstantBuffer : register( b0 )
 {
 	matrix View;
 	matrix Projection;
-
 }
 
 struct VS_INPUT
@@ -27,8 +26,8 @@ struct PS_INPUT
 //--------------------------------------------------------------------------------------
 PS_INPUT VS(  VS_INPUT input )
 {
-    VS_INPUT output = (VS_INPUT)0;
-    output.Pos = mul( output.Pos, View );
+    PS_INPUT output = (PS_INPUT)0;
+    output.Pos = mul( input.Pos, View );
     output.Pos = mul( output.Pos, Projection );
 	output.Color = input.Color;
     return output;
@@ -40,5 +39,5 @@ PS_INPUT VS(  VS_INPUT input )
 //--------------------------------------------------------------------------------------
 float4 PS( PS_INPUT input ) : SV_Target
 {
-	return float4(1, 1, 1, 1);
+	return float4(input.Color, 1);
 }

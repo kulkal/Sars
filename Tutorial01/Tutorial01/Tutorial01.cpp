@@ -311,7 +311,7 @@ HRESULT InitDevice()
     g_pImmediateContext->RSSetViewports( 1, &vp );
 
 	
-	XMFLOAT4 EyeVal = XMFLOAT4( 0,50.f, 150.f, 0.0f );
+	XMFLOAT4 EyeVal = XMFLOAT4( 0,250.f, 250.f, 0.0f );
 	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 	XMFLOAT4 UpVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 
@@ -340,8 +340,8 @@ HRESULT InitDevice()
 	if( FAILED( hr ) )
 		return hr;
 
-	FbxFileImporter FbxImporterObj("humanoid.fbx");
-	//FbxFileImporter FbxImporterObj("box_skin.fbx");
+	//FbxFileImporter FbxImporterObj("humanoid.fbx");
+	FbxFileImporter FbxImporterObj("box_skin.fbx");
 	//FbxImporterObj.ImportStaticMesh(StaticMeshArray);
 
 	FbxImporterObj.ImportSkeletalMesh(SkeletalMeshArray);
@@ -438,10 +438,12 @@ void Render()
 	for(unsigned i=0;i<SkeletalMeshArray.size();i++)
 	{
 		SkeletalMeshArray[i]->UpdateBoneMatrices();
-		GEngine->_SimpleDrawer->DrawSkeletalMesh(SkeletalMeshArray[i]);
+		//GEngine->_SimpleDrawer->DrawSkeletalMesh(SkeletalMeshArray[i]);
 	}
 
-
+	GEngine->_LineBatcher->AddLine(XMFLOAT3(0, 0, 0), XMFLOAT3(100, 100, 100), XMFLOAT3(1, 0, 0));
+	GEngine->_LineBatcher->AddLine(XMFLOAT3(0, 0, 0), XMFLOAT3(100, 0, 100), XMFLOAT3(1, 0, 0));
+	GEngine->_LineBatcher->AddLine(XMFLOAT3(0, 0, 0), XMFLOAT3(100, 100, 0), XMFLOAT3(1, 0, 0));
 	GEngine->_LineBatcher->Draw();
 
     g_pSwapChain->Present( 0, 0 );

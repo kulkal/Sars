@@ -97,12 +97,25 @@ void LineBatcher::InitDevice()
 	}
 
 	hr = GEngine->_Device->CreateVertexShader( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &_VertexShader );
+	
 	if( FAILED( hr ) )
-	{	
-
-		pVSBlob->Release();
 		assert(false);
-	}
+
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	UINT numElements = ARRAYSIZE( layout );
+
+	// Create the input layout
+	hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
+		pVSBlob->GetBufferSize(), &_VertexLayout );
+	
+	pVSBlob->Release();
+
+	if( FAILED( hr ) )
+		assert(false);
 
 	// pixel shader
 	ID3DBlob* pPSBlob = NULL;
@@ -119,18 +132,7 @@ void LineBatcher::InitDevice()
 	if( FAILED( hr ) )
 		assert(false);
 
-	D3D11_INPUT_ELEMENT_DESC layout[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-	UINT numElements = ARRAYSIZE( layout );
 
-	// Create the input layout
-	hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
-		pVSBlob->GetBufferSize(), &_VertexLayout );
-	if( FAILED( hr ) )
-		assert(false);
 }
 
 
@@ -176,13 +178,6 @@ void LineBatcher::Draw()
 {
 	UpdateBuffer();
 
-	/*ID3D11Buffer*           _VertexBuffer;
-	ID3D11Buffer*           _IndexBuffer;
-
-	ID3D11InputLayout*      _VertexLayout;
-	ID3D11VertexShader*     _VertexShader;
-	ID3D11PixelShader*      _PixelShader;*/
-
 	GEngine->_ImmediateContext->IASetInputLayout( _VertexLayout );
 	GEngine->_ImmediateContext->VSSetShader( _VertexShader, NULL, 0 );
 	GEngine->_ImmediateContext->PSSetShader( _PixelShader, NULL, 0 );
@@ -196,7 +191,7 @@ void LineBatcher::Draw()
 
 
 	GEngine->_ImmediateContext->VSSetConstantBuffers( 0, 1, &_ConstantBuffer );
-	GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &_ConstantBuffer );
+	//GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &_ConstantBuffer );
 
 	//GEngine->_ImmediateContext->PSSetSamplers( 0, 1, &_SamplerLinear );
 
