@@ -1,7 +1,9 @@
-#include "SkeletalMesh.h"
-#include "Engine.h"
 #include <cassert>
 #include <algorithm>
+
+#include "SkeletalMesh.h"
+#include "Engine.h"
+#include "LineBatcher.h"
 
 const int TRIANGLE_VERTEX_COUNT = 3;
 const int VERTEX_STRIDE = 4;
@@ -798,6 +800,20 @@ void SkeletalMesh::UpdateBoneMatrices()
 			//OutputDebugStringA(Str);
 
 			XMStoreFloat4x4(&_BoneWorld[i], MatBone);
+
+			XMFLOAT3 ParentBonePos, BonePos;
+			XMFLOAT3 Ori = XMFLOAT3(0, 0, 0);
+			XMVECTOR OriVec = XMLoadFloat3(&Ori);
+			XMVECTOR TranVec = XMVector3Transform(OriVec, MatParent);
+			XMStoreFloat3(&ParentBonePos, TranVec);
+
+			Ori = XMFLOAT3(0, 0, 0);
+			OriVec = XMLoadFloat3(&Ori);
+			TranVec = XMVector3Transform(OriVec, MatBone);
+			XMStoreFloat3(&BonePos, TranVec);
+
+
+			GEngine->_LineBatcher->AddLine(ParentBonePos, BonePos, XMFLOAT3(1, 0, 0));
 		}
 
 	}

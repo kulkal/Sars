@@ -23,6 +23,7 @@
 #include "StaticMesh.h"
 #include "StaticMeshComponent.h"
 #include "SkeletalMesh.h"
+#include "LineBatcher.h"
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -339,8 +340,8 @@ HRESULT InitDevice()
 	if( FAILED( hr ) )
 		return hr;
 
-	//FbxFileImporter FbxImporterObj("humanoid.fbx");
-	FbxFileImporter FbxImporterObj("box_skin.fbx");
+	FbxFileImporter FbxImporterObj("humanoid.fbx");
+	//FbxFileImporter FbxImporterObj("box_skin.fbx");
 	//FbxImporterObj.ImportStaticMesh(StaticMeshArray);
 
 	FbxImporterObj.ImportSkeletalMesh(SkeletalMeshArray);
@@ -359,6 +360,7 @@ HRESULT InitDevice()
 //--------------------------------------------------------------------------------------
 void Render()
 {
+	GEngine->_LineBatcher->BeginLine();
 	//memcpy(&GEngine->ViewMat, &g_View, sizeof(XMMATRIX));
 	//memcpy(&GEngine->ProjectionMat, &g_View, sizeof(g_Projection));
 
@@ -439,6 +441,8 @@ void Render()
 		GEngine->_SimpleDrawer->DrawSkeletalMesh(SkeletalMeshArray[i]);
 	}
 
+
+	GEngine->_LineBatcher->Draw();
 
     g_pSwapChain->Present( 0, 0 );
 }

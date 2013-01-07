@@ -7,7 +7,7 @@
 #include <d3dcompiler.h>
 
 class SimpleDrawingPolicy;
-
+class LineBatcher;
 class Engine
 {
 public:
@@ -19,6 +19,8 @@ public:
 
 	XMFLOAT4X4 _ViewMat;
 	XMFLOAT4X4 _ProjectionMat;
+
+	LineBatcher* _LineBatcher;
 
 public:
 

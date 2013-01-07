@@ -26,6 +26,7 @@ public:
 	void BeginLine();
 	void AddLine(XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 Color = XMFLOAT3(1.f, 0.f, 0.f));
 	void UpdateBuffer();
+	void Draw();
 	LineBatcher(void);
 	virtual ~LineBatcher(void);
 };

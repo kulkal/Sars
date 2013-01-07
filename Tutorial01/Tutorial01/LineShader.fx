@@ -19,7 +19,7 @@ struct VS_INPUT
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
-    float3 Color : TEXCOORD1;
+    float3 Color : TEXCOORD0;
 };
 
 //--------------------------------------------------------------------------------------
@@ -40,5 +40,5 @@ PS_INPUT VS(  VS_INPUT input )
 //--------------------------------------------------------------------------------------
 float4 PS( PS_INPUT input ) : SV_Target
 {
-	return input.Color;
+	return float4(1, 1, 1, 1);
 }

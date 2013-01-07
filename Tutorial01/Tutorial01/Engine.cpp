@@ -1,5 +1,6 @@
 #include "Engine.h"
 #include "SimpleDrawingPolicy.h"
+#include "LineBatcher.h"
 
 Engine* GEngine;
 Engine::Engine(void)
@@ -8,17 +9,21 @@ Engine::Engine(void)
 	_SimpleDrawer(NULL)
 	//ViewMat(XMMatrixIdentity()),
 	//ProjectionMat(XMMatrixIdentity())
+	,_LineBatcher(NULL)
 {
 }
 
 Engine::~Engine(void)
 {
 	if(_SimpleDrawer) delete _SimpleDrawer;
+	if(_LineBatcher) delete _LineBatcher;
 }
 
 void Engine::InitDevice()
 {
 	_SimpleDrawer = new SimpleDrawingPolicy;
+	_LineBatcher = new LineBatcher;
+	_LineBatcher->InitDevice();
 }
 
 HRESULT Engine::CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut )

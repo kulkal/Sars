@@ -4,8 +4,8 @@
 
 struct LineBatchCB
 {
-	XMFLOAT4X4 View;
-	XMFLOAT4X4 Projection;
+	XMMATRIX View;
+	XMMATRIX Projection;
 };
 LineBatcher::LineBatcher(void)
 	:
@@ -32,6 +32,8 @@ LineBatcher::~LineBatcher(void)
 
 void LineBatcher::InitDevice()
 {
+	_PositionArray.resize(3000);
+	_IndexArray.resize(3000);
 	HRESULT hr;
 	// Create the constant buffer
 	D3D11_BUFFER_DESC bdc;
@@ -47,7 +49,7 @@ void LineBatcher::InitDevice()
 	// vertex buffer
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory( &bd, sizeof(bd) );
-	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.Usage = D3D11_USAGE_DYNAMIC;
 	bd.ByteWidth = sizeof( LineVertex ) * _PositionArray.size();
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
@@ -61,10 +63,10 @@ void LineBatcher::InitDevice()
 		return;
 	}
 
-	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.Usage = D3D11_USAGE_DYNAMIC;
 	bd.ByteWidth = sizeof( WORD ) * _IndexArray.size();        // 36 vertices needed for 12 triangles in a triangle list
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bd.CPUAccessFlags = 0;
+	bd.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
 	InitData.pSysMem = &_IndexArray.at(0);
 	hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_IndexBuffer );
 	if( FAILED( hr ) )
@@ -73,9 +75,20 @@ void LineBatcher::InitDevice()
 		return;
 	}
 
+	D3D11_MAPPED_SUBRESOURCE MSR;
+	GEngine->_ImmediateContext->Map( _IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
+	WORD* pIndices = (WORD*)MSR.pData;
+
+	for(int i=0;i<_IndexArray.size();i++)
+	{
+		*pIndices = i;
+	}
+
+	GEngine->_ImmediateContext->Unmap( _IndexBuffer, 0 );
+
 	// vertex shader
 	ID3DBlob* pVSBlob = NULL;
-	hr = GEngine->CompileShaderFromFile( L"LineShader", NULL, "VS", "vs_4_0", &pVSBlob );
+	hr = GEngine->CompileShaderFromFile( L"LineShader.fx", NULL, "VS", "vs_4_0", &pVSBlob );
 	if( FAILED( hr ) )
 	{
 		MessageBox( NULL,
@@ -93,7 +106,7 @@ void LineBatcher::InitDevice()
 
 	// pixel shader
 	ID3DBlob* pPSBlob = NULL;
-	hr = GEngine->CompileShaderFromFile(L"LineShader", NULL, "PS", "ps_4_0", &pPSBlob );
+	hr = GEngine->CompileShaderFromFile(L"LineShader.fx", NULL, "PS", "ps_4_0", &pPSBlob );
 	if( FAILED( hr ) )
 	{
 		MessageBox( NULL,
@@ -116,6 +129,8 @@ void LineBatcher::InitDevice()
 	// Create the input layout
 	hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
 		pVSBlob->GetBufferSize(), &_VertexLayout );
+	if( FAILED( hr ) )
+		assert(false);
 }
 
 
@@ -135,9 +150,56 @@ void LineBatcher::AddLine(XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 Color)
 
 void LineBatcher::UpdateBuffer()
 {
+	HRESULT hr = S_OK;
+	D3D11_MAPPED_SUBRESOURCE MSR;
+	GEngine->_ImmediateContext->Map( _VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
+	LineVertex* pVertices = (LineVertex*)MSR.pData;
+
+	memcpy(pVertices, &_PositionArray.at(0), sizeof(LineVertex)*_PositionArray.size()*2);
+
+	GEngine->_ImmediateContext->Unmap( _VertexBuffer, 0 );
+
+
+	LineBatchCB cb;
+	cb.View = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
+	cb.Projection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
+	GEngine->_ImmediateContext->UpdateSubresource( _ConstantBuffer, 0, NULL, &cb, 0, 0 );
 }
 
 void LineBatcher::BeginLine()
 {
 	_PositionArray.clear();
+	_IndexArray.clear();
+}
+
+void LineBatcher::Draw()
+{
+	UpdateBuffer();
+
+	/*ID3D11Buffer*           _VertexBuffer;
+	ID3D11Buffer*           _IndexBuffer;
+
+	ID3D11InputLayout*      _VertexLayout;
+	ID3D11VertexShader*     _VertexShader;
+	ID3D11PixelShader*      _PixelShader;*/
+
+	GEngine->_ImmediateContext->IASetInputLayout( _VertexLayout );
+	GEngine->_ImmediateContext->VSSetShader( _VertexShader, NULL, 0 );
+	GEngine->_ImmediateContext->PSSetShader( _PixelShader, NULL, 0 );
+
+	UINT _VertexStride = sizeof(LineVertex);
+	UINT offset = 0;
+	GEngine->_ImmediateContext->IASetVertexBuffers( 0, 1, &_VertexBuffer, &_VertexStride, &offset );
+	GEngine->_ImmediateContext->IASetIndexBuffer( _IndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
+
+	GEngine->_ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_LINELIST );
+
+
+	GEngine->_ImmediateContext->VSSetConstantBuffers( 0, 1, &_ConstantBuffer );
+	GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &_ConstantBuffer );
+
+	//GEngine->_ImmediateContext->PSSetSamplers( 0, 1, &_SamplerLinear );
+
+
+	GEngine->_ImmediateContext->DrawIndexed( _PositionArray.size(), 0, 0 );    
 }
