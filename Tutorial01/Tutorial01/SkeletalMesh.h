@@ -17,9 +17,7 @@ struct NormalVertexGpuSkin
 {
 	XMFLOAT3 Position;
 	XMFLOAT3 Normal;
-	//float Weights[MAX_BONELINK];
 	unsigned int Weights;
-	//unsigned int Bones[MAX_BONELINK];
 	unsigned int Bones;
 };
 
@@ -28,10 +26,10 @@ struct NormalTexVertexGpuSkin
 	XMFLOAT3 Position;
 	XMFLOAT3 Normal;
 	XMFLOAT2 TexCoord;
-	//float Weights[MAX_BONELINK];
 	unsigned int Weights;
-	//unsigned int Bones[MAX_BONELINK];
 	unsigned int Bones;
+	//float Weights[MAX_BONELINK];
+	//unsigned int Bones[MAX_BONELINK];
 };
 
 struct SkinInfo

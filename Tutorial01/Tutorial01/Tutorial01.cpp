@@ -310,7 +310,7 @@ HRESULT InitDevice()
     g_pImmediateContext->RSSetViewports( 1, &vp );
 
 	
-	XMFLOAT4 EyeVal = XMFLOAT4( 0,250.f, 250.f, 0.0f );
+	XMFLOAT4 EyeVal = XMFLOAT4( 0,50.f, 150.f, 0.0f );
 	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 	XMFLOAT4 UpVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 
@@ -365,7 +365,7 @@ void Render()
 	//GEngine->ViewMat = g_View;
 	//GEngine->ProjectionMat = g_Projection;
 	  // Just clear the backbuffer
-    float ClearColor[4] = { 0.2, 0.2, 0.2, 1.0f }; //red,green,blue,alpha
+    float ClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
     g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, ClearColor );
     g_pImmediateContext->ClearDepthStencilView( g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0 );
 

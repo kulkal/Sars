@@ -19,26 +19,21 @@ cbuffer ConstantBuffer : register( b0 )
 
 struct VS_INPUT
 {
-    float4 Pos : POSITION;
+    float3 Pos : POSITION;
     float3 Norm : NORMAL;
+#if TEXCOORD
+	float2 Tex : TEXCOORD0;
+#endif
 #if GPUSKINNING
 	float4 Weights: WEIGHTS;
 	uint4 Bones : BONES;
 #endif
-#if TEXCOORD
-	float2 Tex : TEXCOORD0;
-#endif
-
 };
 
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
-    float3 Norm : TEXCOORD0;
-#if GPUSKINNING
-	float4 Weights :  BLENDWEIGHTS;
-	uint4 Bones :  BLENDINDICES;
-#endif
+    float3 Norm : NORMAL;
 #if TEXCOORD
 	float2 Tex : TEXCOORD1;
 #endif
@@ -50,42 +45,46 @@ struct PS_INPUT
 float4x4 CalcBoneMatrix(VS_INPUT input)
 {
 	float4x4 TotalMat = (float4x4)0;
-	uint iBone = 1 * 4;
-	float4 row1 = BoneMatrices.Load( iBone );
-	float4 row2 = BoneMatrices.Load( iBone + 1 );
-	float4 row3 = BoneMatrices.Load( iBone + 2 );
-	float4 row4 = BoneMatrices.Load( iBone + 3 );
-    float4x4 Mat = float4x4( row1, row2, row3, row4 );
-		
-	TotalMat += Mat *input.Weights.x;
 
-	//iBone = input.Bones.y * 4;
-	//row1 = BoneMatrices.Load( iBone );
-	//row2 = BoneMatrices.Load( iBone + 1 );
-	//row3 = BoneMatrices.Load( iBone + 2 );
-	//row4 = BoneMatrices.Load( iBone + 3 );
- //   Mat = float4x4( row1, row2, row3, row4 );
+	for(int i=0;i<MAX_BONELINK;i++)
+	{
+		uint iBone = input.Bones[i] * 4;
+		float4 row1 = BoneMatrices.Load( iBone );
+		float4 row2 = BoneMatrices.Load( iBone + 1 );
+		float4 row3 = BoneMatrices.Load( iBone + 2 );
+		float4 row4 = BoneMatrices.Load( iBone + 3 );
+		float4x4 Mat = float4x4( row1, row2, row3, row4 );
 		
-	//TotalMat += Mat * input.Weights.y;
+		TotalMat += Mat* input.Weights[i];
+	}
+	/*
+	iBone = input.Bones.y * 4;
+	row1 = BoneMatrices.Load( iBone );
+	row2 = BoneMatrices.Load( iBone + 1 );
+	row3 = BoneMatrices.Load( iBone + 2 );
+	row4 = BoneMatrices.Load( iBone + 3 );
+	Mat = float4x4( row1, row2, row3, row4 );
+		
+	TotalMat += Mat * input.Weights.y;
 
-	//iBone = input.Bones.z * 4;
-	//row1 = BoneMatrices.Load( iBone );
-	//row2 = BoneMatrices.Load( iBone + 1 );
-	//row3 = BoneMatrices.Load( iBone + 2 );
-	//row4 = BoneMatrices.Load( iBone + 3 );
- //   Mat = float4x4( row1, row2, row3, row4 );
+	iBone = input.Bones.z * 4;
+	row1 = BoneMatrices.Load( iBone );
+	row2 = BoneMatrices.Load( iBone + 1 );
+	row3 = BoneMatrices.Load( iBone + 2 );
+	row4 = BoneMatrices.Load( iBone + 3 );
+    Mat = float4x4( row1, row2, row3, row4 );
 		
-	//TotalMat += Mat * input.Weights.z;
+	TotalMat += Mat * input.Weights.z;
 
-	//iBone = input.Bones.w * 4;
-	//row1 = BoneMatrices.Load( iBone );
-	//row2 = BoneMatrices.Load( iBone + 1 );
-	//row3 = BoneMatrices.Load( iBone + 2 );
-	//row4 = BoneMatrices.Load( iBone + 3 );
- //   Mat = float4x4( row1, row2, row3, row4 );
+	iBone = input.Bones.w * 4;
+	row1 = BoneMatrices.Load( iBone );
+	row2 = BoneMatrices.Load( iBone + 1 );
+	row3 = BoneMatrices.Load( iBone + 2 );
+	row4 = BoneMatrices.Load( iBone + 3 );
+    Mat = float4x4( row1, row2, row3, row4 );
 		
-	//TotalMat += Mat * input.Weights.w;
-	
+	TotalMat += Mat * input.Weights.w;
+	*/
 	return TotalMat;
 }
 #endif
@@ -95,10 +94,11 @@ float4x4 CalcBoneMatrix(VS_INPUT input)
 //--------------------------------------------------------------------------------------
 PS_INPUT VS(  VS_INPUT input )
 {
-    VS_INPUT output = (VS_INPUT)0;
+    PS_INPUT output = (PS_INPUT)0;
 #if GPUSKINNING
 	float4x4 BoneMat = CalcBoneMatrix(input);
-	output.Pos = mul( input.Pos, World );
+	output.Pos = float4(input.Pos, 1.f);
+	output.Pos = mul( output.Pos, World );
 	output.Pos = mul(output.Pos, BoneMat);
     output.Pos = mul( output.Pos, View );
     output.Pos = mul( output.Pos, Projection);
@@ -135,7 +135,6 @@ float4 PS( PS_INPUT input ) : SV_Target
 #if TEXCOORD
     return  float4(0.1f, 0.1f, 0.1f, 1.f) + finalColor*txDiffuse.Sample( samLinear, input.Tex );
 #else
-	//finalColor = float4(1, 0, 0, 1);// BoneMatrices.Load(0);
     return  finalColor;
 #endif
 

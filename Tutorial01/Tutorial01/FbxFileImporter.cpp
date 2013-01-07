@@ -468,6 +468,8 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 				char Str[256];
 
 				FbxAMatrix BoneMatLocalPose = ParentGlobalPose.Inverse() * GlobalPose;
+				//FbxAMatrix BoneMatLocalPose =  GlobalPose;
+
 
 				FbxVector4 LocalT = BoneMatLocalPose.GetT();
 				FbxQuaternion LocalQ = BoneMatLocalPose.GetQ();

@@ -22,6 +22,9 @@
     <None Include="SimpleShader.fx">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="LineShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Tutorial01.cpp" />
@@ -39,6 +42,7 @@
     <ClCompile Include="RenderTargets.cpp" />
     <ClCompile Include="SkeletalMesh.cpp" />
     <ClCompile Include="SkeletalMeshComponent.cpp" />
+    <ClCompile Include="LineBatcher.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -63,6 +67,7 @@
     <ClInclude Include="SkeletalMeshComponent.h" />
     <ClInclude Include="Skeleton.h" />
     <ClInclude Include="Util.h" />
+    <ClInclude Include="LineBatcher.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

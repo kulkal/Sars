@@ -178,7 +178,7 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		}
 		if (mHasNormal && lNormalMappingMode != FbxGeometryElement::eByControlPoint)
 		{
-			mAllByControlPoint = false;
+			//mAllByControlPoint = false;
 		}
 	}
 	if (mHasUV)
@@ -190,7 +190,7 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		}
 		if (mHasUV && lUVMappingMode != FbxGeometryElement::eByControlPoint)
 		{
-			mAllByControlPoint = false;
+			//mAllByControlPoint = false;
 		}
 	}
 
@@ -569,7 +569,11 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 							int RIndex = 3-r;
 							_SkinInfoArray[Vert].Weights[RIndex] = 0.f;
 							_SkinInfoArray[Vert].Bones[RIndex] = 0;
+
+						
 						}
+						sprintf(Str, "%d : %f %f %f %f\n", Vert, _SkinInfoArray[Vert].Weights[0], _SkinInfoArray[Vert].Weights[1], _SkinInfoArray[Vert].Weights[2], _SkinInfoArray[Vert].Weights[3]);
+						OutputDebugStringA(Str);	
 					}
 
  					/*for(int j=0;j<lVertexCount;j++)
@@ -606,7 +610,7 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	delete [] lVertexArray;
 
 	//
-
+	char Str[128];
 	HRESULT hr;
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory( &bd, sizeof(bd) );
@@ -635,6 +639,8 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			{
 				Vertices[i].Bones |= (unsigned int)_SkinInfoArray[i].Bones[k] << k*8;
 			}
+				sprintf(Str, "%d : %f %f %f %f\n", i, _SkinInfoArray[i].Weights[0], _SkinInfoArray[i].Weights[1], _SkinInfoArray[i].Weights[2], _SkinInfoArray[i].Weights[3]);
+				OutputDebugStringA(Str);
 		}
 		InitData.pSysMem = Vertices;
 		hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_VertexBuffer );
@@ -658,14 +664,24 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			Vertices[i].Weights = 0x00000000;
 			Vertices[i].Bones = 0x00000000;
 			
+			char Str[128];
 			for(int k=0;k<MAX_BONELINK;k++)
 			{
 				Vertices[i].Weights |=  (unsigned int)(_SkinInfoArray[i].Weights[k] * 255.f) << k*8;
+				//Vertices[i].Weights[k] = _SkinInfoArray[i].Weights[k];
+			
+
 			}
+				//sprintf(Str, "%d : %f %f %f %f\n", i, _SkinInfoArray[i].Weights[0], _SkinInfoArray[i].Weights[1], _SkinInfoArray[i].Weights[2], _SkinInfoArray[i].Weights[3]);
+			//	OutputDebugStringA(Str);
 			for(int k=0;k<MAX_BONELINK;k++)
 			{
 				Vertices[i].Bones |= (unsigned int)_SkinInfoArray[i].Bones[k] << k*8;
+				//Vertices[i].Bones[k] = _SkinInfoArray[i].Bones[k];
+				
 			}
+			//sprintf(Str, "%d : %d %d %d %d\n", i, Vertices[i].Bones[0], Vertices[i].Bones[1], Vertices[i].Bones[2], Vertices[i].Bones[3]);
+			//	OutputDebugStringA(Str);
 		}
 		InitData.pSysMem = Vertices;
 		hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_VertexBuffer );
@@ -798,8 +814,6 @@ void SkeletalMesh::UpdateBoneMatrices()
 		World = XMLoadFloat4x4(&_BoneWorld[SkeletonIndex]);
 
 		XMMATRIX MatBone = XMMatrixIdentity();
-		//MatBone = RefInv * World;
-		//MatBone = World * RefInv;
 		MatBone = XMMatrixMultiply(RefInv, World);
 
 		XMStoreFloat4x4(&_BoneMatrices[i], MatBone);
