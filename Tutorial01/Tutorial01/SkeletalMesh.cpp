@@ -813,13 +813,16 @@ void SkeletalMesh::UpdateBoneMatrices()
 			XMStoreFloat3(&BonePos, TranVec);
 
 
-			GEngine->_LineBatcher->AddLine(ParentBonePos, BonePos, XMFLOAT3(1, 0, 0));
+//			GEngine->_LineBatcher->AddLine(ParentBonePos, BonePos, XMFLOAT3(1, 0, 0));
+			//GEngine->_LineBatcher->AddLine(XMFLOAT3(MatParent._41, MatParent._42, MatParent._43), XMFLOAT3(MatBone._41, MatBone._42, MatBone._43), XMFLOAT3(1, 0, 0), XMFLOAT3(1, 0, 0));
+
 		}
 
 	}
 
 	for(int i=0;i<_NumBone;i++)
 	{
+		XMFLOAT3 BonePos, BoneDiff;
 		int SkeletonIndex = _RequiredBoneArray[i];
 		XMFLOAT4X4& RefInvF = _Skeleton->_Joints[SkeletonIndex]._InvRefPose;
 
@@ -828,11 +831,31 @@ void SkeletalMesh::UpdateBoneMatrices()
 
 		XMMATRIX World;
 		World = XMLoadFloat4x4(&_BoneWorld[SkeletonIndex]);
+		
+		BonePos = XMFLOAT3(World._41, World._42, World._43);
+
+		BoneDiff.x = BonePos.x + 15;//XMFLOAT3(MatBone._41, MatBone._42, MatBone._43);
+		BoneDiff.y = BonePos.y +15;//
+		BoneDiff.z = BonePos.z + 15;//
+		GEngine->_LineBatcher->AddLine(BonePos, BoneDiff, XMFLOAT3(1, 0, 0), XMFLOAT3(0, 0, 1));
 
 		XMMATRIX MatBone = XMMatrixIdentity();
 		MatBone = XMMatrixMultiply(RefInv, World);
 
 		XMStoreFloat4x4(&_BoneMatrices[i], MatBone);
+
+		
+		XMFLOAT3 BoneDelta;
+		XMFLOAT3 Ori = XMFLOAT3(0, 0, 0);
+		XMVECTOR OriVec = XMLoadFloat3(&Ori);
+		XMVECTOR TranVec = XMVector3Transform(OriVec, MatBone);
+		XMStoreFloat3(&BoneDelta, TranVec);
+
+		BoneDiff.x = BonePos.x + BoneDelta.x;//XMFLOAT3(MatBone._41, MatBone._42, MatBone._43);
+		BoneDiff.y = BonePos.y + BoneDelta.y;//
+		BoneDiff.z = BonePos.z + BoneDelta.z;//
+		//GEngine->_LineBatcher->AddLine(BonePos, BoneDiff, XMFLOAT3(0, 1, 0), XMFLOAT3(0, 0, 1));
+
 	}
 
 	HRESULT hr = S_OK;

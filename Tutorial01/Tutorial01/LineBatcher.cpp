@@ -32,8 +32,12 @@ LineBatcher::~LineBatcher(void)
 
 void LineBatcher::InitDevice()
 {
-	_PositionArray.resize(3000);
-	_IndexArray.resize(3000);
+	_PositionArray.resize(1000);
+	_IndexArray.resize(1000);
+	for(int i=0;i<_IndexArray.size();i++)
+	{
+		_IndexArray[i] = i;
+	}
 	HRESULT hr;
 	// Create the constant buffer
 	D3D11_BUFFER_DESC bdc;
@@ -62,7 +66,8 @@ void LineBatcher::InitDevice()
 		assert(false);
 		return;
 	}
-
+	
+	ZeroMemory( &bd, sizeof(bd) );
 	bd.Usage = D3D11_USAGE_DYNAMIC;
 	bd.ByteWidth = sizeof( WORD ) * _IndexArray.size();        // 36 vertices needed for 12 triangles in a triangle list
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -74,17 +79,6 @@ void LineBatcher::InitDevice()
 		assert(false);
 		return;
 	}
-
-	D3D11_MAPPED_SUBRESOURCE MSR;
-	GEngine->_ImmediateContext->Map( _IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
-	WORD* pIndices = (WORD*)MSR.pData;
-
-	for(int i=0;i<_IndexArray.size();i++)
-	{
-		*pIndices = i;
-	}
-
-	GEngine->_ImmediateContext->Unmap( _IndexBuffer, 0 );
 
 	// vertex shader
 	ID3DBlob* pVSBlob = NULL;
@@ -136,15 +130,18 @@ void LineBatcher::InitDevice()
 }
 
 
-void LineBatcher::AddLine(XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 Color)
+void LineBatcher::AddLine(XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 Color1, XMFLOAT3 Color2)
 {
+	float DistSqr = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
+	if(DistSqr < 0.0001f)
+		return;
 	LineVertex Vertex1;
 	Vertex1.Pos = p1;
-	Vertex1.Color = Color;
+	Vertex1.Color = Color1;
 
 	LineVertex Vertex2;
 	Vertex2.Pos = p2;
-	Vertex2.Color = Color;
+	Vertex2.Color = Color2;
 
 	_PositionArray.push_back(Vertex1);
 	_PositionArray.push_back(Vertex2);
@@ -157,9 +154,19 @@ void LineBatcher::UpdateBuffer()
 	GEngine->_ImmediateContext->Map( _VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
 	LineVertex* pVertices = (LineVertex*)MSR.pData;
 
-	memcpy(pVertices, &_PositionArray.at(0), sizeof(LineVertex)*_PositionArray.size()*2);
+	memcpy(pVertices, &_PositionArray.at(0), sizeof(LineVertex)*_PositionArray.size());
 
 	GEngine->_ImmediateContext->Unmap( _VertexBuffer, 0 );
+	
+	//
+	GEngine->_ImmediateContext->Map( _IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
+	WORD* pIndices = (WORD*)MSR.pData;
+
+	for(int i=0;i<_PositionArray.size();i++)
+	{
+		//*pIndices = i;
+	}
+	GEngine->_ImmediateContext->Unmap( _IndexBuffer, 0 );
 
 
 	LineBatchCB cb;
@@ -195,6 +202,8 @@ void LineBatcher::Draw()
 
 	//GEngine->_ImmediateContext->PSSetSamplers( 0, 1, &_SamplerLinear );
 
+	int NumIndex = _PositionArray.size();
+	//GEngine->_ImmediateContext->DrawIndexed(NumIndex , 0, 0 );    
+	GEngine->_ImmediateContext->Draw(_PositionArray.size(), 0);
 
-	GEngine->_ImmediateContext->DrawIndexed( _PositionArray.size(), 0, 0 );    
 }

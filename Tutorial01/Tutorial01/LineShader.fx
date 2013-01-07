@@ -11,14 +11,14 @@ cbuffer ConstantBuffer : register( b0 )
 
 struct VS_INPUT
 {
-    float4 Pos : POSITION;
+    float3 Pos : POSITION;
     float3 Color : COLOR;
 };
 
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
-    float3 Color : TEXCOORD0;
+    float3 Color : COLOR;
 };
 
 //--------------------------------------------------------------------------------------
@@ -27,7 +27,8 @@ struct PS_INPUT
 PS_INPUT VS(  VS_INPUT input )
 {
     PS_INPUT output = (PS_INPUT)0;
-    output.Pos = mul( input.Pos, View );
+	output.Pos = float4(input.Pos, 1);
+    output.Pos = mul( output.Pos, View );
     output.Pos = mul( output.Pos, Projection );
 	output.Color = input.Color;
     return output;
