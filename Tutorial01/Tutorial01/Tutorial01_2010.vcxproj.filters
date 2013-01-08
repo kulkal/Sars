@@ -43,6 +43,8 @@
     <ClCompile Include="SkeletalMesh.cpp" />
     <ClCompile Include="SkeletalMeshComponent.cpp" />
     <ClCompile Include="LineBatcher.cpp" />
+    <ClCompile Include="OutputDebug.cpp" />
+    <ClCompile Include="AssertDebug.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -68,6 +70,8 @@
     <ClInclude Include="Skeleton.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="LineBatcher.h" />
+    <ClInclude Include="OutputDebug.h" />
+    <ClInclude Include="AssertDebug.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

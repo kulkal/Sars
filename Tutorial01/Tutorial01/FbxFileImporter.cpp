@@ -298,8 +298,6 @@ void FbxFileImporter::ImportSkeletalMesh( std::vector<SkeletalMesh*>& outSkeleta
 
 void FbxFileImporter::FillFbxSkelMeshArray( FbxNode* pNode, std::vector<SkeletalMesh*>& outSkeletalMeshArray )
 {
-	OutputDebugStringA(pNode->GetName());
-	OutputDebugStringA("\n");
 	FbxNodeAttribute* NodeAttribute = pNode->GetNodeAttribute();
 	if ( NodeAttribute )
 	{
@@ -423,13 +421,15 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 		{
 			FbxCluster* Cluster = ClusterArray[ClusterIndex];
 
-		
 			if(Node == Cluster->GetLink())
 			{
 				// this node has cluster, so it has bind pose
-				FbxAMatrix BoneGlobalBind;
+				FbxAMatrix BoneGlobalBind, ClusterMatrix;
 				Cluster->GetTransformLinkMatrix(BoneGlobalBind);
 				//BoneGlobalBind = Cluster->GetLink()->EvaluateGlobalTransform();
+				Cluster->GetTransformMatrix(ClusterMatrix);
+				BoneGlobalBind = ClusterMatrix.Inverse() * BoneGlobalBind;
+				//BoneGlobalBind = ClusterMatrix * BoneGlobalBind;
 
 				FbxAMatrix BoneGlobalBindInv = BoneGlobalBind.Inverse();
 				// ref inverse

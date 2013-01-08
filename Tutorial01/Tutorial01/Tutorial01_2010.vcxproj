@@ -371,6 +371,7 @@
     <None Include="Tutorial01.fx" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AssertDebug.cpp" />
     <ClCompile Include="BaseComponent.cpp" />
     <ClCompile Include="BaseObject.cpp" />
     <ClCompile Include="DrawingPolicy.cpp" />
@@ -378,6 +379,7 @@
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="FbxFileImporter.cpp" />
     <ClCompile Include="LineBatcher.cpp" />
+    <ClCompile Include="OutputDebug.cpp" />
     <ClCompile Include="RenderTargets.cpp" />
     <ClCompile Include="ShaderRes.cpp" />
     <ClCompile Include="SimpleDrawingPolicy.cpp" />
@@ -391,6 +393,7 @@
   <ItemGroup>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AssertDebug.h" />
     <ClInclude Include="BaseComponent.h" />
     <ClInclude Include="BaseObject.h" />
     <ClInclude Include="DrawingPolicy.h" />
@@ -398,6 +401,7 @@
     <ClInclude Include="Entity.h" />
     <ClInclude Include="FbxFileImporter.h" />
     <ClInclude Include="LineBatcher.h" />
+    <ClInclude Include="OutputDebug.h" />
     <ClInclude Include="RenderTargets.h" />
     <CLInclude Include="resource.h" />
     <ClInclude Include="ShaderRes.h" />
