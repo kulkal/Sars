@@ -345,8 +345,8 @@ HRESULT InitDevice()
 	if( FAILED( hr ) )
 		return hr;
 
-	//FbxFileImporter FbxImporterObj("humanoid.fbx");
-	FbxFileImporter FbxImporterObj("box_skin.fbx");
+	FbxFileImporter FbxImporterObj("humanoid.fbx");
+	//FbxFileImporter FbxImporterObj("box_skin.fbx");
 	//FbxImporterObj.ImportStaticMesh(StaticMeshArray);
 
 	FbxImporterObj.ImportSkeletalMesh(SkeletalMeshArray);
