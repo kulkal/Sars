@@ -11,12 +11,15 @@ Engine::Engine(void)
 	//ProjectionMat(XMMatrixIdentity())
 	,_LineBatcher(NULL)
 {
+	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+	//_CrtSetBreakAlloc(41633);
 }
 
 Engine::~Engine(void)
 {
 	if(_SimpleDrawer) delete _SimpleDrawer;
 	if(_LineBatcher) delete _LineBatcher;
+	
 }
 
 void Engine::InitDevice()

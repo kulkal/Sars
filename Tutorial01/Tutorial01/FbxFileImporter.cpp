@@ -83,6 +83,16 @@ FbxFileImporter::FbxFileImporter( std::string Path)
 
 FbxFileImporter::~FbxFileImporter(void)
 {
+   FbxArrayDelete(mAnimStackNameArray);
+
+    // Unload the cache and free the memory
+
+    // Delete the FBX SDK manager. All the objects that have been allocated 
+    // using the FBX SDK manager and that haven't been explicitly destroyed 
+    // are automatically destroyed at the same time.
+   if(mScene)mScene->Destroy();
+   if(mImporter)mImporter->Destroy();
+    if( mSdkManager ) mSdkManager->Destroy();
 }
 
 void FbxFileImporter::ImportStaticMesh(std::vector<StaticMesh*>& outStaticMeshArray)
@@ -267,20 +277,21 @@ void FbxFileImporter::ImportSkeletalMesh( std::vector<SkeletalMesh*>& outSkeleta
 			ImportSkeleton(&outSkeletalMeshArray[0]->_Skeleton, &outSkeletalMeshArray[0]->_Pose);
 
 
-			FbxAnimStack * lCurrentAnimationStack = mScene->FindMember<FbxAnimStack>(mAnimStackNameArray[0]->Buffer());
-			if (lCurrentAnimationStack == NULL)
-			{
-				// this is a problem. The anim stack should be found in the scene!
-				return;
-			}
+			//FbxAnimStack * lCurrentAnimationStack = mScene->FindMember<FbxAnimStack>(mAnimStackNameArray[0]->Buffer());
+			//if (lCurrentAnimationStack == NULL)
+			//{
+			//	// this is a problem. The anim stack should be found in the scene!
+			//	return;
+			//}
 
-			// we assume that the first animation layer connected to the animation stack is the base layer
-			// (this is the assumption made in the FBXSDK)
-			FbxAnimLayer* mCurrentAnimLayer = lCurrentAnimationStack->GetMember<FbxAnimLayer>();
-			mScene->GetEvaluator()->SetContext(lCurrentAnimationStack);
+			//// we assume that the first animation layer connected to the animation stack is the base layer
+			//// (this is the assumption made in the FBXSDK)
+			//FbxAnimLayer* mCurrentAnimLayer = lCurrentAnimationStack->GetMember<FbxAnimLayer>();
+			//mScene->GetEvaluator()->SetContext(lCurrentAnimationStack);
 
-			int PoseCount = mScene->GetPoseCount();
+			//int PoseCount = mScene->GetPoseCount();
 
+			//lCurrentAnimationStack->Destroy();
 
 			lResult = true;
 		}

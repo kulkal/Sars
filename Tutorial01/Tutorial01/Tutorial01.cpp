@@ -5,6 +5,10 @@
 //
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #include <windows.h>
 #include <d3d11.h>
 #include <d3dx11.h>
@@ -13,6 +17,7 @@
 
 #include "resource.h"
 
+//#include "vld.h"
 //
 
 
@@ -340,8 +345,8 @@ HRESULT InitDevice()
 	if( FAILED( hr ) )
 		return hr;
 
-	FbxFileImporter FbxImporterObj("humanoid.fbx");
-	//FbxFileImporter FbxImporterObj("box_skin.fbx");
+	//FbxFileImporter FbxImporterObj("humanoid.fbx");
+	FbxFileImporter FbxImporterObj("box_skin.fbx");
 	//FbxImporterObj.ImportStaticMesh(StaticMeshArray);
 
 	FbxImporterObj.ImportSkeletalMesh(SkeletalMeshArray);

@@ -29,6 +29,10 @@ struct Skeleton
 		_Joints(NULL)
 	{
 	}
+	~Skeleton()
+	{
+		if(_Joints) delete[] _Joints;
+	}
 };
 
 struct JointPose
@@ -45,5 +49,11 @@ struct SkeletonPose
 	SkeletonPose()
 		:_LocalPoseArray(NULL)
 	{
+	}
+	~SkeletonPose()
+	{
+				if(_LocalPoseArray) delete[] _LocalPoseArray;
+
+
 	}
 };

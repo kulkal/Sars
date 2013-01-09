@@ -26,7 +26,9 @@ SkeletalMesh::SkeletalMesh(void)
 	_NumVertex(0),
 	_RequiredBoneArray(NULL),
 	_BoneMatrices(NULL),
-	_BoneWorld(NULL)
+	_BoneWorld(NULL),
+	_Skeleton(NULL),
+	_Pose(NULL)
 {
 }
 
@@ -48,6 +50,14 @@ SkeletalMesh::~SkeletalMesh(void)
 	if(_IndexBuffer) _IndexBuffer->Release();
 	if(_BoneMatricesBuffer) _BoneMatricesBuffer->Release();
 	if(_BoneMatricesBufferRV) _BoneMatricesBufferRV->Release();
+	
+	if(_Skeleton) delete _Skeleton;
+	if(_Pose) delete _Pose;
+
+	for(unsigned int i=0;i<_SubMeshArray.size();i++)
+	{
+		delete _SubMeshArray[i];
+	}
 }
 
 #define MAXBONE_VERTEX 4
