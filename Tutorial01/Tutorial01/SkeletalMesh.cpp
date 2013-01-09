@@ -14,6 +14,8 @@ const int UV_STRIDE = 2;
 SkeletalMesh::SkeletalMesh(void)
 	:_VertexBuffer(NULL),
 	_IndexBuffer(NULL),
+	_BoneMatricesBuffer(NULL),
+	_BoneMatricesBufferRV(NULL),
 	_VertexStride(0),
 	_PositionArray(NULL),
 	_NormalArray(NULL),
@@ -22,8 +24,6 @@ SkeletalMesh::SkeletalMesh(void)
 	_NumTexCoord(0),
 	_NumTriangle(0),
 	_NumVertex(0),
-	_BoneMatricesBuffer(NULL),
-	_BoneMatricesBufferRV(NULL),
 	_RequiredBoneArray(NULL),
 	_BoneMatrices(NULL),
 	_BoneWorld(NULL)
@@ -510,16 +510,11 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 							it++;
 					}
 
-					/*sprintf(Str, "\nnum used Bone : %d\n\n", BoneIndexMap.size());
-					OutputDebugStringA(Str);*/
-
 					std::vector<BoneIndexInfo>& BoneLinkArray = Importer->BoneArray;
 
 					for(it=BoneIndexMap.begin();it!=BoneIndexMap.end();it++)
 					{
 						BoneIndexInfo& LinkInfo = it->second;
-						/*sprintf(Str, "%s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
-						OutputDebugStringA(Str);*/
 						BoneLinkArray.push_back(LinkInfo);
 					}
 
@@ -536,17 +531,7 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 							BoneIndexInfo& LinkInfoMap = it->second;
 							LinkInfoMap.Index = BoneIndex;
 						}
-						/*sprintf(Str, "sorted %s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
-						OutputDebugStringA(Str);*/
 					}
-
-
-					//for(it=BoneIndexMap.begin();it!=BoneIndexMap.end();it++)
-					//{
-					//	BoneIndexInfo& LinkInfo = it->second;
-					//	/*sprintf(Str, "%s, %d\n", LinkInfo.BoneName.c_str(), LinkInfo.Index);
-					//	OutputDebugStringA(Str);*/
-					//}
 
 					_SkinInfoArray = new SkinInfo[lVertexCount];
 					for(int Vert=0;Vert<lVertexCount;Vert++)
@@ -564,7 +549,6 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 								BoneIndexInfo& LinkInfoMap = it->second;
 								_SkinInfoArray[Vert].Bones[BIdx] = LinkInfoMap.Index;
 							}
-							//_SkinInfoArray[Vert].Bones = 
 						}
 						int Remain = 4-SkinInfo.BoneLink.size();
 						for(int r=0;r<Remain;r++)
@@ -579,17 +563,6 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 						OutputDebugStringA(Str);	
 					}
 
- 					/*for(int j=0;j<lVertexCount;j++)
-					{
-						SkinInfo& SInfo = _SkinInfoArray[j];
-						for(int BIdx=0;BIdx<4;BIdx++)
-						{
-							sprintf(Str, " %d: %d, %f, ",j,  SInfo.Bones[BIdx], SInfo.Weights[BIdx]);
-							OutputDebugStringA(Str);
-						}
-						OutputDebugStringA("\n");
-					}*/
-
 					// fill ref pose matrices
 					_NumBone = BoneLinkArray.size();
 
@@ -598,16 +571,11 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 					for(int i=0;i<_NumBone;i++)
 					{
 						_RequiredBoneArray[i] = BoneLinkArray[i].SkeletonIndex;
-						/*sprintf(Str, " %d: %d\n",i, _RequiredBoneArray[i]);
-						OutputDebugStringA(Str);*/
 					}
 					delete[] SkinInfoArray;
 				}
 			}
 		}
-
-		//if (lMeshCache)
-		//	lMeshCache->UpdateVertexPosition(lMesh, lVertexArray);
 	}
 
 	delete [] lVertexArray;
@@ -652,6 +620,10 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			assert(false);
 			return false;
 		}
+
+		SetD3DResourceDebugName("SkeletalMesh_VertexBuffer", _VertexBuffer);
+
+
 		delete[] Vertices;
 	}
 	else if(mHasNormal == true && mHasUV == true)
@@ -667,24 +639,15 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			Vertices[i].Weights = 0x00000000;
 			Vertices[i].Bones = 0x00000000;
 			
-			char Str[128];
 			for(int k=0;k<MAX_BONELINK;k++)
 			{
 				Vertices[i].Weights |=  (unsigned int)(_SkinInfoArray[i].Weights[k] * 255.f) << k*8;
-				//Vertices[i].Weights[k] = _SkinInfoArray[i].Weights[k];
-			
-
 			}
-				//sprintf(Str, "%d : %f %f %f %f\n", i, _SkinInfoArray[i].Weights[0], _SkinInfoArray[i].Weights[1], _SkinInfoArray[i].Weights[2], _SkinInfoArray[i].Weights[3]);
-			//	OutputDebugStringA(Str);
 			for(int k=0;k<MAX_BONELINK;k++)
 			{
 				Vertices[i].Bones |= (unsigned int)_SkinInfoArray[i].Bones[k] << k*8;
-				//Vertices[i].Bones[k] = _SkinInfoArray[i].Bones[k];
 				
 			}
-			//sprintf(Str, "%d : %d %d %d %d\n", i, Vertices[i].Bones[0], Vertices[i].Bones[1], Vertices[i].Bones[2], Vertices[i].Bones[3]);
-			//	OutputDebugStringA(Str);
 		}
 		InitData.pSysMem = Vertices;
 		hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_VertexBuffer );
@@ -693,6 +656,8 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			assert(false);
 			return false;
 		}
+		SetD3DResourceDebugName("SkeletalMesh_VertexBuffer", _VertexBuffer);
+
 		delete[] Vertices;
 	}
 	
@@ -708,6 +673,9 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		assert(false);
 		return false;
 	}
+
+	SetD3DResourceDebugName("SkeletalMesh_IndexBuffer", _IndexBuffer);
+
 
 	_NumTriangle = PolygonCount;
 	_NumVertex = lPolygonVertexCount;
@@ -747,6 +715,9 @@ void SkeletalMesh::UpdateBoneMatrices()
 		if( FAILED( hr ) )
 			assert(false);
 
+		SetD3DResourceDebugName("_BoneMatricesBuffer", _BoneMatricesBuffer);
+
+
 		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 		ZeroMemory( &SRVDesc, sizeof( SRVDesc ) );
 		SRVDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -769,33 +740,17 @@ void SkeletalMesh::UpdateBoneMatrices()
 		XMVECTOR Det;
 		XMMATRIX RefMat = XMMatrixInverse(&Det, XMLoadFloat4x4(&RefInvF));
 
-		cout_debug("ref world %d : %f %f %f\n",i, RefMat._41, RefMat._43);
 
 		XMFLOAT4X4& RefInvParentF = _Skeleton->_Joints[RefPose._ParentIndex]._InvRefPose;
 		XMMATRIX RefMatParent = XMMatrixInverse(&Det, XMLoadFloat4x4(&RefInvParentF));
 
 		if( RefPose._ParentIndex >= 0)
 			GEngine->_LineBatcher->AddLine(XMFLOAT3(RefMat._41, RefMat._42, RefMat._43), XMFLOAT3(RefMatParent._41, RefMatParent._42, RefMatParent._43), XMFLOAT3(0, 1, 0), XMFLOAT3(0, 0, 1));
-
 	}
 
-	for(int i=1;i<_Skeleton->_JointCount;i++)
-	{
-		XMMATRIX MatParent;
 
-		SkeletonJoint& RefPose = _Skeleton->_Joints[i];
-
-		XMFLOAT4X4& RefInvF = _Skeleton->_Joints[i]._InvRefPose;
-		XMFLOAT4X4& RefInvParentF = _Skeleton->_Joints[RefPose._ParentIndex]._InvRefPose;
-		cout_debug("ref parent world %d : %f %f %f\n", RefPose._ParentIndex,RefInvParentF._41, RefInvParentF._42, RefInvParentF._43 );
-	}
-
-	//char Str[256];
 	for(int i=0;i<_Skeleton->_JointCount;i++)
 	{
-		//int SkeletonIndex = _RequiredBoneArray[i];
-		//XMFLOAT4X4& RefInv = _Skeleton->_Joints[SkeletonIndex]._InvRefPose;
-	
 		SkeletonJoint& RefPose = _Skeleton->_Joints[i];
 		JointPose& LocalPose = _Pose->_LocalPoseArray[i];
 		XMMATRIX MatScale = XMMatrixScaling(LocalPose._Scale.x, LocalPose._Scale.y, LocalPose._Scale.z);
@@ -807,8 +762,6 @@ void SkeletalMesh::UpdateBoneMatrices()
 		XMMATRIX MatBone;
 		if(RefPose._ParentIndex < 0) // root
 		{
-			//MatLocal = MatScale * MatRot * MatTrans;
-			//MatLocal = MatTrans * MatRot * MatScale;
 			MatBone = XMMatrixIdentity();
 			MatBone = XMMatrixMultiply(MatScale, MatRot);
 			MatBone = XMMatrixMultiply(MatBone, MatTrans);
@@ -818,7 +771,6 @@ void SkeletalMesh::UpdateBoneMatrices()
 		else
 		{
 			XMMATRIX MatParent;
-			XMFLOAT4X4& MatParentF = _BoneWorld[RefPose._ParentIndex];
 			MatParent = XMLoadFloat4x4(&_BoneWorld[RefPose._ParentIndex]);
 
 			MatBone = XMMatrixIdentity();
@@ -829,8 +781,6 @@ void SkeletalMesh::UpdateBoneMatrices()
 			XMStoreFloat4x4(&_BoneWorld[i], MatBone);
 
 			GEngine->_LineBatcher->AddLine(XMFLOAT3(MatParent._41, MatParent._42, MatParent._43), XMFLOAT3(MatBone._41, MatBone._42, MatBone._43), XMFLOAT3(1, 0, 0), XMFLOAT3(1, 0, 0));
-
-			//GEngine->_LineBatcher->AddLine(RefBonePos, RefBonePosDelta, XMFLOAT3(0, 0, 1), XMFLOAT3(0, 0, 1));
 		}
 	}
 
@@ -845,32 +795,12 @@ void SkeletalMesh::UpdateBoneMatrices()
 
 		XMMATRIX World;
 		World = XMLoadFloat4x4(&_BoneWorld[SkeletonIndex]);
-		
-		//BonePos = XMFLOAT3(World._41, World._42, World._43);
-
-		//BoneDiff.x = BonePos.x + 15;//XMFLOAT3(MatBone._41, MatBone._42, MatBone._43);
-		//BoneDiff.y = BonePos.y +15;//
-		//BoneDiff.z = BonePos.z + 15;//
-		//GEngine->_LineBatcher->AddLine(BonePos, BoneDiff, XMFLOAT3(1, 0, 0), XMFLOAT3(0, 0, 1));
-
+	
 		XMMATRIX MatBone = XMMatrixIdentity();
 		MatBone = XMMatrixMultiply(RefInv, World);
 		XMStoreFloat4x4(&_BoneMatrices[i], MatBone);
-
-		//
-		//XMFLOAT3 BoneDelta;
-		//XMFLOAT3 Ori = XMFLOAT3(0, 0, 0);
-		//XMVECTOR OriVec = XMLoadFloat3(&Ori);
-		//XMVECTOR TranVec = XMVector3Transform(OriVec, MatBone);
-		//XMStoreFloat3(&BoneDelta, TranVec);
-
-		//BoneDiff.x = BonePos.x + BoneDelta.x;//XMFLOAT3(MatBone._41, MatBone._42, MatBone._43);
-		//BoneDiff.y = BonePos.y + BoneDelta.y;//
-		//BoneDiff.z = BonePos.z + BoneDelta.z;//
-		//GEngine->_LineBatcher->AddLine(BonePos, BoneDiff, XMFLOAT3(0, 1, 0), XMFLOAT3(0, 0, 1));
 	}
 
-	HRESULT hr = S_OK;
 	D3D11_MAPPED_SUBRESOURCE MSR;
 	GEngine->_ImmediateContext->Map( _BoneMatricesBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
 	XMFLOAT4X4* pMatrices = (XMFLOAT4X4*)MSR.pData;

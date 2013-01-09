@@ -45,6 +45,7 @@
     <ClCompile Include="LineBatcher.cpp" />
     <ClCompile Include="OutputDebug.cpp" />
     <ClCompile Include="AssertDebug.cpp" />
+    <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">

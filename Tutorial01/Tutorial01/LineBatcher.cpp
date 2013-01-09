@@ -1,5 +1,7 @@
+
 #include "LineBatcher.h"
 #include "Engine.h"
+
 #include <cassert>
 
 struct LineBatchCB
@@ -10,7 +12,6 @@ struct LineBatchCB
 LineBatcher::LineBatcher(void)
 	:
 	_VertexBuffer(NULL)
-	,_IndexBuffer(NULL)
 	,_VertexLayout(NULL)
 	,_VertexShader(NULL)
 	,_PixelShader(NULL)
@@ -22,12 +23,10 @@ LineBatcher::LineBatcher(void)
 LineBatcher::~LineBatcher(void)
 {
 	if(_VertexBuffer) _VertexBuffer->Release();
-	if(_IndexBuffer) _IndexBuffer->Release();
 	if(_VertexLayout) _VertexLayout->Release();
 	if(_VertexShader) _VertexShader->Release();
 	if(_PixelShader) _PixelShader->Release();
 	if(_ConstantBuffer)_ConstantBuffer->Release();
-
 }
 
 void LineBatcher::InitDevice()
@@ -50,6 +49,8 @@ void LineBatcher::InitDevice()
 	if( FAILED( hr ) )
 		assert(false);
 
+	SetD3DResourceDebugName("LineBatcherConstantBuffer", _ConstantBuffer);
+
 	// vertex buffer
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory( &bd, sizeof(bd) );
@@ -66,19 +67,9 @@ void LineBatcher::InitDevice()
 		assert(false);
 		return;
 	}
-	
-	ZeroMemory( &bd, sizeof(bd) );
-	bd.Usage = D3D11_USAGE_DYNAMIC;
-	bd.ByteWidth = sizeof( WORD ) * _IndexArray.size();        // 36 vertices needed for 12 triangles in a triangle list
-	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bd.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
-	InitData.pSysMem = &_IndexArray.at(0);
-	hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_IndexBuffer );
-	if( FAILED( hr ) )
-	{
-		assert(false);
-		return;
-	}
+
+	SetD3DResourceDebugName("LineBatcher_VertexBuffer", _VertexBuffer);
+
 
 	// vertex shader
 	ID3DBlob* pVSBlob = NULL;
@@ -94,6 +85,8 @@ void LineBatcher::InitDevice()
 	
 	if( FAILED( hr ) )
 		assert(false);
+	SetD3DResourceDebugName("LineBatcher_VertexShader", _VertexShader);
+
 
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
@@ -126,7 +119,7 @@ void LineBatcher::InitDevice()
 	if( FAILED( hr ) )
 		assert(false);
 
-
+	SetD3DResourceDebugName("LineBatcher_PixelShader", _PixelShader);
 }
 
 
@@ -149,6 +142,7 @@ void LineBatcher::AddLine(XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 Color1, XMFLOAT3 Co
 
 void LineBatcher::UpdateBuffer()
 {
+	if(_PositionArray.size() == 0) return;
 	HRESULT hr = S_OK;
 	D3D11_MAPPED_SUBRESOURCE MSR;
 	GEngine->_ImmediateContext->Map( _VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
@@ -158,17 +152,6 @@ void LineBatcher::UpdateBuffer()
 
 	GEngine->_ImmediateContext->Unmap( _VertexBuffer, 0 );
 	
-	//
-	GEngine->_ImmediateContext->Map( _IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
-	WORD* pIndices = (WORD*)MSR.pData;
-
-	for(int i=0;i<_PositionArray.size();i++)
-	{
-		//*pIndices = i;
-	}
-	GEngine->_ImmediateContext->Unmap( _IndexBuffer, 0 );
-
-
 	LineBatchCB cb;
 	cb.View = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
 	cb.Projection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
@@ -192,7 +175,6 @@ void LineBatcher::Draw()
 	UINT _VertexStride = sizeof(LineVertex);
 	UINT offset = 0;
 	GEngine->_ImmediateContext->IASetVertexBuffers( 0, 1, &_VertexBuffer, &_VertexStride, &offset );
-	GEngine->_ImmediateContext->IASetIndexBuffer( _IndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
 
 	GEngine->_ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_LINELIST );
 

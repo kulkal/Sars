@@ -389,6 +389,7 @@
     <ClCompile Include="StaticMeshComponent.cpp" />
     <ClCompile Include="StaticMeshEntity.cpp" />
     <ClCompile Include="Tutorial01.cpp" />
+    <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

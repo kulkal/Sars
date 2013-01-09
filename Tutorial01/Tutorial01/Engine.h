@@ -6,6 +6,8 @@
 #include <xnamath.h>
 #include <d3dcompiler.h>
 
+#include "Util.h"
+
 class SimpleDrawingPolicy;
 class LineBatcher;
 class Engine

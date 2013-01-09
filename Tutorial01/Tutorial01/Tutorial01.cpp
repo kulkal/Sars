@@ -347,7 +347,7 @@ HRESULT InitDevice()
 	FbxImporterObj.ImportSkeletalMesh(SkeletalMeshArray);
 
 	FbxFileImporter FbxImporterObj2("other.fbx");
-	FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
+	//FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
 
 	GEngine->InitDevice();
 
@@ -471,6 +471,12 @@ void CleanupDevice()
 	for(unsigned int i=0;i<StaticMeshArray.size();i++)
 	{
 		StaticMesh* Mesh = StaticMeshArray[i];
+		delete Mesh;
+	}
+
+	for(unsigned int i=0;i<SkeletalMeshArray.size();i++)
+	{
+		SkeletalMesh* Mesh = SkeletalMeshArray[i];
 		delete Mesh;
 	}
 

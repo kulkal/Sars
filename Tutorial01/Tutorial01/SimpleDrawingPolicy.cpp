@@ -14,8 +14,9 @@ struct ConstantBufferStruct
 };
 
 SimpleDrawingPolicy::SimpleDrawingPolicy(void)
-	:ConstantBuffer(NULL),
-	RS(NULL)
+	:ConstantBuffer(NULL)
+	,RS(NULL)
+	,_SamplerLinear(NULL)
 {
 	FileName = "SimpleShader.fx";
 
@@ -30,6 +31,9 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
 	hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &ConstantBuffer );
 	if( FAILED( hr ) )
 		assert(false);
+
+	SetD3DResourceDebugName("SimpleDrawingPolicyConstantBuffer", ConstantBuffer);
+
 
 	D3D11_RASTERIZER_DESC drd =
 	{
@@ -49,6 +53,9 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
     if ( FAILED( hr ) )
 		assert(false);
 
+	SetD3DResourceDebugName("SimpleDrawingPolicyRS", RS);
+
+
     GEngine->_ImmediateContext->RSSetState(RS);
 
 	D3D11_SAMPLER_DESC sampDesc;
@@ -63,6 +70,9 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
 	hr = GEngine->_Device->CreateSamplerState( &sampDesc, &_SamplerLinear );
 	if( FAILED( hr ) )
 		assert(false);
+
+	SetD3DResourceDebugName("SimpleDrawingPolicy_SamplerLinear", _SamplerLinear);
+
 }
 
 
@@ -70,6 +80,7 @@ SimpleDrawingPolicy::~SimpleDrawingPolicy(void)
 {
 	if(ConstantBuffer) ConstantBuffer->Release();
 	if(RS) RS->Release();
+	if(_SamplerLinear)_SamplerLinear->Release();
 }
 
 void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )

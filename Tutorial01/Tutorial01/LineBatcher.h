@@ -12,8 +12,6 @@ struct LineVertex
 class LineBatcher
 {
 	ID3D11Buffer*           _VertexBuffer;
-	ID3D11Buffer*           _IndexBuffer;
-
 	ID3D11InputLayout*      _VertexLayout;
 	ID3D11VertexShader*     _VertexShader;
 	ID3D11PixelShader*      _PixelShader;

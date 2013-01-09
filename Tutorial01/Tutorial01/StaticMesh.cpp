@@ -163,7 +163,6 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		}
 	}
 
-
 	// Allocate the array memory, by control point or by polygon vertex.
 	int lPolygonVertexCount = Mesh->GetControlPointsCount();
 	if (!mAllByControlPoint)
@@ -173,12 +172,9 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	_PositionArray = new XMFLOAT3[lPolygonVertexCount];
 	_IndiceArray = new WORD[PolygonCount * TRIANGLE_VERTEX_COUNT];
 
-	//float * lVertices = new float[lPolygonVertexCount * VERTEX_STRIDE];
-	//unsigned int * lIndices = new unsigned int[PolygonCount * TRIANGLE_VERTEX_COUNT];
 	//float * lNormals = NULL;
 	if (mHasNormal)
 	{
-		//lNormals = new float[lPolygonVertexCount * NORMAL_STRIDE];
 		_NormalArray = new XMFLOAT3[lPolygonVertexCount];
 	}
 	//float * lUVs = NULL;
@@ -187,7 +183,6 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	const char * lUVName = NULL;
 	if (mHasUV && lUVNames.GetCount())
 	{
-		//lUVs = new float[lPolygonVertexCount * UV_STRIDE];
 		_TexCoordArray = new XMFLOAT2[lPolygonVertexCount];
 		lUVName = lUVNames[0];
 	}
@@ -213,21 +208,12 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		{
 			// Save the vertex position.
 			lCurrentVertex = lControlPoints[lIndex];
-			//lVertices[lIndex * VERTEX_STRIDE] = static_cast<float>(lCurrentVertex[0]);
-			//lVertices[lIndex * VERTEX_STRIDE + 1] = static_cast<float>(lCurrentVertex[1]);
-			//lVertices[lIndex * VERTEX_STRIDE + 2] = static_cast<float>(lCurrentVertex[2]);
-			//lVertices[lIndex * VERTEX_STRIDE + 3] = 1;
 			FbxVector4 FinalPosition = TotalMatrix.MultT(lCurrentVertex);
-
 
 			_PositionArray[lIndex].x = static_cast<float>(FinalPosition[0]);
 			_PositionArray[lIndex].y = static_cast<float>(FinalPosition[1]);
 			_PositionArray[lIndex].z = static_cast<float>(FinalPosition[2]);
 
-			/*sprintf(StrLog, "Vertex %d %d\n", lIndex);
-			sprintf(StrLog, "x : %d, y : %d, z : %d\n", PositionArray[lIndex].x, PositionArray[lIndex].y, PositionArray[lIndex].z);
-			OutputDebugStringA(StrLog);
-*/
 			// Save the normal.
 			if (mHasNormal)
 			{
@@ -237,10 +223,6 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 					lNormalIndex = lNormalElement->GetIndexArray().GetAt(lIndex);
 				}
 				lCurrentNormal = lNormalElement->GetDirectArray().GetAt(lNormalIndex);
-				//lNormals[lIndex * NORMAL_STRIDE] = static_cast<float>(lCurrentNormal[0]);
-				//lNormals[lIndex * NORMAL_STRIDE + 1] = static_cast<float>(lCurrentNormal[1]);
-				//lNormals[lIndex * NORMAL_STRIDE + 2] = static_cast<float>(lCurrentNormal[2]);
-
 				FbxVector4 FinalNormal = TotalMatrixForNormal.MultT(lCurrentNormal);
 
 				_NormalArray[lIndex].x = static_cast<float>(FinalNormal[0]);
@@ -257,8 +239,6 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 					lUVIndex = lUVElement->GetIndexArray().GetAt(lIndex);
 				}
 				lCurrentUV = lUVElement->GetDirectArray().GetAt(lUVIndex);
-				//lUVs[lIndex * UV_STRIDE] = static_cast<float>(lCurrentUV[0]);
-				//lUVs[lIndex * UV_STRIDE + 1] = static_cast<float>(lCurrentUV[1]);
 				_TexCoordArray[lIndex].x = static_cast<float>(lCurrentUV[0]);
 				_TexCoordArray[lIndex].y = static_cast<float>(lCurrentUV[1]);
 			}
@@ -269,17 +249,12 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	int lVertexCount = 0;
 	for (int lPolygonIndex = 0; lPolygonIndex < PolygonCount; ++lPolygonIndex)
 	{
-	/*	sprintf(StrLog, "\npolygon %d\n", lPolygonIndex);
-		OutputDebugStringA(StrLog);
-*/
-		// The material for current face.
 		int lMaterialIndex = 0;
 		if (MaterialIndice && MaterialMappingMode == FbxGeometryElement::eByPolygon)
 		{
 			lMaterialIndex = MaterialIndice->GetAt(lPolygonIndex);
 		}
 
-		// Where should I save the vertex attribute index, according to the material
 		const int lIndexOffset = _SubMeshArray[lMaterialIndex]->_IndexOffset +
 			_SubMeshArray[lMaterialIndex]->_TriangleCount * 3;
 		for (int lVerticeIndex = 0; lVerticeIndex < TRIANGLE_VERTEX_COUNT; ++lVerticeIndex)
@@ -288,25 +263,14 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 
 			if (mAllByControlPoint)
 			{
-				//lIndices[lIndexOffset + lVerticeIndex] = static_cast<unsigned int>(lControlPointIndex);
 				_IndiceArray[lIndexOffset + lVerticeIndex] = static_cast<WORD>(lControlPointIndex);
-
-			/*	sprintf(StrLog, "%d, \n", IndiceArray[lIndexOffset + lVerticeIndex]);
-				OutputDebugStringA(StrLog);*/
 			}
-			// Populate the array with vertex attribute, if by polygon vertex.
 			else
 			{
-				//lIndices[lIndexOffset + lVerticeIndex] = static_cast<unsigned int>(lVertexCount);
 				_IndiceArray[lIndexOffset + lVerticeIndex] = static_cast<WORD>(lVertexCount);
 
 
 				lCurrentVertex = lControlPoints[lControlPointIndex];
-				///lVertices[lVertexCount * VERTEX_STRIDE] = static_cast<float>(lCurrentVertex[0]);
-				//lVertices[lVertexCount * VERTEX_STRIDE + 1] = static_cast<float>(lCurrentVertex[1]);
-				//lVertices[lVertexCount * VERTEX_STRIDE + 2] = static_cast<float>(lCurrentVertex[2]);
-				//lVertices[lVertexCount * VERTEX_STRIDE + 3] = 1;
-				//lCurrentVertex[0] = -lCurrentVertex[0];
 				FbxVector4 FinalPosition = TotalMatrix.MultT(lCurrentVertex);
 
 				_PositionArray[lVertexCount].x =  static_cast<float>(FinalPosition[0]);
@@ -318,10 +282,6 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 				if (mHasNormal)
 				{
 					Mesh->GetPolygonVertexNormal(lPolygonIndex, lVerticeIndex, lCurrentNormal);
-					//lNormals[lVertexCount * NORMAL_STRIDE] = static_cast<float>(lCurrentNormal[0]);
-					//lNormals[lVertexCount * NORMAL_STRIDE + 1] = static_cast<float>(lCurrentNormal[1]);
-					//lNormals[lVertexCount * NORMAL_STRIDE + 2] = static_cast<float>(lCurrentNormal[2]);
-
 					FbxVector4 FinalNormal = TotalMatrixForNormal.MultT(lCurrentNormal);
 
 					_NormalArray[lVertexCount].x = static_cast<float>(FinalNormal[0]);
@@ -333,8 +293,6 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 				if (mHasUV)
 				{
 					Mesh->GetPolygonVertexUV(lPolygonIndex, lVerticeIndex, lUVName, lCurrentUV);
-					//lUVs[lVertexCount * UV_STRIDE] = static_cast<float>(lCurrentUV[0]);
-					//lUVs[lVertexCount * UV_STRIDE + 1] = static_cast<float>(lCurrentUV[1]);
 
 					_TexCoordArray[lVertexCount].x = static_cast<float>(lCurrentUV[0]);
 					_TexCoordArray[lVertexCount].y = static_cast<float>(lCurrentUV[1]);
@@ -372,6 +330,9 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			assert(false);
 			return false;
 		}
+
+		SetD3DResourceDebugName("StaticMesh_VertexBuffer", _VertexBuffer);
+
 		delete[] Vertices;
 	}
 	else if(mHasNormal == true && mHasUV == true)
@@ -391,6 +352,9 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 			assert(false);
 			return false;
 		}
+
+		SetD3DResourceDebugName("StaticMesh_VertexBuffer", _VertexBuffer);
+
 		delete[] Vertices;
 	}
 	
@@ -406,6 +370,8 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		assert(false);
 		return false;
 	}
+	
+	SetD3DResourceDebugName("StaticMesh_VertexBuffer", _IndexBuffer);
 
 	_NumTriangle = PolygonCount;
 	_NumVertex = lPolygonVertexCount;
