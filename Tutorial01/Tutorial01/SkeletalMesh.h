@@ -28,8 +28,6 @@ struct NormalTexVertexGpuSkin
 	XMFLOAT2 TexCoord;
 	unsigned int Weights;
 	unsigned int Bones;
-	//float Weights[MAX_BONELINK];
-	//unsigned int Bones[MAX_BONELINK];
 };
 
 struct SkinInfo
