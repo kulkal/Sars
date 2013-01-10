@@ -1,65 +1,46 @@
+#include <cassert>
 #include "SkeletalMeshComponent.h"
+#include "Engine.h"
+#include "LineBatcher.h"
+#include "SkeletalMeshRenderData.h"
 
 
 SkeletalMeshComponent::SkeletalMeshComponent(void)
-	:
-	_VertexBuffer(NULL)
-	,_IndexBuffer(NULL)
-	,_BoneMatricesBuffer(NULL)
-	,_BoneMatricesBufferRV(NULL)
-	,_BoneMatrices(NULL)
-	,_BoneWorld(NULL)
-	,_SkeletalMesh(NULL)
+	:_BoneWorld(NULL)
+	,_Skeleton(NULL)
+	,_Pose(NULL)
 {
 }
 
 
 SkeletalMeshComponent::~SkeletalMeshComponent(void)
 {
-	if(_VertexBuffer) _VertexBuffer->Release();
-	if(_IndexBuffer) _IndexBuffer->Release();
-	if(_BoneMatricesBuffer) _BoneMatricesBuffer->Release();
-	if(_BoneMatricesBufferRV) _BoneMatricesBufferRV->Release();
-	if(_BoneMatrices) delete[] _BoneMatrices;
 	if(_BoneWorld) delete[] _BoneWorld;
-	if(_SkeletalMesh) delete _SkeletalMesh;
+
+	for(unsigned int i=0;i<_RenderDataArray.size();i++)
+	{
+		delete _RenderDataArray[i];
+	}
+
+}
+
+void SkeletalMeshComponent::SetSkeleton(Skeleton* Skeleton)
+{
+	_Skeleton = Skeleton;
+
+	if( _BoneWorld)
+		delete _BoneWorld;
+	_BoneWorld = new XMFLOAT4X4[_Skeleton->_JointCount];
+}
+
+void SkeletalMeshComponent::SetCurrentPose(SkeletonPose* Pose)
+{
+	_Pose = Pose;
 }
 
 void SkeletalMeshComponent::UpdateBoneMatrices()
 {
-	if( _BoneMatrices == NULL)
-		_BoneMatrices = new XMFLOAT4X4[_Skeleton->_JointCount];
-	if( _BoneWorld == NULL)
-		_BoneWorld = new XMFLOAT4X4[_Skeleton->_JointCount];
-	if(_BoneMatricesBuffer == NULL)
-	{
-
-		HRESULT hr;
-		D3D11_BUFFER_DESC bdc;
-		ZeroMemory( &bdc, sizeof(bdc) );
-		bdc.Usage = D3D11_USAGE_DYNAMIC;
-		bdc.ByteWidth = _NumBone* sizeof(XMFLOAT4X4);
-		bdc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		bdc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
-		hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &_BoneMatricesBuffer );
-		if( FAILED( hr ) )
-			assert(false);
-
-		SetD3DResourceDebugName("_BoneMatricesBuffer", _BoneMatricesBuffer);
-
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-		ZeroMemory( &SRVDesc, sizeof( SRVDesc ) );
-		SRVDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		SRVDesc.Buffer.ElementOffset = 0;
-		SRVDesc.Buffer.ElementWidth = _NumBone * 4;
-		hr = GEngine->_Device->CreateShaderResourceView( _BoneMatricesBuffer, &SRVDesc, &_BoneMatricesBufferRV );
-		if( FAILED( hr ) )
-			assert(false);
-
-	}
-
+	// debug draw ref pose line
 	for(int i=0;i<_Skeleton->_JointCount;i++)
 	{
 		XMMATRIX MatParent;
@@ -78,7 +59,7 @@ void SkeletalMeshComponent::UpdateBoneMatrices()
 			GEngine->_LineBatcher->AddLine(XMFLOAT3(RefMat._41, RefMat._42, RefMat._43), XMFLOAT3(RefMatParent._41, RefMatParent._42, RefMatParent._43), XMFLOAT3(0, 1, 0), XMFLOAT3(0, 0, 1));
 	}
 
-
+	// calc world bone
 	for(int i=0;i<_Skeleton->_JointCount;i++)
 	{
 		SkeletonJoint& RefPose = _Skeleton->_Joints[i];
@@ -92,7 +73,6 @@ void SkeletalMeshComponent::UpdateBoneMatrices()
 		XMMATRIX MatBone;
 		if(RefPose._ParentIndex < 0) // root
 		{
-			MatBone = XMMatrixIdentity();
 			MatBone = XMMatrixMultiply(MatScale, MatRot);
 			MatBone = XMMatrixMultiply(MatBone, MatTrans);
 
@@ -103,42 +83,41 @@ void SkeletalMeshComponent::UpdateBoneMatrices()
 			XMMATRIX MatParent;
 			MatParent = XMLoadFloat4x4(&_BoneWorld[RefPose._ParentIndex]);
 
-			MatBone = XMMatrixIdentity();
 			MatBone = XMMatrixMultiply(MatScale, MatRot);
 			MatBone = XMMatrixMultiply(MatBone, MatTrans);
 			MatBone = XMMatrixMultiply(MatBone, MatParent);
 
-			XMStoreFloat4x4(&_BoneWorld[i], MatBone);
-
 			GEngine->_LineBatcher->AddLine(XMFLOAT3(MatParent._41, MatParent._42, MatParent._43), XMFLOAT3(MatBone._41, MatBone._42, MatBone._43), XMFLOAT3(1, 0, 0), XMFLOAT3(1, 0, 0));
+
+			XMStoreFloat4x4(&_BoneWorld[i], MatBone);
 		}
 	}
 
-	for(int i=0;i<_NumBone;i++)
+	// ref inverse * bone world
+	for(int i=0;i<_Skeleton->_JointCount;i++)
 	{
-		XMFLOAT3 BonePos, BoneDiff;
-		int SkeletonIndex = _RequiredBoneArray[i];
-		XMFLOAT4X4& RefInvF = _Skeleton->_Joints[SkeletonIndex]._InvRefPose;
-
 		XMMATRIX RefInv;
+		XMFLOAT4X4& RefInvF = _Skeleton->_Joints[i]._InvRefPose;
 		RefInv = XMLoadFloat4x4(&RefInvF);
 
-		XMMATRIX World;
-		World = XMLoadFloat4x4(&_BoneWorld[SkeletonIndex]);
-	
-		XMMATRIX MatBone = XMMatrixIdentity();
-		MatBone = XMMatrixMultiply(RefInv, World);
-		XMStoreFloat4x4(&_BoneMatrices[i], MatBone);
+		XMMATRIX MatBone;
+		MatBone = XMLoadFloat4x4(&_BoneWorld[i]);
+		
+		MatBone = XMMatrixMultiply(RefInv, MatBone);
+		XMStoreFloat4x4(&_BoneWorld[i], MatBone);
 	}
 
-	D3D11_MAPPED_SUBRESOURCE MSR;
-	GEngine->_ImmediateContext->Map( _BoneMatricesBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
-	XMFLOAT4X4* pMatrices = (XMFLOAT4X4*)MSR.pData;
-
-	for( unsigned int i = 0; i < _NumBone; i++ )
+	for(unsigned int i=0;i<_RenderDataArray.size();i++)
 	{
-		pMatrices[i] = _BoneMatrices[i];
+		SkeletalMeshRenderData* RenderData = _RenderDataArray[i];
+		RenderData->UpdateBoneMatrices();
 	}
+}
 
-	GEngine->_ImmediateContext->Unmap( _BoneMatricesBuffer, 0 );
+void SkeletalMeshComponent::AddSkeletalMesh(SkeletalMesh* InSkeletalMesh)
+{
+	_SkeletalMeshArray.push_back(InSkeletalMesh);
+
+	SkeletalMeshRenderData *RenderData = new SkeletalMeshRenderData(InSkeletalMesh, this);
+	_RenderDataArray.push_back(RenderData);
 }

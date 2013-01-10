@@ -385,6 +385,7 @@
     <ClCompile Include="SimpleDrawingPolicy.cpp" />
     <ClCompile Include="SkeletalMesh.cpp" />
     <ClCompile Include="SkeletalMeshComponent.cpp" />
+    <ClCompile Include="SkeletalMeshRenderData.cpp" />
     <ClCompile Include="StaticMesh.cpp" />
     <ClCompile Include="StaticMeshComponent.cpp" />
     <ClCompile Include="StaticMeshEntity.cpp" />
@@ -409,6 +410,7 @@
     <ClInclude Include="SimpleDrawingPolicy.h" />
     <ClInclude Include="SkeletalMesh.h" />
     <ClInclude Include="SkeletalMeshComponent.h" />
+    <ClInclude Include="SkeletalMeshRenderData.h" />
     <ClInclude Include="Skeleton.h" />
     <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="StaticMeshComponent.h" />

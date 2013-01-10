@@ -37,20 +37,19 @@ struct SkinInfo
 };
 
 
-
 class SkeletalMesh :
 	public BaseObject
 {
+	friend class SkeletalMeshComponent;
 public:
-	XMFLOAT3* _PositionArray;
-	XMFLOAT3* _NormalArray;
-	XMFLOAT2* _TexCoordArray;
 
-	WORD*  _IndiceArray;
+	std::vector<XMFLOAT3> _PositionArray;
+	std::vector<XMFLOAT3> _NormalArray;
+	std::vector<XMFLOAT2> _TexCoordArray;
+	std::vector<WORD> _IndiceArray;
 
-	SkinInfo* _SkinInfoArray;
-
-	
+	//SkinInfo* _SkinInfoArray;
+	std::vector<SkinInfo> _SkinInfoArray;
 
 	int _NumTexCoord;
 	int _NumTriangle;
@@ -73,17 +72,13 @@ public:
 
 	// linked bone data.
 	int _NumBone;
-	XMFLOAT4X4* _BoneMatrices;
-	XMFLOAT4X4* _BoneWorld;
 
-	int* _RequiredBoneArray;
+	std::vector<int> _RequiredBoneArray;
 	
 	Skeleton*	_Skeleton;
 	SkeletonPose* _Pose;
 public:
 	bool ImportFromFbxMesh(FbxMesh* Mesh, FbxFileImporter* Importer);
-
-	void UpdateBoneMatrices();
 
 	SkeletalMesh(void);
 	virtual ~SkeletalMesh(void);

@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <crtdbg.h>
 
+
+
 #include <windows.h>
 #include <d3d11.h>
 #include <d3dx11.h>
@@ -17,7 +19,6 @@
 
 #include "resource.h"
 
-//#include "vld.h"
 //
 
 
@@ -28,7 +29,9 @@
 #include "StaticMesh.h"
 #include "StaticMeshComponent.h"
 #include "SkeletalMesh.h"
+#include "SkeletalMeshComponent.h"
 #include "LineBatcher.h"
+//#include "vld.h"
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -55,7 +58,9 @@ XMMATRIX                g_World;
 XMMATRIX                g_World2;
 std::vector<StaticMesh*> StaticMeshArray;
 std::vector<SkeletalMesh*> SkeletalMeshArray;
-
+Skeleton* GSkeleton;
+SkeletonPose* GPose;
+SkeletalMeshComponent* GSkeletalMeshComponent;
 
 //std::vector<StaticMesh*> StaticMeshArray2;
 
@@ -345,14 +350,26 @@ HRESULT InitDevice()
 	if( FAILED( hr ) )
 		return hr;
 
+	GSkeletalMeshComponent = new SkeletalMeshComponent;
+	GSkeleton = new Skeleton;
+	GPose = new SkeletonPose;
+
 	FbxFileImporter FbxImporterObj("humanoid.fbx");
 	//FbxFileImporter FbxImporterObj("box_skin.fbx");
 	//FbxImporterObj.ImportStaticMesh(StaticMeshArray);
 
 	FbxImporterObj.ImportSkeletalMesh(SkeletalMeshArray);
 
+	for(unsigned int i=0;i<SkeletalMeshArray.size();i++)
+	{
+		GSkeletalMeshComponent->AddSkeletalMesh(SkeletalMeshArray[i]);
+	}
+	FbxImporterObj.ImportSkeleton(&GSkeleton, &GPose);
+	GSkeletalMeshComponent->SetSkeleton(GSkeleton);
+	GSkeletalMeshComponent->SetCurrentPose(GPose);
+
 	FbxFileImporter FbxImporterObj2("other.fbx");
-	//FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
+	FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
 
 	GEngine->InitDevice();
 
@@ -439,14 +456,22 @@ void Render()
 
 	for(unsigned int i=0;i<StaticMeshArray.size();i++)
 	{
-		//GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
+		GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
 	}
-	for(unsigned i=0;i<SkeletalMeshArray.size();i++)
+	/*for(unsigned int i=0;i<SkeletalMeshArray.size();i++)
 	{
 		SkeletalMeshArray[i]->UpdateBoneMatrices();
 		GEngine->_SimpleDrawer->DrawSkeletalMesh(SkeletalMeshArray[i]);
-	}
+	}*/
 
+	if(GSkeletalMeshComponent)
+	{
+		GSkeletalMeshComponent->UpdateBoneMatrices();
+		for(unsigned int i=0;i<GSkeletalMeshComponent->_RenderDataArray.size();i++)
+		{
+			GEngine->_SimpleDrawer->DrawSkeletalMeshData(GSkeletalMeshComponent->_RenderDataArray[i]);
+		}
+	}
 	//GEngine->_LineBatcher->AddLine(XMFLOAT3(0, 0, 0), XMFLOAT3(100, 100, 100), XMFLOAT3(1, 0, 0));
 	//GEngine->_LineBatcher->AddLine(XMFLOAT3(0, 0, 0), XMFLOAT3(100, 0, 100), XMFLOAT3(1, 0, 0));
 	//GEngine->_LineBatcher->AddLine(XMFLOAT3(0, 0, 0), XMFLOAT3(100, 100, 0), XMFLOAT3(1, 0, 0));
@@ -472,6 +497,10 @@ void CleanupDevice()
 	if( g_pImmediateContext ) g_pImmediateContext->Release();
 	if( g_pd3dDevice ) g_pd3dDevice->Release();
 
+
+	if(GSkeleton) delete GSkeleton;
+	if(GPose) delete GPose;
+	if(GSkeletalMeshComponent) delete GSkeletalMeshComponent;
 
 	for(unsigned int i=0;i<StaticMeshArray.size();i++)
 	{

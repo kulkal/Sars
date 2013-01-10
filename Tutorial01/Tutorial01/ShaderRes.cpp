@@ -50,7 +50,8 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 	int nLen = strlen(FileName)+1;
 
 	wchar_t WFileName[1024];
-	mbstowcs(WFileName, FileName, nLen);
+	size_t RetSize;
+	mbstowcs_s(&RetSize, WFileName, 1024, FileName, nLen);
 
 	HRESULT hr;
 	ID3DBlob* pVSBlob = NULL;

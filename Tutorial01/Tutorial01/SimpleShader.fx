@@ -35,7 +35,7 @@ struct PS_INPUT
     float4 Pos : SV_POSITION;
     float3 Norm : NORMAL;
 #if TEXCOORD
-	float2 Tex : TEXCOORD1;
+	float2 Tex : TEXCOORD0;
 #endif
 
 };
@@ -57,34 +57,7 @@ float4x4 CalcBoneMatrix(VS_INPUT input)
 		
 		TotalMat += Mat* input.Weights[i];
 	}
-	/*
-	iBone = input.Bones.y * 4;
-	row1 = BoneMatrices.Load( iBone );
-	row2 = BoneMatrices.Load( iBone + 1 );
-	row3 = BoneMatrices.Load( iBone + 2 );
-	row4 = BoneMatrices.Load( iBone + 3 );
-	Mat = float4x4( row1, row2, row3, row4 );
-		
-	TotalMat += Mat * input.Weights.y;
 
-	iBone = input.Bones.z * 4;
-	row1 = BoneMatrices.Load( iBone );
-	row2 = BoneMatrices.Load( iBone + 1 );
-	row3 = BoneMatrices.Load( iBone + 2 );
-	row4 = BoneMatrices.Load( iBone + 3 );
-    Mat = float4x4( row1, row2, row3, row4 );
-		
-	TotalMat += Mat * input.Weights.z;
-
-	iBone = input.Bones.w * 4;
-	row1 = BoneMatrices.Load( iBone );
-	row2 = BoneMatrices.Load( iBone + 1 );
-	row3 = BoneMatrices.Load( iBone + 2 );
-	row4 = BoneMatrices.Load( iBone + 3 );
-    Mat = float4x4( row1, row2, row3, row4 );
-		
-	TotalMat += Mat * input.Weights.w;
-	*/
 	return TotalMat;
 }
 #endif
@@ -106,7 +79,8 @@ PS_INPUT VS(  VS_INPUT input )
 	output.Norm = mul( input.Norm, World );
 	output.Norm = mul(output.Norm, BoneMat);
 #else
-    output.Pos = mul( input.Pos, World );
+	output.Pos = float4(input.Pos, 1.f);
+    output.Pos = mul( output.Pos, World );
     output.Pos = mul( output.Pos, View );
     output.Pos = mul( output.Pos, Projection );
 	output.Norm = mul( input.Norm, World );

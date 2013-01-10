@@ -33,9 +33,9 @@ void LineBatcher::InitDevice()
 {
 	_PositionArray.resize(1000);
 	_IndexArray.resize(1000);
-	for(int i=0;i<_IndexArray.size();i++)
+	for(unsigned int i=0;i<_IndexArray.size();i++)
 	{
-		_IndexArray[i] = i;
+		_IndexArray[i] = (unsigned short)i;
 	}
 	HRESULT hr;
 	// Create the constant buffer
@@ -143,7 +143,6 @@ void LineBatcher::AddLine(XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 Color1, XMFLOAT3 Co
 void LineBatcher::UpdateBuffer()
 {
 	if(_PositionArray.size() == 0) return;
-	HRESULT hr = S_OK;
 	D3D11_MAPPED_SUBRESOURCE MSR;
 	GEngine->_ImmediateContext->Map( _VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR );
 	LineVertex* pVertices = (LineVertex*)MSR.pData;
@@ -178,14 +177,7 @@ void LineBatcher::Draw()
 
 	GEngine->_ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_LINELIST );
 
-
 	GEngine->_ImmediateContext->VSSetConstantBuffers( 0, 1, &_ConstantBuffer );
-	//GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &_ConstantBuffer );
-
-	//GEngine->_ImmediateContext->PSSetSamplers( 0, 1, &_SamplerLinear );
-
-	int NumIndex = _PositionArray.size();
-	//GEngine->_ImmediateContext->DrawIndexed(NumIndex , 0, 0 );    
 	GEngine->_ImmediateContext->Draw(_PositionArray.size(), 0);
 
 }

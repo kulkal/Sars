@@ -1,25 +1,35 @@
 #pragma once
-#include "basecomponent.h"
+#include <d3d11.h>
+#include <d3dx11.h>
+#include <xnamath.h>
 
+#include "basecomponent.h"
+#include "SkeletalMesh.h"
 class SkeletalMesh;
+class Skeleton;
+
+class SkeletalMeshRenderData;
 
 class SkeletalMeshComponent :
 	public BaseComponent
 {
-	ID3D11Buffer*				_VertexBuffer;
-	ID3D11Buffer*				_IndexBuffer;
-	ID3D11Buffer*				_BoneMatricesBuffer;
-	ID3D11ShaderResourceView*	_BoneMatricesBufferRV;
-
-	XMFLOAT4X4*					_BoneMatrices;
-	XMFLOAT4X4*					_BoneWorld;
-
-	SkeletalMesh*				_SkeletalMesh;
 public:
-	void UpdateBoneMatrices()
+	std::vector<SkeletalMeshRenderData*> _RenderDataArray;
 
-	void SetSkeletalMesh(SkeletalMesh* SkeletalMesh);
+	friend class 	SkeletalMeshRenderData;
+
+	std::vector<SkeletalMesh*> _SkeletalMeshArray;
+
+	XMFLOAT4X4* _BoneWorld;
+
+	Skeleton*	_Skeleton;
+	SkeletonPose* _Pose;
+public:
+	void UpdateBoneMatrices();
+
+	void AddSkeletalMesh(SkeletalMesh* InSkeletalMesh);
 	void SetSkeleton(Skeleton* Skeleton);
+	void SetCurrentPose(SkeletonPose* Pose);
 
 	SkeletalMeshComponent(void);
 	virtual ~SkeletalMeshComponent(void);

@@ -50,7 +50,7 @@ void _CrtOutputDataSize(size_t nDataSize)
 
 		if (nDataSize == pCurHeader->nDataSize)
 		{
-			sprintf(szDebug, "LEAK-DEBUG %s,%d,%d\n", pCurHeader->szFileName, pCurHeader->nLine, pCurHeader->lRequest);
+			sprintf_s(szDebug, "LEAK-DEBUG %s,%d,%d\n", pCurHeader->szFileName, pCurHeader->nLine, pCurHeader->lRequest);
 			OutputDebugStringA(szDebug);
 		}
 		pCurHeader = pCurHeader->pBlockHeaderPrev;
@@ -63,7 +63,7 @@ void _CrtOutputDataSize(size_t nDataSize)
 
 		if (nDataSize == pCurHeader->nDataSize)
 		{
-			sprintf(szDebug, "LEAK-DEBUG %s,%d,%d\n", pCurHeader->szFileName, pCurHeader->nLine, pCurHeader->lRequest);
+			sprintf_s(szDebug, "LEAK-DEBUG %s,%d,%d\n", pCurHeader->szFileName, pCurHeader->nLine, pCurHeader->lRequest);
 			OutputDebugStringA(szDebug);
 		}
 		pCurHeader = pCurHeader->pBlockHeaderNext;
@@ -89,7 +89,7 @@ void _CrtOutputAlloc(long lFromRequest)
 
 		if (lFromRequest <= pCurHeader->lRequest && pCurHeader->lRequest <= lToRequest)
 		{
-			sprintf(szDebug, "LEAK-DEBUG %s,%d,%d\n", pCurHeader->szFileName, pCurHeader->nLine, pCurHeader->lRequest);
+			sprintf_s(szDebug, "LEAK-DEBUG %s,%d,%d\n", pCurHeader->szFileName, pCurHeader->nLine, pCurHeader->lRequest);
 			OutputDebugStringA(szDebug);
 		}
 		pCurHeader = pCurHeader->pBlockHeaderPrev;
@@ -102,7 +102,7 @@ void _CrtOutputAlloc(long lFromRequest)
 
 		if (lFromRequest <= pCurHeader->lRequest && pCurHeader->lRequest <= lToRequest)
 		{
-			sprintf(szDebug, "LEAK-DEBUG %s,%d,%d\n", pCurHeader->szFileName, pCurHeader->nLine, pCurHeader->lRequest);
+			sprintf_s(szDebug, "LEAK-DEBUG %s,%d,%d\n", pCurHeader->szFileName, pCurHeader->nLine, pCurHeader->lRequest);
 			OutputDebugStringA(szDebug);
 		}
 		pCurHeader = pCurHeader->pBlockHeaderNext;

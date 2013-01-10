@@ -1,8 +1,10 @@
+#include <cassert>
+
 #include "SimpleDrawingPolicy.h"
 #include "Engine.h"
 #include "StaticMesh.h"
 #include "SkeletalMesh.h"
-#include <cassert>
+#include "SkeletalMeshRenderData.h"
 
 struct ConstantBufferStruct
 {
@@ -150,10 +152,43 @@ void SimpleDrawingPolicy::DrawSkeletalMesh(SkeletalMesh* pMesh)
 	GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &ConstantBuffer );
 
 	GEngine->_ImmediateContext->VSSetShaderResources( 0, 1, &pMesh->_BoneMatricesBufferRV );
-	GEngine->_ImmediateContext->VSSetShaderResources( 1, 1, &pMesh->_BoneMatricesBufferRV );
-	//GEngine->_ImmediateContext->PSSetShaderResources( 0, 1, &pMesh->_BoneMatricesBufferRV );
 
 	GEngine->_ImmediateContext->PSSetSamplers( 0, 1, &_SamplerLinear );
 	GEngine->_ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }
 
+void SimpleDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData) 
+{
+	XMMATRIX World;
+
+	World = XMMatrixIdentity();
+	ConstantBufferStruct cb;
+	cb.mWorld = XMMatrixTranspose( World );
+	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
+	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
+	cb.vLightDir[0] = vLightDirs[0];
+	cb.vLightDir[1] = vLightDirs[1];
+	cb.vLightColor[0] = vLightColors[0];
+	cb.vLightColor[1] = vLightColors[1];
+	GEngine->_ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
+
+	ShaderRes* pShaderRes = GetShaderRes(pRenderData->_SkeletalMesh->_NumTexCoord, GpuSkinVertex);
+
+
+	pShaderRes->SetShaderRes();
+
+	UINT offset = 0;
+	GEngine->_ImmediateContext->IASetVertexBuffers( 0, 1, &pRenderData->_SkeletalMesh->_VertexBuffer, &pRenderData->_SkeletalMesh->_VertexStride, &offset );
+	GEngine->_ImmediateContext->IASetIndexBuffer( pRenderData->_SkeletalMesh->_IndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
+
+	GEngine->_ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+
+
+	GEngine->_ImmediateContext->VSSetConstantBuffers( 0, 1, &ConstantBuffer );
+	GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &ConstantBuffer );
+
+	GEngine->_ImmediateContext->VSSetShaderResources( 0, 1, &pRenderData->_BoneMatricesBufferRV );
+
+	GEngine->_ImmediateContext->PSSetSamplers( 0, 1, &_SamplerLinear );
+	GEngine->_ImmediateContext->DrawIndexed( pRenderData->_SkeletalMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
+}

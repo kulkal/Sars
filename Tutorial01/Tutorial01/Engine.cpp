@@ -12,7 +12,7 @@ Engine::Engine(void)
 	,_LineBatcher(NULL)
 {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-	//_CrtSetBreakAlloc(41633);
+	//_CrtSetBreakAlloc(198);
 }
 
 Engine::~Engine(void)

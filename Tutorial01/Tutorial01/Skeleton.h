@@ -20,8 +20,9 @@ struct SkeletonJoint
 	}
 
 };
-struct Skeleton
+class Skeleton
 {
+public:
 	int				_JointCount;
 	SkeletonJoint*	_Joints;
 	Skeleton()
@@ -42,8 +43,9 @@ struct JointPose
 	XMFLOAT3	_Scale;
 };
 
-struct SkeletonPose
+class SkeletonPose
 {
+public:
 	JointPose*	_LocalPoseArray;
 
 	SkeletonPose()

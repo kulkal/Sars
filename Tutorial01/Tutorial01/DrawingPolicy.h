@@ -8,7 +8,7 @@
 #include "ShaderRes.h"
 class StaticMesh;
 class SkeletalMesh;
-
+class SkeletalMeshRenderData;
 class DrawingPolicy
 {
 protected:
@@ -18,6 +18,7 @@ protected:
 public:
 	virtual void DrawStaticMesh(StaticMesh* pMesh) = 0;
 	virtual void DrawSkeletalMesh(SkeletalMesh* pMesh) = 0;
+	virtual void DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData) = 0;
 
 	ShaderRes* GetShaderRes(int NumTex, EVertexProcessingType VPType);
 

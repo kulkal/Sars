@@ -14,9 +14,9 @@ StaticMesh::StaticMesh(void)
 	_VertexBuffer(NULL),
 	_IndexBuffer(NULL),
 	_VertexStride(0),
-	_PositionArray(NULL),
+	/*_PositionArray(NULL),
 	_NormalArray(NULL),
-	_TexCoordArray(NULL),
+	_TexCoordArray(NULL),*/
 	_NumTexCoord(0),
 	_NumTriangle(0),
 	_NumVertex(0)
@@ -26,13 +26,18 @@ StaticMesh::StaticMesh(void)
 
 StaticMesh::~StaticMesh(void)
 {
-	if(_PositionArray) delete[] _PositionArray;
-	if(_NormalArray) delete[] _NormalArray;
-	if(_TexCoordArray) delete[] _TexCoordArray;
-	if(_IndiceArray) delete[] _IndiceArray;
+	//if(_PositionArray) delete[] _PositionArray;
+	//if(_NormalArray) delete[] _NormalArray;
+	//if(_TexCoordArray) delete[] _TexCoordArray;
+	//if(_IndiceArray) delete[] _IndiceArray;
 
 	if(_VertexBuffer) _VertexBuffer->Release();
 	if(_IndexBuffer) _IndexBuffer->Release();
+
+	for(unsigned int i=0;i<_SubMeshArray.size();i++)
+	{
+		delete _SubMeshArray[i];
+	}
 }
 
 bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
@@ -169,13 +174,13 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	{
 		lPolygonVertexCount = PolygonCount * TRIANGLE_VERTEX_COUNT;
 	}
-	_PositionArray = new XMFLOAT3[lPolygonVertexCount];
-	_IndiceArray = new WORD[PolygonCount * TRIANGLE_VERTEX_COUNT];
 
+	_PositionArray.resize(lPolygonVertexCount);
+	_IndiceArray.resize(PolygonCount * TRIANGLE_VERTEX_COUNT);
 	//float * lNormals = NULL;
 	if (mHasNormal)
 	{
-		_NormalArray = new XMFLOAT3[lPolygonVertexCount];
+		_NormalArray.resize(lPolygonVertexCount);
 	}
 	//float * lUVs = NULL;
 	FbxStringList lUVNames;
@@ -183,7 +188,7 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	const char * lUVName = NULL;
 	if (mHasUV && lUVNames.GetCount())
 	{
-		_TexCoordArray = new XMFLOAT2[lPolygonVertexCount];
+		_TexCoordArray.resize(lPolygonVertexCount);
 		lUVName = lUVNames[0];
 	}
 
@@ -363,7 +368,7 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	bd.ByteWidth = sizeof( WORD ) * PolygonCount * TRIANGLE_VERTEX_COUNT;        // 36 vertices needed for 12 triangles in a triangle list
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	bd.CPUAccessFlags = 0;
-	InitData.pSysMem = _IndiceArray;
+	InitData.pSysMem = &_IndiceArray[0];
 	hr = GEngine->_Device->CreateBuffer( &bd, &InitData, &_IndexBuffer );
 	if( FAILED( hr ) )
 	{
@@ -371,17 +376,18 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 		return false;
 	}
 	
-	SetD3DResourceDebugName("StaticMesh_VertexBuffer", _IndexBuffer);
+	SetD3DResourceDebugName("StaticMesh_IndexBuffer", _IndexBuffer);
 
 	_NumTriangle = PolygonCount;
 	_NumVertex = lPolygonVertexCount;
 
-	if(_NormalArray != NULL && _TexCoordArray == NULL)
+	if(_NormalArray.size() != 0 && _TexCoordArray.size() == 0)
+
 	{
 		_VertexStride = sizeof(NormalVertex);
 		_NumTexCoord = 0;
 	}
-	else if(_NormalArray != NULL && _TexCoordArray != NULL)
+	else if(_NormalArray.size() != 0 && _TexCoordArray.size() != 0)
 	{
 		_VertexStride = sizeof(NormalTexVertex);
 		_NumTexCoord = 1;

@@ -27,10 +27,10 @@ class StaticMesh :
 	public BaseObject
 {
 public:
-	XMFLOAT3* _PositionArray;
-	XMFLOAT3* _NormalArray;
-	XMFLOAT2* _TexCoordArray;
-	WORD*  _IndiceArray;
+	std::vector<XMFLOAT3> _PositionArray;
+	std::vector<XMFLOAT3> _NormalArray;
+	std::vector<XMFLOAT2> _TexCoordArray;
+	std::vector<WORD> _IndiceArray;
 
 	int _NumTexCoord;
 	int _NumTriangle;
