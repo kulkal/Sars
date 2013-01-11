@@ -18,18 +18,18 @@ struct ScaleTrack
 {
 	std::vector<XMFLOAT3>	_ScaleArray;
 	std::vector<float>		_TimeArray;
-}
+};
 
 class AnimationClip :
 	public BaseObject
 {
 	std::vector<TranslationTrack> _TransTrackArray;
-	std::vector<RotationTrack> _TransTrackArray;
-	std::vector<ScaleTrack> _TransTrackArray;
+	std::vector<RotationTrack> _RotTrackArray;
+	std::vector<ScaleTrack> _TrackTrackArray;
 
 public:
 
-	void GetCurrentPose(SkeletonPose& InPose, float CurrentTime, float Alpha);
+	void GetCurrentPose(SkeletonPose& InPose, float CurrentTime);
 
 	AnimationClip(void);
 	virtual ~AnimationClip(void);
