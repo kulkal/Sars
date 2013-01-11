@@ -48,7 +48,6 @@ public:
 	std::vector<XMFLOAT2> _TexCoordArray;
 	std::vector<WORD> _IndiceArray;
 
-	//SkinInfo* _SkinInfoArray;
 	std::vector<SkinInfo> _SkinInfoArray;
 
 	int _NumTexCoord;
@@ -70,7 +69,6 @@ public:
 
 	std::vector<SubMesh*> _SubMeshArray;
 
-	// linked bone data.
 	int _NumBone;
 
 	std::vector<int> _RequiredBoneArray;

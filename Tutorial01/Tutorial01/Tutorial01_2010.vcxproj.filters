@@ -47,6 +47,8 @@
     <ClCompile Include="AssertDebug.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="SkeletalMeshRenderData.cpp" />
+    <ClCompile Include="AnimationClip.cpp" />
+    <ClCompile Include="AnimClipInstance.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -75,6 +77,8 @@
     <ClInclude Include="OutputDebug.h" />
     <ClInclude Include="AssertDebug.h" />
     <ClInclude Include="SkeletalMeshRenderData.h" />
+    <ClInclude Include="AnimationClip.h" />
+    <ClInclude Include="AnimClipInstance.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

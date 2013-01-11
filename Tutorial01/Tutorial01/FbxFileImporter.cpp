@@ -369,8 +369,10 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 	FillFbxClusterArray(mScene->GetRootNode(), ClusterArray);
 
 	
-	SkeletonJoint* Joints = new SkeletonJoint[NodeArray.size()];
-	JointPose* RefPose = new JointPose[NodeArray.size()];
+	std::vector<SkeletonJoint> Joints;
+	Joints.resize(NodeArray.size());
+	std::vector<JointPose> RefPose;
+	RefPose.resize(NodeArray.size());
 
 	GlobalMatArray.resize(NodeArray.size());
 	for(unsigned int NodeIndex=0;NodeIndex<NodeArray.size();NodeIndex++)
@@ -539,14 +541,10 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 		}
 	}
 
-	//Skeleton* NewSkeleton = new Skeleton;
-	(*OutSkeleton)->_Joints = Joints;
+	(*OutSkeleton)->_Joints = std::move(Joints);
 	(*OutSkeleton)->_JointCount = NodeArray.size();
-	//*OutSkeleton = NewSkeleton;
 
-	//SkeletonPose* NewRefPose = new SkeletonPose;
-	(*OutRefPose)->_LocalPoseArray = RefPose;
-	//*OutRefPose = NewRefPose;
+	(*OutRefPose)->_LocalPoseArray = std::move(RefPose);
 
 	return;
 }

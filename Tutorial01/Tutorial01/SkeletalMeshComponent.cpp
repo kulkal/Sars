@@ -51,6 +51,8 @@ void SkeletalMeshComponent::UpdateBoneMatrices()
 		XMVECTOR Det;
 		XMMATRIX RefMat = XMMatrixInverse(&Det, XMLoadFloat4x4(&RefInvF));
 
+		if(RefPose._ParentIndex < 0)
+			continue;
 
 		XMFLOAT4X4& RefInvParentF = _Skeleton->_Joints[RefPose._ParentIndex]._InvRefPose;
 		XMMATRIX RefMatParent = XMMatrixInverse(&Det, XMLoadFloat4x4(&RefInvParentF));

@@ -14,7 +14,7 @@ struct SkeletonJoint
 	XMFLOAT4X4	_InvRefPose;
 
 	SkeletonJoint()
-		:_Name(""),
+		:
 		_ParentIndex(-1)
 	{
 	}
@@ -24,15 +24,13 @@ class Skeleton
 {
 public:
 	int				_JointCount;
-	SkeletonJoint*	_Joints;
+	std::vector<SkeletonJoint> _Joints;
 	Skeleton()
-		:_JointCount(0),
-		_Joints(NULL)
+		:_JointCount(0)
 	{
 	}
 	~Skeleton()
 	{
-		if(_Joints) delete[] _Joints;
 	}
 };
 
@@ -46,16 +44,12 @@ struct JointPose
 class SkeletonPose
 {
 public:
-	JointPose*	_LocalPoseArray;
+	std::vector<JointPose> _LocalPoseArray;
 
 	SkeletonPose()
-		:_LocalPoseArray(NULL)
 	{
 	}
 	~SkeletonPose()
 	{
-				if(_LocalPoseArray) delete[] _LocalPoseArray;
-
-
 	}
 };
