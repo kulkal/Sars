@@ -23,6 +23,7 @@ struct ScaleTrack
 class AnimationClip :
 	public BaseObject
 {
+	float _Duration;
 	std::vector<TranslationTrack> _TransTrackArray;
 	std::vector<RotationTrack> _RotTrackArray;
 	std::vector<ScaleTrack> _TrackTrackArray;

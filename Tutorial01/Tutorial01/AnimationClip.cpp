@@ -2,6 +2,7 @@
 
 
 AnimationClip::AnimationClip(void)
+	:_Duration(0.f)
 {
 }
 
