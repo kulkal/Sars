@@ -7,6 +7,7 @@
 #include <d3dcompiler.h>
 
 #include "Util.h"
+#include "OutputDebug.h"
 
 class SimpleDrawingPolicy;
 class LineBatcher;
@@ -24,8 +25,13 @@ public:
 
 	LineBatcher* _LineBatcher;
 
-public:
+	float _TimeSeconds;
+	float _DeltaSeconds;
 
+	LARGE_INTEGER _PrevTime;
+	LARGE_INTEGER _Freq;
+public:
+	void Tick();
 	void InitDevice();
 
 	HRESULT CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut );

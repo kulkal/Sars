@@ -6,6 +6,7 @@
 #include "Skeleton.h"
 class StaticMesh;
 class SkeletalMesh;
+class AnimationClip;
 
 
 struct BoneIndexInfo
@@ -54,6 +55,11 @@ public:
 	std::vector<BoneIndexInfo> BoneArray;
 	mutable Status mStatus;
 	std::string FilePath;
+
+	FbxTime mFrameTime;
+	FbxTime mStart;
+	FbxTime mStop;
+	FbxTime mCurrentTime;
 public:
 	void TriangulateRecursive(FbxNode* pNode);
 	void FillFbxMeshArray(FbxNode* pNode, std::vector<StaticMesh*>& outStaticMeshArray);
@@ -66,6 +72,10 @@ public:
 
 	void ImportStaticMesh(std::vector<StaticMesh*>& outStaticMeshArray);
 	void ImportSkeletalMesh(std::vector<SkeletalMesh*>& outSkeletalMeshArray);
+
+	void ImportAnimClip(std::vector<AnimationClip*>& outAnimclipArray);
+	void FillAnimTrackRecursive(FbxNode* pNode, AnimationClip* Clip);
+	void SampleCurrentRecursive(FbxNode* pNode, AnimationClip* Clip, int NodeIndex);
 
 	FbxFileImporter( std::string Path);
 	~FbxFileImporter(void);

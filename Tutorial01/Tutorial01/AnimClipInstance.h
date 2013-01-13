@@ -9,9 +9,10 @@ class AnimClipInstance :
 	float _StartTime;
 	AnimationClip* _Clip;
 public:
+	void Play();
 	void GetCurrentPose(SkeletonPose& InPose, float CurrentTime);
 
-	AnimClipInstance(void);
+	AnimClipInstance(AnimationClip* InClip);
 	virtual ~AnimClipInstance(void);
 };
 

@@ -7,6 +7,8 @@
 #include "SkeletalMesh.h"
 class SkeletalMesh;
 class Skeleton;
+class AnimationClip;
+class AnimClipInstance;
 
 class SkeletalMeshRenderData;
 
@@ -24,12 +26,16 @@ public:
 
 	Skeleton*	_Skeleton;
 	SkeletonPose* _Pose;
+
+	AnimClipInstance* _CurrentAnim;
 public:
+	void Tick(float DeltaSeconds);
 	void UpdateBoneMatrices();
 
 	void AddSkeletalMesh(SkeletalMesh* InSkeletalMesh);
 	void SetSkeleton(Skeleton* Skeleton);
 	void SetCurrentPose(SkeletonPose* Pose);
+	void SetCurrentAnim(AnimationClip* InClip);
 
 	SkeletalMeshComponent(void);
 	virtual ~SkeletalMeshComponent(void);

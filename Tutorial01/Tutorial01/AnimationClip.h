@@ -23,10 +23,11 @@ struct ScaleTrack
 class AnimationClip :
 	public BaseObject
 {
+	friend class FbxFileImporter;
 	float _Duration;
 	std::vector<TranslationTrack> _TransTrackArray;
 	std::vector<RotationTrack> _RotTrackArray;
-	std::vector<ScaleTrack> _TrackTrackArray;
+	std::vector<ScaleTrack> _ScaleTrackArray;
 
 public:
 

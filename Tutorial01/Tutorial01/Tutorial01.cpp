@@ -58,6 +58,7 @@ XMMATRIX                g_World;
 XMMATRIX                g_World2;
 std::vector<StaticMesh*> StaticMeshArray;
 std::vector<SkeletalMesh*> SkeletalMeshArray;
+std::vector<AnimationClip*> AnimClipArray;
 Skeleton* GSkeleton;
 SkeletonPose* GPose;
 SkeletalMeshComponent* GSkeletalMeshComponent;
@@ -131,6 +132,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
         }
         else
         {
+			GEngine->Tick();
             Render();
         }
     }
@@ -365,6 +367,8 @@ HRESULT InitDevice()
 		GSkeletalMeshComponent->AddSkeletalMesh(SkeletalMeshArray[i]);
 	}
 	FbxImporterObj.ImportSkeleton(&GSkeleton, &GPose);
+//	FbxImporterObj.ImportAnimClip(AnimClipArray);
+
 	GSkeletalMeshComponent->SetSkeleton(GSkeleton);
 	GSkeletalMeshComponent->SetCurrentPose(GPose);
 
@@ -466,7 +470,7 @@ void Render()
 
 	if(GSkeletalMeshComponent)
 	{
-		GSkeletalMeshComponent->UpdateBoneMatrices();
+		GSkeletalMeshComponent->Tick(GEngine->_DeltaSeconds);
 		for(unsigned int i=0;i<GSkeletalMeshComponent->_RenderDataArray.size();i++)
 		{
 			GEngine->_SimpleDrawer->DrawSkeletalMeshData(GSkeletalMeshComponent->_RenderDataArray[i]);

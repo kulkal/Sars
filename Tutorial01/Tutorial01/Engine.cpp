@@ -7,11 +7,12 @@ Engine::Engine(void)
 	:_Device(NULL),
 	_ImmediateContext(NULL),
 	_SimpleDrawer(NULL)
-	//ViewMat(XMMatrixIdentity()),
-	//ProjectionMat(XMMatrixIdentity())
 	,_LineBatcher(NULL)
+	,_TimeSeconds(0.f)
 {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+	QueryPerformanceFrequency(&_Freq);
+	QueryPerformanceCounter(&_PrevTime);
 	//_CrtSetBreakAlloc(198);
 }
 
@@ -55,4 +56,18 @@ HRESULT Engine::CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pD
 	if( pErrorBlob ) pErrorBlob->Release();
 
 	return S_OK;
+}
+
+void Engine::Tick()
+{
+	LARGE_INTEGER CurrentTime;
+
+	QueryPerformanceCounter(&CurrentTime);
+	_DeltaSeconds = (float)(CurrentTime.QuadPart - _PrevTime.QuadPart)/(float)_Freq.QuadPart;
+	_TimeSeconds =	(float)(CurrentTime.QuadPart);
+	cout_debug("delta seconds: %f\n", _DeltaSeconds);
+
+
+
+	_PrevTime = CurrentTime;
 }

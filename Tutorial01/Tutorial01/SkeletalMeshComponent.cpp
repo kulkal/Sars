@@ -9,6 +9,7 @@ SkeletalMeshComponent::SkeletalMeshComponent(void)
 	:_BoneWorld(NULL)
 	,_Skeleton(NULL)
 	,_Pose(NULL)
+	,_CurrentAnim(NULL)
 {
 }
 
@@ -122,4 +123,9 @@ void SkeletalMeshComponent::AddSkeletalMesh(SkeletalMesh* InSkeletalMesh)
 
 	SkeletalMeshRenderData *RenderData = new SkeletalMeshRenderData(InSkeletalMesh, this);
 	_RenderDataArray.push_back(RenderData);
+}
+
+void SkeletalMeshComponent::Tick( float DeltaSeconds )
+{
+	UpdateBoneMatrices();
 }

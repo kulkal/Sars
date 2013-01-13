@@ -3,6 +3,8 @@
 #include "SkeletalMesh.h"
 #include "StaticMesh.h"
 #include "FbxFileImporter.h"
+#include "OutputDebug.h"
+#include "AnimationClip.h"
 
 void InitializeSdkObjects(FbxManager*& pManager, FbxScene*& pScene)
 {
@@ -242,40 +244,13 @@ void FbxFileImporter::ImportSkeletalMesh( std::vector<SkeletalMesh*>& outSkeleta
 			}
 
 			// Get the list of all the animation stack.
-			mScene->FillAnimStackNameArray(mAnimStackNameArray);
 			
 
 			int NumBone = 0;
 			FillBoneIndexMapRecursive(mScene->GetRootNode(), BoneIndexMap, NumBone);
 
-		/*	std::map<std::string, BoneIndexInfo>::iterator it;
-			for(it=BoneIndexMap.begin();it!=BoneIndexMap.end();it++)
-			{
-				std::string BoneName = it->first;
-				BoneIndexInfo& BoneIndexInfo = it->second;
-			}*/
-
 			//TriangulateRecursive(mScene->GetRootNode());
 			FillFbxSkelMeshArray(mScene->GetRootNode(), outSkeletalMeshArray);
-
-			//ImportSkeleton(&outSkeletalMeshArray[0]->_Skeleton, &outSkeletalMeshArray[0]->_Pose);
-
-
-			//FbxAnimStack * lCurrentAnimationStack = mScene->FindMember<FbxAnimStack>(mAnimStackNameArray[0]->Buffer());
-			//if (lCurrentAnimationStack == NULL)
-			//{
-			//	// this is a problem. The anim stack should be found in the scene!
-			//	return;
-			//}
-
-			//// we assume that the first animation layer connected to the animation stack is the base layer
-			//// (this is the assumption made in the FBXSDK)
-			//FbxAnimLayer* mCurrentAnimLayer = lCurrentAnimationStack->GetMember<FbxAnimLayer>();
-			//mScene->GetEvaluator()->SetContext(lCurrentAnimationStack);
-
-			//int PoseCount = mScene->GetPoseCount();
-
-			//lCurrentAnimationStack->Destroy();
 
 			lResult = true;
 		}
@@ -576,11 +551,131 @@ void FbxFileImporter::FillSkeletonJointRecursive( FbxNode* pNode, std::vector<Sk
 	}
 	SkeletonJoint Joint;
 
-
-
 	const int lChildCount = pNode->GetChildCount();
 	for (int lChildIndex = 0; lChildIndex < lChildCount; ++lChildIndex)
 	{
 		FillSkeletonJointRecursive(pNode->GetChild(lChildIndex), outJounts);
+	}
+}
+
+void FbxFileImporter::ImportAnimClip(std::vector<AnimationClip*>& outAnimclipArray)
+{
+	mFrameTime.SetTime(0, 0, 0, 1, 0, mScene->GetGlobalSettings().GetTimeMode());
+
+	mScene->FillAnimStackNameArray(mAnimStackNameArray);
+
+	for(int i=0;i<mAnimStackNameArray.Size();i++)
+	{
+		cout_debug("current anim stack name : %s\n", mAnimStackNameArray[i]->Buffer());
+		FbxAnimStack * lCurrentAnimationStack = mScene->FindMember<FbxAnimStack>(mAnimStackNameArray[i]->Buffer());
+		if (lCurrentAnimationStack == NULL)
+		{
+			return;
+		}
+
+		//FbxAnimLayer* mCurrentAnimLayer = lCurrentAnimationStack->GetMember<FbxAnimLayer>();
+		mScene->GetEvaluator()->SetContext(lCurrentAnimationStack);
+
+		
+		FbxTakeInfo* lCurrentTakeInfo = mScene->GetTakeInfo(*(mAnimStackNameArray[i]));
+		if (lCurrentTakeInfo)
+		{
+			mStart = lCurrentTakeInfo->mLocalTimeSpan.GetStart();
+			mStop = lCurrentTakeInfo->mLocalTimeSpan.GetStop();
+
+			long EndTime = mStop.GetMilliSeconds();
+			long StartTime = mStart.GetMilliSeconds();
+			//long FrameTime = mFrameTime.GetMilliSeconds();
+			cout_debug("start : %d, end : %d\n", StartTime, EndTime);
+		}
+		else
+		{
+			// Take the time line value
+			FbxTimeSpan lTimeLineTimeSpan;
+			mScene->GetGlobalSettings().GetTimelineDefaultTimeSpan(lTimeLineTimeSpan);
+
+			mStart = lTimeLineTimeSpan.GetStart();
+			mStop  = lTimeLineTimeSpan.GetStop();
+		}
+
+		AnimationClip* Clip = new AnimationClip;
+
+		FillAnimTrackRecursive(mScene->GetRootNode(), Clip);
+		// sample keys
+		for(mCurrentTime = mStart;mCurrentTime<=mStop;mCurrentTime += mFrameTime)
+		{
+			cout_debug("ms : %d\n", mCurrentTime.GetMilliSeconds());
+			int NodeIndex = 0;
+			SampleCurrentRecursive(mScene->GetRootNode(), Clip, NodeIndex);
+		}
+
+		outAnimclipArray.push_back(Clip);
+
+		lCurrentAnimationStack->Destroy();
+	}
+}
+
+void FbxFileImporter::FillAnimTrackRecursive( FbxNode* pNode, AnimationClip* Clip )
+{
+	Clip->_ScaleTrackArray.push_back(ScaleTrack());
+	Clip->_RotTrackArray.push_back(RotationTrack());
+	Clip->_TransTrackArray.push_back(TranslationTrack());
+
+	const int lChildCount = pNode->GetChildCount();
+	for (int lChildIndex = 0; lChildIndex < lChildCount; ++lChildIndex)
+	{
+		FillAnimTrackRecursive(pNode->GetChild(lChildIndex), Clip);
+	}
+}
+
+void FbxFileImporter::SampleCurrentRecursive( FbxNode* pNode, AnimationClip* Clip, int NodeIndex )
+{
+	FbxAMatrix CurrentLocalTM = pNode->EvaluateGlobalTransform(mCurrentTime);
+	if(pNode->GetParent() != NULL)
+	{
+		CurrentLocalTM = pNode->GetParent()->EvaluateGlobalTransform(mCurrentTime).Inverse() * CurrentLocalTM;
+	}
+
+
+	FbxVector4 LocalT = CurrentLocalTM.GetT();
+	FbxQuaternion LocalQ = CurrentLocalTM.GetQ();
+	FbxVector4 LocalS = CurrentLocalTM.GetS();
+
+	XMFLOAT4 RotKey;
+	RotKey.x = (float)LocalQ[0];
+	RotKey.y = (float)LocalQ[1];
+	RotKey.z = (float)LocalQ[2];
+	RotKey.w = (float)LocalQ[3];
+
+	XMFLOAT3 TransKey;
+	TransKey.x = (float)LocalT[0];
+	TransKey.y = (float)LocalT[1];
+	TransKey.z = (float)LocalT[2];
+
+	XMFLOAT3 ScaleKey;
+	ScaleKey.x = (float)LocalS[0];
+	ScaleKey.y = (float)LocalS[1];
+	ScaleKey.z = (float)LocalS[2];
+
+	float Seconds = static_cast<float>(mCurrentTime.GetMilliSeconds()) *0.001f;
+
+	ScaleTrack& STrack = Clip->_ScaleTrackArray[NodeIndex];
+	STrack._TimeArray.push_back(Seconds);
+	STrack._ScaleArray.push_back(ScaleKey);
+
+	RotationTrack& RTrack = Clip->_RotTrackArray[NodeIndex];
+	RTrack._TimeArray.push_back(Seconds);
+	RTrack._RotArray.push_back(RotKey);
+
+	TranslationTrack& TTrack = Clip->_TransTrackArray[NodeIndex];
+	TTrack._TimeArray.push_back(Seconds);
+	TTrack._PosArray.push_back(TransKey);
+
+	NodeIndex += 1;
+
+	const int lChildCount = pNode->GetChildCount();
+	for (int lChildIndex = 0; lChildIndex < lChildCount; ++lChildIndex)
+	{
+		SampleCurrentRecursive(pNode->GetChild(lChildIndex), Clip, NodeIndex);
 	}
 }
