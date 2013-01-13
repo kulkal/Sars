@@ -21,7 +21,7 @@ void AnimClipInstance::GetCurrentPose(SkeletonPose& InPose)
 
 void AnimClipInstance::SetCurrentTime( float InCurrentTime )
 {
-	_LocalTime = InCurrentTime - _StartTime;
+	_LocalTime = fmod((InCurrentTime - _StartTime),_Clip->_Duration);
 }
 
 void AnimClipInstance::Play()
