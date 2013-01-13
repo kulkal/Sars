@@ -6,11 +6,16 @@
 class AnimClipInstance :
 	public BaseObject
 {
+	float _TimeScale;
 	float _StartTime;
+	float _LocalTime;
 	AnimationClip* _Clip;
 public:
 	void Play();
-	void GetCurrentPose(SkeletonPose& InPose, float CurrentTime);
+	void Stop();
+	void SetTimeScale(float InScale){_TimeScale = InScale;}
+	void SetCurrentTime(float InCurrentTime);
+	void GetCurrentPose(SkeletonPose& InPose);
 
 	AnimClipInstance(AnimationClip* InClip);
 	virtual ~AnimClipInstance(void);
