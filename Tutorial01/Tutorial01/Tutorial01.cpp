@@ -375,7 +375,7 @@ HRESULT InitDevice()
 
 	GEngine->Tick();
 
-	GSkeletalMeshComponent->PlayAnim(AnimClipArray[0], 0, -1.f);
+	GSkeletalMeshComponent->PlayAnim(AnimClipArray[1], 0, 1.f);
 
 	FbxFileImporter FbxImporterObj2("other.fbx");
 	FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
@@ -393,12 +393,8 @@ HRESULT InitDevice()
 void Render()
 {
 	GEngine->_LineBatcher->BeginLine();
-	//memcpy(&GEngine->ViewMat, &g_View, sizeof(XMMATRIX));
-	//memcpy(&GEngine->ProjectionMat, &g_View, sizeof(g_Projection));
-
-	//GEngine->ViewMat = g_View;
-	//GEngine->ProjectionMat = g_Projection;
-	  // Just clear the backbuffer
+	
+	// Just clear the backbuffer
     float ClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
     g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, ClearColor );
     g_pImmediateContext->ClearDepthStencilView( g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0 );
