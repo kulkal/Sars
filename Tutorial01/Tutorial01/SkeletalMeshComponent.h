@@ -29,6 +29,7 @@ public:
 
 	AnimClipInstance* _CurrentAnim;
 public:
+	void PlayAnim(AnimationClip* InClip, int InNumPlay = 0, int InRate = 1.f);
 	void Tick(float DeltaSeconds);
 	void UpdateBoneMatrices();
 

@@ -49,6 +49,7 @@
     <ClCompile Include="SkeletalMeshRenderData.cpp" />
     <ClCompile Include="AnimationClip.cpp" />
     <ClCompile Include="AnimClipInstance.cpp" />
+    <ClCompile Include="MathUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -79,6 +80,7 @@
     <ClInclude Include="SkeletalMeshRenderData.h" />
     <ClInclude Include="AnimationClip.h" />
     <ClInclude Include="AnimClipInstance.h" />
+    <ClInclude Include="MathUtil.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

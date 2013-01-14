@@ -3,3 +3,4 @@
 
 #define SetD3DResourceDebugName(Name, Resource) \
 	Resource->SetPrivateData( WKPDID_D3DDebugObjectName, strlen( Name ) - 1, Name );
+

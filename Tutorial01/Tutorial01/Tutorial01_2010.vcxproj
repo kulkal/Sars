@@ -381,6 +381,7 @@
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="FbxFileImporter.cpp" />
     <ClCompile Include="LineBatcher.cpp" />
+    <ClCompile Include="MathUtil.cpp" />
     <ClCompile Include="OutputDebug.cpp" />
     <ClCompile Include="RenderTargets.cpp" />
     <ClCompile Include="ShaderRes.cpp" />
@@ -407,6 +408,7 @@
     <ClInclude Include="Entity.h" />
     <ClInclude Include="FbxFileImporter.h" />
     <ClInclude Include="LineBatcher.h" />
+    <ClInclude Include="MathUtil.h" />
     <ClInclude Include="OutputDebug.h" />
     <ClInclude Include="RenderTargets.h" />
     <CLInclude Include="resource.h" />

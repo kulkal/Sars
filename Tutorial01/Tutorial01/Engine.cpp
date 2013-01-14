@@ -64,10 +64,8 @@ void Engine::Tick()
 
 	QueryPerformanceCounter(&CurrentTime);
 	_DeltaSeconds = (float)(CurrentTime.QuadPart - _PrevTime.QuadPart)/(float)_Freq.QuadPart;
-	_TimeSeconds =	(float)(CurrentTime.QuadPart);
-	cout_debug("delta seconds: %f\n", _DeltaSeconds);
-
-
+	_TimeSeconds =	(float)(CurrentTime.QuadPart)/(float)_Freq.QuadPart;
+	//cout_debug("delta seconds: %f\n", _DeltaSeconds);
 
 	_PrevTime = CurrentTime;
 }

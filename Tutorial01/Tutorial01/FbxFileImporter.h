@@ -75,7 +75,7 @@ public:
 
 	void ImportAnimClip(std::vector<AnimationClip*>& outAnimclipArray);
 	void FillAnimTrackRecursive(FbxNode* pNode, AnimationClip* Clip);
-	void SampleCurrentRecursive(FbxNode* pNode, AnimationClip* Clip, int NodeIndex);
+	void SampleCurrentRecursive(FbxNode* pNode, AnimationClip* Clip, int& NodeIndex);
 
 	FbxFileImporter( std::string Path);
 	~FbxFileImporter(void);

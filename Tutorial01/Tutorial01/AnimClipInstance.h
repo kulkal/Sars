@@ -9,12 +9,13 @@ class AnimClipInstance :
 	float _TimeScale;
 	float _StartTime;
 	float _LocalTime;
+	int _NumPlay;
 	AnimationClip* _Clip;
 public:
-	void Play();
+	void Play(int InNumPlay);
 	void Stop();
 	void SetTimeScale(float InScale){_TimeScale = InScale;}
-	void SetCurrentTime(float InCurrentTime);
+	void Tick();
 	void GetCurrentPose(SkeletonPose& InPose);
 
 	AnimClipInstance(AnimationClip* InClip);

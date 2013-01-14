@@ -600,13 +600,16 @@ void FbxFileImporter::ImportAnimClip(std::vector<AnimationClip*>& outAnimclipArr
 
 		AnimationClip* Clip = new AnimationClip;
 
+		Clip->_Duration = (float)(mStop.GetMilliSeconds() - mStart.GetMilliSeconds())*0.001f;
+
 		FillAnimTrackRecursive(mScene->GetRootNode(), Clip);
 		// sample keys
 		for(mCurrentTime = mStart;mCurrentTime<=mStop;mCurrentTime += mFrameTime)
 		{
-			cout_debug("ms : %d\n", mCurrentTime.GetMilliSeconds());
+			//cout_debug("ms : %d\n", mCurrentTime.GetMilliSeconds());
 			int NodeIndex = 0;
 			SampleCurrentRecursive(mScene->GetRootNode(), Clip, NodeIndex);
+			cout_debug("num sampled node : %d\n", NodeIndex);
 		}
 
 		outAnimclipArray.push_back(Clip);
@@ -628,7 +631,7 @@ void FbxFileImporter::FillAnimTrackRecursive( FbxNode* pNode, AnimationClip* Cli
 	}
 }
 
-void FbxFileImporter::SampleCurrentRecursive( FbxNode* pNode, AnimationClip* Clip, int NodeIndex )
+void FbxFileImporter::SampleCurrentRecursive( FbxNode* pNode, AnimationClip* Clip, int& NodeIndex )
 {
 	FbxAMatrix CurrentLocalTM = pNode->EvaluateGlobalTransform(mCurrentTime);
 	if(pNode->GetParent() != NULL)

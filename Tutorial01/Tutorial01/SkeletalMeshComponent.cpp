@@ -3,6 +3,7 @@
 #include "Engine.h"
 #include "LineBatcher.h"
 #include "SkeletalMeshRenderData.h"
+#include "AnimClipInstance.h"
 
 
 SkeletalMeshComponent::SkeletalMeshComponent(void)
@@ -127,5 +128,17 @@ void SkeletalMeshComponent::AddSkeletalMesh(SkeletalMesh* InSkeletalMesh)
 
 void SkeletalMeshComponent::Tick( float DeltaSeconds )
 {
+	if(_CurrentAnim)
+	{
+		_CurrentAnim->Tick();
+		_CurrentAnim->GetCurrentPose(*_Pose);
+	}
 	UpdateBoneMatrices();
+}
+
+void SkeletalMeshComponent::PlayAnim(AnimationClip* InClip, int InNumPlay, int InRate)
+{
+	_CurrentAnim = new AnimClipInstance(InClip);
+	_CurrentAnim->Play(InNumPlay);
+	_CurrentAnim->SetTimeScale(InRate);
 }
