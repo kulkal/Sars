@@ -267,7 +267,81 @@ HRESULT InitDevice()
     return S_OK;
 }
 
+struct SCREEN_VERTEX
+{
+	XMFLOAT4 pos;
+	XMFLOAT2 tex;
+};
+ID3D11Buffer*               g_pScreenQuadVB = NULL;
+ID3D11InputLayout*          g_pQuadLayout = NULL;
+ID3D11VertexShader*         g_pQuadVS = NULL;
 
+void Temp()
+{
+	D3D11_BUFFER_DESC vbdesc =
+	{
+		4 * sizeof( SCREEN_VERTEX ),
+		D3D11_USAGE_DEFAULT,
+		D3D11_BIND_VERTEX_BUFFER,
+		0,
+		0
+	};
+	D3D11_SUBRESOURCE_DATA InitData;
+	InitData.pSysMem = svQuad;
+	InitData.SysMemPitch = 0;
+	InitData.SysMemSlicePitch = 0;
+	 pd3dDevice->CreateBuffer( &vbdesc, &InitData, &g_pScreenQuadVB ) ;
+
+	 ID3DBlob* pBlob = NULL;
+	 CompileShaderFromFile( L"FinalPass.hlsl", "QuadVS", "vs_4_0", &pBlob ) ;
+	 pd3dDevice->CreateVertexShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pQuadVS ) ;
+	 SetD3DResourceDebugName("QuadVS", g_pQuadVS);
+
+	const D3D11_INPUT_ELEMENT_DESC quadlayout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	pd3dDevice->CreateInputLayout( quadlayout, 2, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &g_pQuadLayout ) ;
+	if(pBlob) pBlob->Release();
+	SetD3DResourceDebugName("Quad", g_pQuadLayout);
+
+}
+
+void DrawFullScreenQuad11( ID3D11DeviceContext* pd3dImmediateContext, 
+	ID3D11PixelShader* pPS,
+	UINT Width, UINT Height )
+{
+	// Save the old viewport
+	D3D11_VIEWPORT vpOld[D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX];
+	UINT nViewPorts = 1;
+	pd3dImmediateContext->RSGetViewports( &nViewPorts, vpOld );
+
+	// Setup the viewport to match the backbuffer
+	D3D11_VIEWPORT vp;
+	vp.Width = (float)Width;
+	vp.Height = (float)Height;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	pd3dImmediateContext->RSSetViewports( 1, &vp );
+
+	UINT strides = sizeof( SCREEN_VERTEX );
+	UINT offsets = 0;
+	ID3D11Buffer* pBuffers[1] = { g_pScreenQuadVB };
+
+	pd3dImmediateContext->IASetInputLayout( g_pQuadLayout );
+	pd3dImmediateContext->IASetVertexBuffers( 0, 1, pBuffers, &strides, &offsets );
+	pd3dImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP );
+
+	pd3dImmediateContext->VSSetShader( g_pQuadVS, NULL, 0 );
+	pd3dImmediateContext->PSSetShader( pPS, NULL, 0 );
+	pd3dImmediateContext->Draw( 4, 0 );
+
+	// Restore the Old viewport
+	pd3dImmediateContext->RSSetViewports( nViewPorts, vpOld );
+}
 
 //--------------------------------------------------------------------------------------
 // Render the frame
