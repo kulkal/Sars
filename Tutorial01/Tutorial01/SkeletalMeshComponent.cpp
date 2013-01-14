@@ -24,6 +24,9 @@ SkeletalMeshComponent::~SkeletalMeshComponent(void)
 		delete _RenderDataArray[i];
 	}
 
+	if(_CurrentAnim)
+		delete _CurrentAnim;
+
 }
 
 void SkeletalMeshComponent::SetSkeleton(Skeleton* Skeleton)
@@ -43,7 +46,7 @@ void SkeletalMeshComponent::SetCurrentPose(SkeletonPose* Pose)
 void SkeletalMeshComponent::UpdateBoneMatrices()
 {
 	// debug draw ref pose line
-	for(int i=0;i<_Skeleton->_JointCount;i++)
+	/*for(int i=0;i<_Skeleton->_JointCount;i++)
 	{
 		XMMATRIX MatParent;
 
@@ -62,7 +65,7 @@ void SkeletalMeshComponent::UpdateBoneMatrices()
 		if( RefPose._ParentIndex >= 0)
 			GEngine->_LineBatcher->AddLine(XMFLOAT3(RefMat._41, RefMat._42, RefMat._43), XMFLOAT3(RefMatParent._41, RefMatParent._42, RefMatParent._43), XMFLOAT3(0, 1, 0), XMFLOAT3(0, 0, 1));
 	}
-
+*/
 	// calc world bone
 	for(int i=0;i<_Skeleton->_JointCount;i++)
 	{

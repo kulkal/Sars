@@ -31,6 +31,7 @@
 #include "SkeletalMesh.h"
 #include "SkeletalMeshComponent.h"
 #include "LineBatcher.h"
+#include "AnimationClip.h"
 //#include "vld.h"
 
 //--------------------------------------------------------------------------------------
@@ -374,7 +375,7 @@ HRESULT InitDevice()
 
 	GEngine->Tick();
 
-	GSkeletalMeshComponent->PlayAnim(AnimClipArray[2], 10, 5.f);
+	GSkeletalMeshComponent->PlayAnim(AnimClipArray[0], 0, -1.f);
 
 	FbxFileImporter FbxImporterObj2("other.fbx");
 	FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
@@ -520,6 +521,12 @@ void CleanupDevice()
 	{
 		SkeletalMesh* Mesh = SkeletalMeshArray[i];
 		delete Mesh;
+	}
+
+	for(unsigned int i=0;i<AnimClipArray.size();i++)
+	{
+		AnimationClip* Clip = AnimClipArray[i];
+		delete Clip;
 	}
 
 	if(GEngine) delete GEngine;

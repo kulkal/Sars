@@ -9,6 +9,9 @@ AnimationClip::AnimationClip(void)
 
 AnimationClip::~AnimationClip(void)
 {
+	_TransTrackArray.clear();
+	_RotTrackArray.clear();
+	_ScaleTrackArray.clear();
 }
 
 void AnimationClip::GetCurrentPose(SkeletonPose& InPose, float CurrentTime)

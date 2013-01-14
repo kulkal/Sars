@@ -13,7 +13,7 @@ Engine::Engine(void)
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	QueryPerformanceFrequency(&_Freq);
 	QueryPerformanceCounter(&_PrevTime);
-	//_CrtSetBreakAlloc(198);
+	//_CrtSetBreakAlloc(2486860);
 }
 
 Engine::~Engine(void)
