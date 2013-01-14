@@ -48,7 +48,7 @@ void AnimClipInstance::Tick()
 		_LocalTime = fmod(Math::Clamp<float>( NT + TimeDiff*_TimeScale, 0, NT), _Clip->_Duration);
 	}*/
 	
-	cout_debug("local time : %f\n", _LocalTime);
+	//cout_debug("local time : %f\n", _LocalTime);
 
 }
 

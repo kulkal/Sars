@@ -606,7 +606,6 @@ void FbxFileImporter::ImportAnimClip(std::vector<AnimationClip*>& outAnimclipArr
 		// sample keys
 		for(mCurrentTime = mStart;mCurrentTime<=mStop;mCurrentTime += mFrameTime)
 		{
-			//cout_debug("ms : %d\n", mCurrentTime.GetMilliSeconds());
 			int NodeIndex = 0;
 			SampleCurrentRecursive(mScene->GetRootNode(), Clip, NodeIndex);
 			cout_debug("num sampled node : %d\n", NodeIndex);

@@ -39,15 +39,6 @@
 //--------------------------------------------------------------------------------------
 HINSTANCE               g_hInst = NULL;
 HWND                    g_hWnd = NULL;
-D3D_DRIVER_TYPE         g_driverType = D3D_DRIVER_TYPE_NULL;
-D3D_FEATURE_LEVEL       g_featureLevel = D3D_FEATURE_LEVEL_11_0;
-ID3D11Device*           g_pd3dDevice = NULL;
-ID3D11DeviceContext*    g_pImmediateContext = NULL;
-IDXGISwapChain*         g_pSwapChain = NULL;
-ID3D11RenderTargetView* g_pRenderTargetView = NULL;
-ID3D11Texture2D*        g_pDepthStencil = NULL;
-ID3D11DepthStencilView* g_pDepthStencilView = NULL;
-
 //
 XMMATRIX                g_View;
 
@@ -63,8 +54,6 @@ std::vector<AnimationClip*> AnimClipArray;
 Skeleton* GSkeleton;
 SkeletonPose* GPose;
 SkeletalMeshComponent* GSkeletalMeshComponent;
-
-//std::vector<StaticMesh*> StaticMeshArray2;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -112,8 +101,10 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 {
     UNREFERENCED_PARAMETER( hPrevInstance );
     UNREFERENCED_PARAMETER( lpCmdLine );
-
-    if( FAILED( InitWindow( hInstance, nCmdShow ) ) )
+	
+	GEngine = new Engine;
+    
+	if( FAILED( InitWindow( hInstance, nCmdShow ) ) )
         return 0;
 
     if( FAILED( InitDevice() ) )
@@ -178,6 +169,8 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
 
     ShowWindow( g_hWnd, nCmdShow );
 
+	GEngine->_hWnd = g_hWnd;
+
     return S_OK;
 }
 
@@ -214,115 +207,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 //--------------------------------------------------------------------------------------
 HRESULT InitDevice()
 {
-	GEngine = new Engine;
-    HRESULT hr = S_OK;
-
-    RECT rc;
-    GetClientRect( g_hWnd, &rc );
-    UINT width = rc.right - rc.left;
-    UINT height = rc.bottom - rc.top;
-
-    UINT createDeviceFlags = 0;
-#ifdef _DEBUG
-    createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
-
-    D3D_DRIVER_TYPE driverTypes[] =
-    {
-        D3D_DRIVER_TYPE_HARDWARE,
-        D3D_DRIVER_TYPE_WARP,
-        D3D_DRIVER_TYPE_REFERENCE,
-    };
-    UINT numDriverTypes = ARRAYSIZE( driverTypes );
-
-    D3D_FEATURE_LEVEL featureLevels[] =
-    {
-        D3D_FEATURE_LEVEL_11_0,
-        D3D_FEATURE_LEVEL_10_1,
-        D3D_FEATURE_LEVEL_10_0,
-    };
-	UINT numFeatureLevels = ARRAYSIZE( featureLevels );
-
-    DXGI_SWAP_CHAIN_DESC sd;
-    ZeroMemory( &sd, sizeof( sd ) );
-    sd.BufferCount = 1;
-    sd.BufferDesc.Width = width;
-    sd.BufferDesc.Height = height;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    sd.BufferDesc.RefreshRate.Numerator = 60;
-    sd.BufferDesc.RefreshRate.Denominator = 1;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.OutputWindow = g_hWnd;
-    sd.SampleDesc.Count = 1;
-    sd.SampleDesc.Quality = 0;
-    sd.Windowed = TRUE;
-
-    for( UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; driverTypeIndex++ )
-    {
-        g_driverType = driverTypes[driverTypeIndex];
-        hr = D3D11CreateDeviceAndSwapChain( NULL, g_driverType, NULL, createDeviceFlags, featureLevels, numFeatureLevels,
-                                            D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &g_featureLevel, &g_pImmediateContext );
-        if( SUCCEEDED( hr ) )
-            break;
-    }
-
-	GEngine->_Device = g_pd3dDevice;
-	GEngine->_ImmediateContext = g_pImmediateContext;
-
-    if( FAILED( hr ) )
-        return hr;
-
-    // Create a render target view
-    ID3D11Texture2D* pBackBuffer = NULL;
-    hr = g_pSwapChain->GetBuffer( 0, __uuidof( ID3D11Texture2D ), ( LPVOID* )&pBackBuffer );
-    if( FAILED( hr ) )
-        return hr;
-
-    hr = g_pd3dDevice->CreateRenderTargetView( pBackBuffer, NULL, &g_pRenderTargetView );
-    pBackBuffer->Release();
-    if( FAILED( hr ) )
-        return hr;
-
-	 // Create depth stencil texture
-    D3D11_TEXTURE2D_DESC descDepth;
-	ZeroMemory( &descDepth, sizeof(descDepth) );
-    descDepth.Width = width;
-    descDepth.Height = height;
-    descDepth.MipLevels = 1;
-    descDepth.ArraySize = 1;
-    descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    descDepth.SampleDesc.Count = 1;
-    descDepth.SampleDesc.Quality = 0;
-    descDepth.Usage = D3D11_USAGE_DEFAULT;
-    descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-    descDepth.CPUAccessFlags = 0;
-    descDepth.MiscFlags = 0;
-    hr = g_pd3dDevice->CreateTexture2D( &descDepth, NULL, &g_pDepthStencil );
-    if( FAILED( hr ) )
-        return hr;
-
-    // Create the depth stencil view
-    D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
-	ZeroMemory( &descDSV, sizeof(descDSV) );
-    descDSV.Format = descDepth.Format;
-    descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-    descDSV.Texture2D.MipSlice = 0;
-    hr = g_pd3dDevice->CreateDepthStencilView( g_pDepthStencil, &descDSV, &g_pDepthStencilView );
-    if( FAILED( hr ) )
-        return hr;
-
-    g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
-
-    // Setup the viewport
-    D3D11_VIEWPORT vp;
-    vp.Width = (FLOAT)width;
-    vp.Height = (FLOAT)height;
-    vp.MinDepth = 0.0f;
-    vp.MaxDepth = 1.0f;
-    vp.TopLeftX = 0;
-    vp.TopLeftY = 0;
-    g_pImmediateContext->RSSetViewports( 1, &vp );
-
+	
+	GEngine->InitDevice();
 	
 	XMFLOAT4 EyeVal = XMFLOAT4( 0, 220.f, 250.f, 0.0f );
 	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
@@ -335,21 +221,16 @@ HRESULT InitDevice()
 	
 
 	g_View = XMMatrixLookAtRH( Eye, At, Up );
-	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, width / (FLOAT)height, 0.01f, 2000 );
+	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, GEngine->width / (FLOAT)GEngine->height, 0.01f, 2000 );
 	g_World = XMMatrixIdentity();
 
 	XMStoreFloat4x4(&GEngine->_ViewMat, g_View);
 	XMStoreFloat4x4(&GEngine->_ProjectionMat, g_Projection);
 
-    // Initialize the projection matrix
 
-	
-
-	
-
-
+	HRESULT hr;
 	// Load the Texture
-	hr = D3DX11CreateShaderResourceViewFromFile( g_pd3dDevice, L"seafloor.dds", NULL, NULL, &g_pTextureRV, NULL );
+	hr = D3DX11CreateShaderResourceViewFromFile( GEngine->_Device, L"seafloor.dds", NULL, NULL, &g_pTextureRV, NULL );
 	if( FAILED( hr ) )
 		return hr;
 
@@ -380,7 +261,7 @@ HRESULT InitDevice()
 	FbxFileImporter FbxImporterObj2("other.fbx");
 	FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
 
-	GEngine->InitDevice();
+	//GEngine->InitDevice();
 
     return S_OK;
 }
@@ -392,21 +273,12 @@ HRESULT InitDevice()
 //--------------------------------------------------------------------------------------
 void Render()
 {
-	GEngine->_LineBatcher->BeginLine();
-	
-	// Just clear the backbuffer
-    float ClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
-    g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, ClearColor );
-    g_pImmediateContext->ClearDepthStencilView( g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0 );
+	GEngine->BeginRendering();
 
 
 	// Update our time
     static float t = 0.0f;
-    if( g_driverType == D3D_DRIVER_TYPE_REFERENCE )
-    {
-        t += ( float )XM_PI * 0.0125f;
-    }
-    else
+   
     {
         static DWORD dwTimeStart = 0;
         DWORD dwTimeCur = GetTickCount();
@@ -453,7 +325,7 @@ void Render()
     //
    
 
-	g_pImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
+	GEngine->_ImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
 
 
 	memcpy(GEngine->_SimpleDrawer->vLightColors, vLightColors, sizeof(XMFLOAT4)*2);
@@ -463,11 +335,6 @@ void Render()
 	{
 		GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
 	}
-	/*for(unsigned int i=0;i<SkeletalMeshArray.size();i++)
-	{
-		SkeletalMeshArray[i]->UpdateBoneMatrices();
-		GEngine->_SimpleDrawer->DrawSkeletalMesh(SkeletalMeshArray[i]);
-	}*/
 
 	if(GSkeletalMeshComponent)
 	{
@@ -477,12 +344,8 @@ void Render()
 			GEngine->_SimpleDrawer->DrawSkeletalMeshData(GSkeletalMeshComponent->_RenderDataArray[i]);
 		}
 	}
-	//GEngine->_LineBatcher->AddLine(XMFLOAT3(0, 0, 0), XMFLOAT3(100, 100, 100), XMFLOAT3(1, 0, 0));
-	//GEngine->_LineBatcher->AddLine(XMFLOAT3(0, 0, 0), XMFLOAT3(100, 0, 100), XMFLOAT3(1, 0, 0));
-	//GEngine->_LineBatcher->AddLine(XMFLOAT3(0, 0, 0), XMFLOAT3(100, 100, 0), XMFLOAT3(1, 0, 0));
-	GEngine->_LineBatcher->Draw();
-
-    g_pSwapChain->Present( 0, 0 );
+	
+	GEngine->EndRendering();
 }
 
 
@@ -491,17 +354,7 @@ void Render()
 //--------------------------------------------------------------------------------------
 void CleanupDevice()
 {
-	if( g_pImmediateContext ) g_pImmediateContext->ClearState();
-
 	if( g_pTextureRV ) g_pTextureRV->Release();
-	
-	if( g_pDepthStencil ) g_pDepthStencil->Release();
-	if( g_pDepthStencilView ) g_pDepthStencilView->Release();
-	if( g_pRenderTargetView ) g_pRenderTargetView->Release();
-	if( g_pSwapChain ) g_pSwapChain->Release();
-	if( g_pImmediateContext ) g_pImmediateContext->Release();
-	if( g_pd3dDevice ) g_pd3dDevice->Release();
-
 
 	if(GSkeleton) delete GSkeleton;
 	if(GPose) delete GPose;
