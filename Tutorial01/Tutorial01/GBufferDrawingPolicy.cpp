@@ -1,22 +1,19 @@
-#include <cassert>
+#include "GBufferDrawingPolicy.h"
 
-#include "SimpleDrawingPolicy.h"
 
 struct ConstantBufferStruct
 {
 	XMMATRIX mWorld;
 	XMMATRIX mView;
 	XMMATRIX mProjection;
-	XMFLOAT4 vLightDir[2];
-	XMFLOAT4 vLightColor[2];
 };
 
-SimpleDrawingPolicy::SimpleDrawingPolicy(void)
+GBufferDrawingPolicy::GBufferDrawingPolicy(void)
 	:ConstantBuffer(NULL)
 	,RS(NULL)
 	,_SamplerLinear(NULL)
 {
-	FileName = "SimpleShader.fx";
+	FileName = "GBufferShader.fx";
 
 	HRESULT hr;
 	// Create the constant buffer
@@ -30,31 +27,31 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
 	if( FAILED( hr ) )
 		assert(false);
 
-	SetD3DResourceDebugName("SimpleDrawingPolicyConstantBuffer", ConstantBuffer);
+	SetD3DResourceDebugName("GBufferDrawingPolicyConstantBuffer", ConstantBuffer);
 
 
 	D3D11_RASTERIZER_DESC drd =
 	{
-            D3D11_FILL_SOLID, //D3D11_FILL_MODE FillMode;
-            D3D11_CULL_FRONT,//D3D11_CULL_MODE CullMode;
-            FALSE, //BOOL FrontCounterClockwise;
-            0, //INT DepthBias;
-            0.0f,//FLOAT DepthBiasClamp;
-            0.0f,//FLOAT SlopeScaledDepthBias;
-            TRUE,//BOOL DepthClipEnable;
-            FALSE,//BOOL ScissorEnable;
-            TRUE,//BOOL MultisampleEnable;
-            FALSE//BOOL AntialiasedLineEnable;        
+		D3D11_FILL_SOLID, //D3D11_FILL_MODE FillMode;
+		D3D11_CULL_FRONT,//D3D11_CULL_MODE CullMode;
+		FALSE, //BOOL FrontCounterClockwise;
+		0, //INT DepthBias;
+		0.0f,//FLOAT DepthBiasClamp;
+		0.0f,//FLOAT SlopeScaledDepthBias;
+		TRUE,//BOOL DepthClipEnable;
+		FALSE,//BOOL ScissorEnable;
+		TRUE,//BOOL MultisampleEnable;
+		FALSE//BOOL AntialiasedLineEnable;        
 	};
 
-    hr = GEngine->_Device->CreateRasterizerState(&drd, &RS);
-    if ( FAILED( hr ) )
+	hr = GEngine->_Device->CreateRasterizerState(&drd, &RS);
+	if ( FAILED( hr ) )
 		assert(false);
 
-	SetD3DResourceDebugName("SimpleDrawingPolicyRS", RS);
+	SetD3DResourceDebugName("GBufferDrawingPolicyRS", RS);
 
 
-    GEngine->_ImmediateContext->RSSetState(RS);
+	GEngine->_ImmediateContext->RSSetState(RS);
 
 	D3D11_SAMPLER_DESC sampDesc;
 	ZeroMemory( &sampDesc, sizeof(sampDesc) );
@@ -69,19 +66,18 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
 	if( FAILED( hr ) )
 		assert(false);
 
-	SetD3DResourceDebugName("SimpleDrawingPolicy_SamplerLinear", _SamplerLinear);
-
+	SetD3DResourceDebugName("GBufferDrawingPolicy_SamplerLinear", _SamplerLinear);
 }
 
 
-SimpleDrawingPolicy::~SimpleDrawingPolicy(void)
+GBufferDrawingPolicy::~GBufferDrawingPolicy(void)
 {
 	if(ConstantBuffer) ConstantBuffer->Release();
 	if(RS) RS->Release();
 	if(_SamplerLinear)_SamplerLinear->Release();
 }
 
-void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
+void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 {
 	XMMATRIX World;
 
@@ -90,10 +86,7 @@ void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 	cb.mWorld = XMMatrixTranspose( World );
 	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
 	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-	cb.vLightDir[0] = vLightDirs[0];
-	cb.vLightDir[1] = vLightDirs[1];
-	cb.vLightColor[0] = vLightColors[0];
-	cb.vLightColor[1] = vLightColors[1];
+
 	GEngine->_ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
 
 	ShaderRes* pShaderRes = GetShaderRes(pMesh->_NumTexCoord, StaticVertex);
@@ -117,7 +110,7 @@ void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 	GEngine->_ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }
 
-void SimpleDrawingPolicy::DrawSkeletalMesh(SkeletalMesh* pMesh)
+void GBufferDrawingPolicy::DrawSkeletalMesh(SkeletalMesh* pMesh)
 {
 	XMMATRIX World;
 
@@ -126,10 +119,7 @@ void SimpleDrawingPolicy::DrawSkeletalMesh(SkeletalMesh* pMesh)
 	cb.mWorld = XMMatrixTranspose( World );
 	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
 	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-	cb.vLightDir[0] = vLightDirs[0];
-	cb.vLightDir[1] = vLightDirs[1];
-	cb.vLightColor[0] = vLightColors[0];
-	cb.vLightColor[1] = vLightColors[1];
+	
 	GEngine->_ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
 
 	ShaderRes* pShaderRes = GetShaderRes(pMesh->_NumTexCoord, GpuSkinVertex);
@@ -153,7 +143,7 @@ void SimpleDrawingPolicy::DrawSkeletalMesh(SkeletalMesh* pMesh)
 	GEngine->_ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }
 
-void SimpleDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData) 
+void GBufferDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData) 
 {
 	XMMATRIX World;
 
@@ -162,10 +152,7 @@ void SimpleDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderDa
 	cb.mWorld = XMMatrixTranspose( World );
 	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
 	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-	cb.vLightDir[0] = vLightDirs[0];
-	cb.vLightDir[1] = vLightDirs[1];
-	cb.vLightColor[0] = vLightColors[0];
-	cb.vLightColor[1] = vLightColors[1];
+
 	GEngine->_ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
 
 	ShaderRes* pShaderRes = GetShaderRes(pRenderData->_SkeletalMesh->_NumTexCoord, GpuSkinVertex);

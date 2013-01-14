@@ -5,11 +5,13 @@
 #include <d3dx11.h>
 #include <xnamath.h>
 #include <d3dcompiler.h>
+#include <vector>
 
 #include "Util.h"
 #include "OutputDebug.h"
 
 class SimpleDrawingPolicy;
+class GBufferDrawingPolicy;
 class LineBatcher;
 class Engine
 {
@@ -22,13 +24,24 @@ public:
 	D3D_DRIVER_TYPE         _DriverType ;
 	D3D_FEATURE_LEVEL       _FeatureLevel;
 	IDXGISwapChain*         _SwapChain;
+
+	ID3D11Texture2D*		_BackBuffer;
 	ID3D11RenderTargetView* _RenderTargetView;
-	ID3D11DepthStencilView* _DepthStencilView;
+
+	ID3D11Texture2D*		_WorldNormalBuffer;
+	ID3D11RenderTargetView* _WorldNormalView;
+
+	std::vector<ID3D11RenderTargetView*> _RTViewArray;
+
+
 	ID3D11Texture2D*        _DepthStencilTexture;
-	UINT width;
-	UINT height;
+	ID3D11DepthStencilView* _DepthStencilView;
+
+	UINT _Width;
+	UINT _Height;
 
 	SimpleDrawingPolicy* _SimpleDrawer;
+	GBufferDrawingPolicy* _GBufferDrawer;
 
 
 	XMFLOAT4X4 _ViewMat;

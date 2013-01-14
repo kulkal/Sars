@@ -32,6 +32,7 @@
 #include "SkeletalMeshComponent.h"
 #include "LineBatcher.h"
 #include "AnimationClip.h"
+#include "GBufferDrawingPolicy.h"
 //#include "vld.h"
 
 //--------------------------------------------------------------------------------------
@@ -221,7 +222,7 @@ HRESULT InitDevice()
 	
 
 	g_View = XMMatrixLookAtRH( Eye, At, Up );
-	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, GEngine->width / (FLOAT)GEngine->height, 0.01f, 2000 );
+	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, GEngine->_Width / (FLOAT)GEngine->_Height, 0.01f, 2000 );
 	g_World = XMMatrixIdentity();
 
 	XMStoreFloat4x4(&GEngine->_ViewMat, g_View);
@@ -249,14 +250,14 @@ HRESULT InitDevice()
 		GSkeletalMeshComponent->AddSkeletalMesh(SkeletalMeshArray[i]);
 	}
 	FbxImporterObj.ImportSkeleton(&GSkeleton, &GPose);
-	FbxImporterObj.ImportAnimClip(AnimClipArray);
+	//FbxImporterObj.ImportAnimClip(AnimClipArray);
 
 	GSkeletalMeshComponent->SetSkeleton(GSkeleton);
 	GSkeletalMeshComponent->SetCurrentPose(GPose);
 
 	GEngine->Tick();
 
-	GSkeletalMeshComponent->PlayAnim(AnimClipArray[1], 0, 1.f);
+	//GSkeletalMeshComponent->PlayAnim(AnimClipArray[1], 0, 1.f);
 
 	FbxFileImporter FbxImporterObj2("other.fbx");
 	FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
@@ -333,7 +334,7 @@ void Render()
 
 	for(unsigned int i=0;i<StaticMeshArray.size();i++)
 	{
-		GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
+		//GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
 	}
 
 	if(GSkeletalMeshComponent)
@@ -341,7 +342,20 @@ void Render()
 		GSkeletalMeshComponent->Tick(GEngine->_DeltaSeconds);
 		for(unsigned int i=0;i<GSkeletalMeshComponent->_RenderDataArray.size();i++)
 		{
-			GEngine->_SimpleDrawer->DrawSkeletalMeshData(GSkeletalMeshComponent->_RenderDataArray[i]);
+		//	GEngine->_SimpleDrawer->DrawSkeletalMeshData(GSkeletalMeshComponent->_RenderDataArray[i]);
+		}
+	}
+
+	for(unsigned int i=0;i<StaticMeshArray.size();i++)
+	{
+		GEngine->_GBufferDrawer->DrawStaticMesh(StaticMeshArray[i]);
+	}
+
+	if(GSkeletalMeshComponent)
+	{
+		for(unsigned int i=0;i<GSkeletalMeshComponent->_RenderDataArray.size();i++)
+		{
+			GEngine->_GBufferDrawer->DrawSkeletalMeshData(GSkeletalMeshComponent->_RenderDataArray[i]);
 		}
 	}
 	

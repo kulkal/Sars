@@ -5,6 +5,7 @@
 //--------------------------------------------------------------------------------------
 #include "GpuSkinning.hlsl"
 #include "VSPSInput.hlsl"
+
 Texture2D txDiffuse ;
 SamplerState samLinear : register( s0 );
 cbuffer ConstantBuffer : register( b0 )
@@ -12,9 +13,6 @@ cbuffer ConstantBuffer : register( b0 )
 	matrix World;
 	matrix View;
 	matrix Projection;
-	float4 vLightDir[2];
-	float4 vLightColor[2];
-
 }
 
 //--------------------------------------------------------------------------------------
@@ -47,25 +45,34 @@ PS_INPUT VS(  VS_INPUT input )
     return output;
 }
 
-
+struct PS_OUTPUT
+{
+    float4 color : COLOR0;    
+    float4 normal : COLOR1;    
+};
+ 
 //--------------------------------------------------------------------------------------
 // Pixel Shader
 //--------------------------------------------------------------------------------------
-float4 PS( PS_INPUT input ) : SV_Target
+PS_OUTPUT PS( PS_INPUT input ) : SV_Target
 {
 	 float4 finalColor = 0;
     
     //do NdotL lighting for 2 lights
-    for(int i=0; i<2; i++)
-    {
-        finalColor += saturate( dot( (float3)vLightDir[i],input.Norm) * vLightColor[i] );
-    }
+    //for(int i=0; i<2; i++)
+    //{
+    //    finalColor += saturate( dot( (float3)vLightDir[i],input.Norm) * vLightColor[i] );
+    //}
     finalColor.a = 1;
-#if TEXCOORD
-    return  float4(0.1f, 0.1f, 0.1f, 1.f) + finalColor*txDiffuse.Sample( samLinear, input.Tex );
-#else
-    return  finalColor;
-#endif
 
+	PS_OUTPUT output;
+	output.normal = float4(input.Norm, 1.f);
+#if TEXCOORD
+	output.color = float4(1.f, 0.f, 0.f, 1.f);
+#else
+	output.color = float4(0.f, 0.f, 1.f, 1.f);
+
+#endif
+	return output;
 }
 

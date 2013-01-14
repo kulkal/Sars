@@ -25,6 +25,15 @@
     <None Include="LineShader.fx">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="GBufferShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="GpuSkinning.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="VSPSInput.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Tutorial01.cpp" />
@@ -50,6 +59,7 @@
     <ClCompile Include="AnimationClip.cpp" />
     <ClCompile Include="AnimClipInstance.cpp" />
     <ClCompile Include="MathUtil.cpp" />
+    <ClCompile Include="GBufferDrawingPolicy.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -81,6 +91,7 @@
     <ClInclude Include="AnimationClip.h" />
     <ClInclude Include="AnimClipInstance.h" />
     <ClInclude Include="MathUtil.h" />
+    <ClInclude Include="GBufferDrawingPolicy.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

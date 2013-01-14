@@ -3,9 +3,15 @@
 #include <d3d11.h>
 #include <d3dx11.h>
 #include <xnamath.h>
-#include "map"
+#include <map>
+#include <cassert>
 
+#include "Engine.h"
+#include "StaticMesh.h"
+#include "SkeletalMesh.h"
+#include "SkeletalMeshRenderData.h"
 #include "ShaderRes.h"
+
 class StaticMesh;
 class SkeletalMesh;
 class SkeletalMeshRenderData;

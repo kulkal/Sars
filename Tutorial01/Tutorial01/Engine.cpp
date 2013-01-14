@@ -2,6 +2,7 @@
 #include "Engine.h"
 #include "SimpleDrawingPolicy.h"
 #include "LineBatcher.h"
+#include "GBufferDrawingPolicy.h"
 
 Engine* GEngine;
 Engine::Engine(void)
@@ -11,6 +12,7 @@ Engine::Engine(void)
 	,_DriverType(D3D_DRIVER_TYPE_NULL)
 	,_FeatureLevel(D3D_FEATURE_LEVEL_11_0)
 	,_SwapChain(NULL)
+	,_BackBuffer(NULL)
 	,_RenderTargetView(NULL)
 	,_DepthStencilView(NULL)
 	,_DepthStencilTexture(NULL)
@@ -35,7 +37,12 @@ Engine::~Engine(void)
 	if( _ImmediateContext ) _ImmediateContext->Release();
 	if( _Device ) _Device->Release();
 
+	if(_WorldNormalBuffer) _WorldNormalBuffer->Release();
+	if(_WorldNormalView) _WorldNormalView->Release();
+
 	if(_SimpleDrawer) delete _SimpleDrawer;
+	if(_GBufferDrawer) delete _GBufferDrawer;
+
 	if(_LineBatcher) delete _LineBatcher;
 	
 }
@@ -45,8 +52,8 @@ void Engine::InitDevice()
 	HRESULT hr;
 	RECT rc;
 	GetClientRect( _hWnd, &rc );
-	width = rc.right - rc.left;
-	height = rc.bottom - rc.top;
+	_Width = rc.right - rc.left;
+	_Height = rc.bottom - rc.top;
 
 	UINT createDeviceFlags = 0;
 #ifdef _DEBUG
@@ -72,8 +79,8 @@ void Engine::InitDevice()
 	DXGI_SWAP_CHAIN_DESC sd;
 	ZeroMemory( &sd, sizeof( sd ) );
 	sd.BufferCount = 1;
-	sd.BufferDesc.Width = width;
-	sd.BufferDesc.Height = height;
+	sd.BufferDesc.Width = _Width;
+	sd.BufferDesc.Height = _Height;
 	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	sd.BufferDesc.RefreshRate.Numerator = 60;
 	sd.BufferDesc.RefreshRate.Denominator = 1;
@@ -97,21 +104,47 @@ void Engine::InitDevice()
 		assert(false);
 
 	// Create a render target view
-	ID3D11Texture2D* pBackBuffer = NULL;
-	hr = _SwapChain->GetBuffer( 0, __uuidof( ID3D11Texture2D ), ( LPVOID* )&pBackBuffer );
+	hr = _SwapChain->GetBuffer( 0, __uuidof( ID3D11Texture2D ), ( LPVOID* )&_BackBuffer );
 	if( FAILED( hr ) )
 		assert(false);
 
-	hr = _Device->CreateRenderTargetView( pBackBuffer, NULL, &_RenderTargetView );
-	pBackBuffer->Release();
+	hr = _Device->CreateRenderTargetView( _BackBuffer, NULL, &_RenderTargetView );
+	_BackBuffer->Release();
 	if( FAILED( hr ) )
 		assert(false);
+
+	_RTViewArray.push_back(_RenderTargetView);
+
+	// world normal RT
+	D3D11_TEXTURE2D_DESC descNormal;
+	ZeroMemory( &descNormal, sizeof(descNormal) );
+	descNormal.Width = _Width;
+	descNormal.Height = _Height;
+	descNormal.MipLevels = 1;
+	descNormal.ArraySize = 1;
+	descNormal.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	descNormal.SampleDesc.Count = 1;
+	descNormal.SampleDesc.Quality = 0;
+	descNormal.Usage = D3D11_USAGE_DEFAULT;
+	descNormal.BindFlags = D3D11_BIND_RENDER_TARGET;
+	descNormal.CPUAccessFlags = 0;
+	descNormal.MiscFlags = 0;
+	hr = _Device->CreateTexture2D( &descNormal, NULL, &_WorldNormalBuffer );
+	if( FAILED( hr ) )
+		assert(false);
+
+	hr = _Device->CreateRenderTargetView( _WorldNormalBuffer, NULL, &_WorldNormalView );
+	if( FAILED( hr ) )
+		assert(false);
+
+	_RTViewArray.push_back(_WorldNormalView);
+
 
 	// Create depth stencil texture
 	D3D11_TEXTURE2D_DESC descDepth;
 	ZeroMemory( &descDepth, sizeof(descDepth) );
-	descDepth.Width = width;
-	descDepth.Height = height;
+	descDepth.Width = _Width;
+	descDepth.Height = _Height;
 	descDepth.MipLevels = 1;
 	descDepth.ArraySize = 1;
 	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -135,12 +168,13 @@ void Engine::InitDevice()
 	if( FAILED( hr ) )
 		assert(false);
 
-	_ImmediateContext->OMSetRenderTargets( 1, &_RenderTargetView, _DepthStencilView );
+	_ImmediateContext->OMSetRenderTargets( 2, &_RTViewArray.at(0), _DepthStencilView );
+	//_ImmediateContext->OMSetRenderTargets( 1, &_RenderTargetView, _DepthStencilView );
 
 	// Setup the viewport
 	D3D11_VIEWPORT vp;
-	vp.Width = (FLOAT)width;
-	vp.Height = (FLOAT)height;
+	vp.Width = (FLOAT)_Width;
+	vp.Height = (FLOAT)_Height;
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
 	vp.TopLeftX = 0;
@@ -148,6 +182,7 @@ void Engine::InitDevice()
 	_ImmediateContext->RSSetViewports( 1, &vp );
 
 	_SimpleDrawer = new SimpleDrawingPolicy;
+	_GBufferDrawer = new GBufferDrawingPolicy;
 	_LineBatcher = new LineBatcher;
 	_LineBatcher->InitDevice();
 }
