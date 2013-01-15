@@ -41,15 +41,6 @@ void AnimClipInstance::Tick()
 	{
 		_LocalTime = _Clip->_Duration + _LocalTime;
 	}
-	//if(_TimeScale >= 0)
-	/*else
-	{
-		float TimeDiff = CurrentGlobalTime - _StartTime;
-		_LocalTime = fmod(Math::Clamp<float>( NT + TimeDiff*_TimeScale, 0, NT), _Clip->_Duration);
-	}*/
-	
-	//cout_debug("local time : %f\n", _LocalTime);
-
 }
 
 void AnimClipInstance::Play(int InNumPlay)

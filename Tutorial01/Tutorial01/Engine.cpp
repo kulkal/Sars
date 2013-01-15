@@ -350,7 +350,11 @@ void Engine::Tick()
 
 void Engine::BeginRendering()
 {
+	ID3D11ShaderResourceView* aSRS[1] = {NULL};
+	_ImmediateContext->PSSetShaderResources( 0, 1, aSRS );
+
 	ID3D11RenderTargetView* aRTViews[ 2 ] = { _RenderTargetView, _WorldNormalView };
+
 	_ImmediateContext->OMSetRenderTargets( 2, aRTViews, _DepthStencilView );     
 
 	_LineBatcher->BeginLine();
@@ -369,7 +373,7 @@ void Engine::EndRendering()
 	_LineBatcher->Draw();
 	if(_VisualizeWorldNormal)
 	{
-		ID3D11RenderTargetView* aRTViews[ 1 ] = { _RenderTargetView };
+		ID3D11RenderTargetView* aRTViews[ 1] = { _RenderTargetView };
 		_ImmediateContext->OMSetRenderTargets( 1, aRTViews, NULL );     
 
 		_ImmediateContext->PSSetShaderResources( 0, 1, &GEngine->_WorldNormalRV );
