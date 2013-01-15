@@ -229,6 +229,7 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 				}
 				lCurrentNormal = lNormalElement->GetDirectArray().GetAt(lNormalIndex);
 				FbxVector4 FinalNormal = TotalMatrixForNormal.MultT(lCurrentNormal);
+				FinalNormal.Normalize();
 
 				_NormalArray[lIndex].x = static_cast<float>(FinalNormal[0]);
 				_NormalArray[lIndex].y = static_cast<float>(FinalNormal[1]);
@@ -288,7 +289,7 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 				{
 					Mesh->GetPolygonVertexNormal(lPolygonIndex, lVerticeIndex, lCurrentNormal);
 					FbxVector4 FinalNormal = TotalMatrixForNormal.MultT(lCurrentNormal);
-
+					FinalNormal.Normalize();
 					_NormalArray[lVertexCount].x = static_cast<float>(FinalNormal[0]);
 					_NormalArray[lVertexCount].y = static_cast<float>(FinalNormal[1]);
 					_NormalArray[lVertexCount].z = static_cast<float>(FinalNormal[2]);

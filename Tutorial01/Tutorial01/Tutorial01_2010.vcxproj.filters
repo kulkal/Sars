@@ -34,6 +34,9 @@
     <None Include="VSPSInput.hlsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="QuadShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Tutorial01.cpp" />

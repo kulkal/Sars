@@ -31,6 +31,7 @@ PS_INPUT VS(  VS_INPUT input )
 
 	output.Norm = mul( input.Norm, World );
 	output.Norm = mul(output.Norm, BoneMat);
+	output.Norm = mul( input.Norm, World );
 #else
 	output.Pos = float4(input.Pos, 1.f);
     output.Pos = mul( output.Pos, World );
@@ -56,21 +57,13 @@ struct PS_OUTPUT
 //--------------------------------------------------------------------------------------
 PS_OUTPUT PS( PS_INPUT input ) : SV_Target
 {
-	 float4 finalColor = 0;
-    
-    //do NdotL lighting for 2 lights
-    //for(int i=0; i<2; i++)
-    //{
-    //    finalColor += saturate( dot( (float3)vLightDir[i],input.Norm) * vLightColor[i] );
-    //}
-    finalColor.a = 1;
 
 	PS_OUTPUT output;
 	output.normal = float4(input.Norm, 1.f);
 #if TEXCOORD
-	output.color = float4(1.f, 0.f, 0.f, 1.f);
+	output.color = float4(0.1f, 0.1f, 0.1f, 1.f) + txDiffuse.Sample( samLinear, input.Tex );
 #else
-	output.color = float4(0.f, 0.f, 1.f, 1.f);
+	output.color = float4(1.f, 1.f, 1.f, 1.f);
 
 #endif
 	return output;

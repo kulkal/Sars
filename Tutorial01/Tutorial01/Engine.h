@@ -28,8 +28,9 @@ public:
 	ID3D11Texture2D*		_BackBuffer;
 	ID3D11RenderTargetView* _RenderTargetView;
 
-	ID3D11Texture2D*		_WorldNormalBuffer;
-	ID3D11RenderTargetView* _WorldNormalView;
+	ID3D11Texture2D*			_WorldNormalBuffer;
+	ID3D11RenderTargetView*		 _WorldNormalView;
+	ID3D11ShaderResourceView *	_WorldNormalRV;
 
 	std::vector<ID3D11RenderTargetView*> _RTViewArray;
 
@@ -57,7 +58,13 @@ public:
 	LARGE_INTEGER _PrevTime;
 	LARGE_INTEGER _Freq;
 
-	
+	// fullsqreen quad
+	ID3D11Buffer*               g_pScreenQuadVB;
+	ID3D11InputLayout*          g_pQuadLayout;
+	ID3D11VertexShader*         g_pQuadVS;
+	ID3D11PixelShader*			_QuadPS;
+
+	bool _VisualizeWorldNormal;
 public:
 	void Tick();
 	void InitDevice();
@@ -65,6 +72,7 @@ public:
 	void EndRendering();
 
 	HRESULT CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut );
+	void DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Height );
 
 	Engine(void);
 	virtual ~Engine(void);
