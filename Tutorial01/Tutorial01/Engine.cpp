@@ -255,11 +255,19 @@ void Engine::InitDevice()
 
 	D3D11_DEPTH_STENCIL_DESC  DSStateDesc;
 	ZeroMemory( &DSStateDesc, sizeof(DSStateDesc) );
-	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	DSStateDesc.DepthEnable = TRUE;
+    DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    DSStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
+    DSStateDesc.StencilEnable = FALSE;
+	DSStateDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+    DSStateDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+    const D3D11_DEPTH_STENCILOP_DESC defaultStencilOp =
+    { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS };
+    DSStateDesc.FrontFace = defaultStencilOp;
+	DSStateDesc.BackFace = defaultStencilOp;
 
     hr = _Device->CreateDepthStencilState(&DSStateDesc, &_DepthStateEnable);
 
-	ZeroMemory( &DSStateDesc, sizeof(DSStateDesc) );
 	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 
     hr = _Device->CreateDepthStencilState(&DSStateDesc, &_DepthStateDisable);
