@@ -366,7 +366,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="DeferredDirectional.fx.fx" />
+    <None Include="DeferredDirectional.fx" />
+    <None Include="DeferredPoint.fx" />
     <None Include="GBufferShader.fx" />
     <None Include="GpuSkinning.hlsl" />
     <None Include="LineShader.fx" />

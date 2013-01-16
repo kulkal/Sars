@@ -1,6 +1,14 @@
-Texture2D<float4> tex : register( t0 );
+Texture2D<float4> texDepth : register( t0 );
+Texture2D<float4> texWorldNormal : register( t1 );
 SamplerState samLinear : register( s0 );
 //SamplerState LinearSampler : register (s1);
+
+cbuffer ConstantBuffer : register( b0 )
+{
+	matrix View;
+	matrix Projection;
+}
+
 struct QuadVS_Input
 {
     float4 Pos : POSITION;
@@ -23,5 +31,11 @@ QuadVS_Output QuadVS( QuadVS_Input Input )
 
 float4 PS( QuadVS_Output input ) : SV_Target
 {
-    return tex.Sample( samLinear, input.Tex );
+#ifdef VIS_NORMAL
+    return texWorldNormal.Sample( samLinear, input.Tex );
+#elif VIS_DEPTH
+	float DeviceZ = texDepth.Sample( samLinear, input.Tex ).x;
+    //return  Projection._43 / (DeviceZ - Projection._33);
+	return  DeviceZ;
+#endif
 }

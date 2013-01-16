@@ -32,11 +32,13 @@ public:
 	ID3D11RenderTargetView*		 _WorldNormalView;
 	ID3D11ShaderResourceView *	_WorldNormalRV;
 
-	std::vector<ID3D11RenderTargetView*> _RTViewArray;
 
 
 	ID3D11Texture2D*        _DepthStencilTexture;
 	ID3D11DepthStencilView* _DepthStencilView;
+	ID3D11ShaderResourceView *	_DepthStencilSRV;
+	ID3D11DepthStencilView *	_ReadOnlyDepthStencilView;
+
 
 	UINT _Width;
 	UINT _Height;
@@ -62,9 +64,21 @@ public:
 	ID3D11Buffer*               g_pScreenQuadVB;
 	ID3D11InputLayout*          g_pQuadLayout;
 	ID3D11VertexShader*         g_pQuadVS;
-	ID3D11PixelShader*			_QuadPS;
+	ID3D11PixelShader*			_VisNormalPS;
+
+	ID3D11PixelShader*			_VisDpethPS;
+	ID3D11Buffer*				_VisDpethPSCB;
+
+
+	ID3D11PixelShader*			_DeferredDirPS;
+	ID3D11Buffer*				_DeferredDirPSCB;
+
+	ID3D11PixelShader*			_DeferredPointPS;
+	ID3D11Buffer*				_DeferredPointPSCB;
+
 
 	bool _VisualizeWorldNormal;
+	bool _VisualizeDepth;
 public:
 	void Tick();
 	void InitDevice();
@@ -72,7 +86,8 @@ public:
 	void EndRendering();
 
 	HRESULT CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut );
-	void DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Height );
+	ID3D11PixelShader* CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines = NULL);
+	void DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Height, UINT TopLeftX = 0, UINT TopLeftY = 0);
 
 	Engine(void);
 	virtual ~Engine(void);

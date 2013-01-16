@@ -10,6 +10,24 @@ struct SCREEN_VERTEX
 	XMFLOAT2 tex;
 };
 
+struct DeferredDirPSCBStruct
+{
+	XMFLOAT4 vLightDir;
+	XMFLOAT4 vLightColor;
+};
+
+struct DeferredPointPSCBStruct
+{
+	XMFLOAT4 vLightPos;
+	XMFLOAT4 vLightColor;
+};
+
+struct VisDepthPSCBStruct
+{
+	XMMATRIX mView;
+	XMMATRIX mProjection;
+};
+
 Engine* GEngine;
 Engine::Engine(void)
 	:_hWnd(NULL)
@@ -21,6 +39,7 @@ Engine::Engine(void)
 	,_BackBuffer(NULL)
 	,_RenderTargetView(NULL)
 	,_DepthStencilView(NULL)
+	,_ReadOnlyDepthStencilView(NULL)
 	,_DepthStencilTexture(NULL)
 	,_WorldNormalBuffer(NULL)
 	,_WorldNormalView(NULL)
@@ -28,7 +47,16 @@ Engine::Engine(void)
 	,_SimpleDrawer(NULL)
 	,_LineBatcher(NULL)
 	,_TimeSeconds(0.f)
-	,_VisualizeWorldNormal(true)
+	,_VisualizeWorldNormal(false)
+	,_VisualizeDepth(true)
+	,_DeferredDirPS(NULL)
+	,_DeferredDirPSCB(NULL)
+	,_DeferredPointPS(NULL)
+	,_DeferredPointPSCB(NULL)
+	,_DepthStencilSRV(NULL)
+	,_VisNormalPS(NULL)
+	,_VisDpethPS(NULL)
+	,_VisDpethPSCB(NULL)
 	
 {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -42,6 +70,9 @@ Engine::~Engine(void)
 	if( _ImmediateContext ) _ImmediateContext->ClearState();
 	if( _DepthStencilTexture ) _DepthStencilTexture->Release();
 	if( _DepthStencilView ) _DepthStencilView->Release();
+	if(_DepthStencilSRV) _DepthStencilSRV->Release();
+	if(_ReadOnlyDepthStencilView) _ReadOnlyDepthStencilView->Release();
+
 	if( _RenderTargetView ) _RenderTargetView->Release();
 	if( _SwapChain ) _SwapChain->Release();
 	if( _ImmediateContext ) _ImmediateContext->Release();
@@ -51,10 +82,17 @@ Engine::~Engine(void)
 	if(_WorldNormalView) _WorldNormalView->Release();
 	if(_WorldNormalRV) _WorldNormalRV->Release();
 
-	if(_QuadPS) _QuadPS->Release();
+	if(_VisNormalPS) _VisNormalPS->Release();
+	if(_VisDpethPS) _VisDpethPS->Release();
+	if(_VisDpethPSCB)_VisDpethPSCB->Release();
+	
 	if(g_pQuadVS) g_pQuadVS->Release();
 	if(g_pScreenQuadVB) g_pScreenQuadVB->Release();
 	if(g_pQuadLayout) g_pQuadLayout->Release();
+	if(_DeferredDirPS) _DeferredDirPS->Release();
+	if(_DeferredDirPSCB) _DeferredDirPSCB->Release();
+	if(_DeferredPointPS) _DeferredPointPS->Release();
+	if(_DeferredPointPSCB) _DeferredPointPSCB->Release();
 
 	if(_SimpleDrawer) delete _SimpleDrawer;
 	if(_GBufferDrawer) delete _GBufferDrawer;
@@ -129,7 +167,6 @@ void Engine::InitDevice()
 	if( FAILED( hr ) )
 		assert(false);
 
-	_RTViewArray.push_back(_RenderTargetView);
 
 	// world normal RT
 	D3D11_TEXTURE2D_DESC descNormal;
@@ -162,8 +199,6 @@ void Engine::InitDevice()
 	if( FAILED( hr ) )
 		assert(false);
 
-	_RTViewArray.push_back(_WorldNormalView);
-
 
 	// Create depth stencil texture
 	D3D11_TEXTURE2D_DESC descDepth;
@@ -172,11 +207,11 @@ void Engine::InitDevice()
 	descDepth.Height = _Height;
 	descDepth.MipLevels = 1;
 	descDepth.ArraySize = 1;
-	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	descDepth.Format =  DXGI_FORMAT_R24G8_TYPELESS;//DXGI_FORMAT_D24_UNORM_S8_UINT;
 	descDepth.SampleDesc.Count = 1;
 	descDepth.SampleDesc.Quality = 0;
 	descDepth.Usage = D3D11_USAGE_DEFAULT;
-	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 	descDepth.CPUAccessFlags = 0;
 	descDepth.MiscFlags = 0;
 	hr = _Device->CreateTexture2D( &descDepth, NULL, &_DepthStencilTexture );
@@ -186,15 +221,33 @@ void Engine::InitDevice()
 	// Create the depth stencil view
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
 	ZeroMemory( &descDSV, sizeof(descDSV) );
-	descDSV.Format = descDepth.Format;
+	descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	//descDSV.Flags = D3D11_DSV_READ_ONLY_DEPTH;
 	descDSV.Texture2D.MipSlice = 0;
 	hr = _Device->CreateDepthStencilView( _DepthStencilTexture, &descDSV, &_DepthStencilView );
 	if( FAILED( hr ) )
 		assert(false);
 
-	_ImmediateContext->OMSetRenderTargets( 2, &_RTViewArray.at(0), _DepthStencilView );
-	//_ImmediateContext->OMSetRenderTargets( 1, &_RenderTargetView, _DepthStencilView );
+	ZeroMemory( &descDSV, sizeof(descDSV) );
+	descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	descDSV.Flags = D3D11_DSV_READ_ONLY_DEPTH;
+	descDSV.Texture2D.MipSlice = 0;
+	hr = _Device->CreateDepthStencilView( _DepthStencilTexture, &descDSV, &_ReadOnlyDepthStencilView );
+	if( FAILED( hr ) )
+		assert(false);
+	
+	// depth srv
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDescDepth;
+	srvDescDepth.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS ;
+	srvDescDepth.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDescDepth.Texture2D.MostDetailedMip = 0;
+	srvDescDepth.Texture2D.MipLevels = descNormal.MipLevels;
+	hr = _Device->CreateShaderResourceView(_DepthStencilTexture, &srvDescDepth, &_DepthStencilSRV);
+	if( FAILED( hr ) )
+		assert(false);
+
 
 	// Setup the viewport
 	D3D11_VIEWPORT vp;
@@ -250,8 +303,10 @@ void Engine::InitDevice()
 	if(pBlob) pBlob->Release();
 	SetD3DResourceDebugName("QuadLayout", g_pQuadLayout);
 
+	D3D10_SHADER_MACRO DefinesVisNormal[] = {{"VIS_NORMAL", "1"},{0, 0} };
+	
 	ID3DBlob* pPSBlob = NULL;
-	hr = CompileShaderFromFile(L"QuadShader.fx", NULL, "PS", "ps_4_0", &pPSBlob );
+	hr = CompileShaderFromFile(L"QuadShader.fx", DefinesVisNormal, "PS", "ps_4_0", &pPSBlob );
 	if( FAILED( hr ) )
 	{
 		MessageBox( NULL,
@@ -259,22 +314,108 @@ void Engine::InitDevice()
 		assert(false);
 	}
 
-	hr = _Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &_QuadPS );
+	hr = _Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &_VisNormalPS );
 	pPSBlob->Release();
 	if( FAILED( hr ) )
 		assert(false);
 
-	SetD3DResourceDebugName("QuadPS", _QuadPS);
+	SetD3DResourceDebugName("_VisNormalPS", _VisNormalPS);
+
+	D3D10_SHADER_MACRO DefinesVisDepth[] = {{"VIS_DEPTH", "1"},{0, 0} };
+	
+	pPSBlob = NULL;
+	hr = CompileShaderFromFile(L"QuadShader.fx", DefinesVisDepth, "PS", "ps_4_0", &pPSBlob );
+	if( FAILED( hr ) )
+	{
+		MessageBox( NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
+		assert(false);
+	}
+
+	hr = _Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &_VisDpethPS );
+	pPSBlob->Release();
+	if( FAILED( hr ) )
+		assert(false);
+
+	SetD3DResourceDebugName("_VisDpethPS", _VisDpethPS);
+	
+	D3D11_BUFFER_DESC bdc;
+	ZeroMemory( &bdc, sizeof(bdc) );
+	bdc.Usage = D3D11_USAGE_DEFAULT;
+	bdc.ByteWidth = sizeof(VisDepthPSCBStruct);
+	bdc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bdc.CPUAccessFlags = 0;
+	hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &_VisDpethPSCB );
+	if( FAILED( hr ) )
+		assert(false);
+
+	SetD3DResourceDebugName("_VisDpethPSCB", _VisDpethPSCB);
+
 	////////////////////////////////////////////
+	// directional light
+	_DeferredDirPS = CreatePixelShaderSimple("DeferredDirectional.fx");
 
+	ZeroMemory( &bdc, sizeof(bdc) );
+	bdc.Usage = D3D11_USAGE_DEFAULT;
+	bdc.ByteWidth = sizeof(DeferredDirPSCBStruct);
+	bdc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bdc.CPUAccessFlags = 0;
+	hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &_DeferredDirPSCB );
+	if( FAILED( hr ) )
+		assert(false);
 
+	SetD3DResourceDebugName("_DeferredDirPSCB", _DeferredDirPSCB);
+
+	// point light
+	_DeferredPointPS = CreatePixelShaderSimple("DeferredPoint.fx");
+
+	ZeroMemory( &bdc, sizeof(bdc) );
+	bdc.Usage = D3D11_USAGE_DEFAULT;
+	bdc.ByteWidth = sizeof(DeferredPointPSCBStruct);
+	bdc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bdc.CPUAccessFlags = 0;
+	hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &_DeferredPointPSCB );
+	if( FAILED( hr ) )
+		assert(false);
+
+	SetD3DResourceDebugName("_DeferredPointPSCB", _DeferredPointPSCB);
+	
+	/////////////
 	_SimpleDrawer = new SimpleDrawingPolicy;
 	_GBufferDrawer = new GBufferDrawingPolicy;
 	_LineBatcher = new LineBatcher;
 	_LineBatcher->InitDevice();
 }
 
-void Engine::DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Height )
+ID3D11PixelShader* Engine::CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines)
+{
+	ID3D11PixelShader* PS;
+	HRESULT hr;
+	int nLen = strlen(szFileName)+1;
+	wchar_t WFileName[1024];
+	size_t RetSize;
+	mbstowcs_s(&RetSize, WFileName, 1024, szFileName, nLen);
+
+	ID3DBlob* pPSBlob = NULL;
+	hr = CompileShaderFromFile(WFileName, pDefines, "PS", "ps_4_0", &pPSBlob );
+	if( FAILED( hr ) )
+	{
+		MessageBox( NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
+		assert(false);
+	}
+
+	hr = _Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &PS );
+	pPSBlob->Release();
+	if( FAILED( hr ) )
+		assert(false);
+
+	SetD3DResourceDebugName(szFileName, PS);
+
+	return PS;
+}
+
+void Engine::DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Height, UINT TopLeftX, UINT TopLeftY)
 {
 	// Save the old viewport
 	D3D11_VIEWPORT vpOld[D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX];
@@ -287,8 +428,8 @@ void Engine::DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Heig
 	vp.Height = (float)Height;
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
+	vp.TopLeftX = TopLeftX;
+	vp.TopLeftY = TopLeftY;
 	_ImmediateContext->RSSetViewports( 1, &vp );
 
 	UINT strides = sizeof( SCREEN_VERTEX );
@@ -350,8 +491,8 @@ void Engine::Tick()
 
 void Engine::BeginRendering()
 {
-	ID3D11ShaderResourceView* aSRS[1] = {NULL};
-	_ImmediateContext->PSSetShaderResources( 0, 1, aSRS );
+	ID3D11ShaderResourceView* aSRS[2] = {NULL, NULL};
+	_ImmediateContext->PSSetShaderResources( 0, 2, aSRS );
 
 	ID3D11RenderTargetView* aRTViews[ 2 ] = { _RenderTargetView, _WorldNormalView };
 
@@ -364,22 +505,59 @@ void Engine::BeginRendering()
 	_ImmediateContext->ClearRenderTargetView( _RenderTargetView, ClearColor );
 	float ClearNormalColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
 	_ImmediateContext->ClearRenderTargetView( _WorldNormalView, ClearNormalColor );
-
-	_ImmediateContext->ClearDepthStencilView( _DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0 );
+	_ImmediateContext->ClearDepthStencilView( _DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0 );
 }
-
 void Engine::EndRendering()
 {
 	_LineBatcher->Draw();
+	
+	ID3D11RenderTargetView* aRTViews[ 1] = { _RenderTargetView };
+	_ImmediateContext->OMSetRenderTargets( 1, aRTViews, _ReadOnlyDepthStencilView );     
+
+	ID3D11ShaderResourceView* aSRV[2] = {_DepthStencilSRV, _WorldNormalRV};
+	_ImmediateContext->PSSetShaderResources( 0, 2, aSRV );
+
+	// lighting pass
+	DeferredDirPSCBStruct cb;
+	XMStoreFloat4(&cb.vLightDir, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( 1, -1, -1, 1.0f )))));
+	memcpy(&cb.vLightColor, &XMFLOAT4( 1.f, 0.f, 0.f, 1.f ), sizeof(XMFLOAT4));
+
+	_ImmediateContext->UpdateSubresource( _DeferredDirPSCB, 0, NULL, &cb, 0, 0 );
+	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredDirPSCB );
+	DrawFullScreenQuad11(GEngine->_DeferredDirPS, GEngine->_Width, GEngine->_Height);
+
+
+
+	//DeferredPointPSCBStruct cbPoint;
+	//XMStoreFloat4(&cbPoint.vLightPos, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( 0, 10, 0, 1.0f )))));
+	////memcpy(&cb.vLightDir, &XMFLOAT4( -0.577f, 0.577f, 0.577f, 1.0f ), sizeof(XMFLOAT4));
+	//memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 1.f, 0.f, 1.f ), sizeof(XMFLOAT4));
+
+	//_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cb, 0, 0 );
+	//_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredPointPSCB );
+	//DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
+
+	_VisualizeWorldNormal = true;
 	if(_VisualizeWorldNormal)
+
 	{
-		ID3D11RenderTargetView* aRTViews[ 1] = { _RenderTargetView };
-		_ImmediateContext->OMSetRenderTargets( 1, aRTViews, NULL );     
-
-		_ImmediateContext->PSSetShaderResources( 0, 1, &GEngine->_WorldNormalRV );
-		DrawFullScreenQuad11(GEngine->_QuadPS, GEngine->_Width/1, GEngine->_Height/1);
+		//_ImmediateContext->PSSetShaderResources( 0, 1, &GEngine->_WorldNormalRV );
+		DrawFullScreenQuad11(GEngine->_VisNormalPS, GEngine->_Width/2, GEngine->_Height/2);
 	}
+	
+	_VisualizeDepth = true;
+	if(_VisualizeDepth)
+	{
+		VisDepthPSCBStruct cbVisDepth;
+		cbVisDepth.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
+		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
 
+		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
+		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
+
+		DrawFullScreenQuad11(GEngine->_VisDpethPS, GEngine->_Width/2, GEngine->_Height/2, GEngine->_Width/2, 0);
+	}
+	
 	_SwapChain->Present( 0, 0 );
 }
 

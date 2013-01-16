@@ -356,8 +356,6 @@ void Render()
 			GEngine->_GBufferDrawer->DrawSkeletalMeshData(GSkeletalMeshComponent->_RenderDataArray[i]);
 		}
 	}
-
-	
 	
 	GEngine->EndRendering();
 }

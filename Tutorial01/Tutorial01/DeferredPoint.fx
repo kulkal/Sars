@@ -1,10 +1,9 @@
-Texture2D<float4> texDepth : register( t0 );
-Texture2D<float4> texWorldNormal : register( t1 );
+Texture2D<float4> texWorldNormal : register( t0 );
 SamplerState samLinear : register( s0 );
 
 cbuffer ConstantBuffer : register( b0 )
 {
-	float4 vLightDir;
+	float4 vLightPos;
 	float4 vLightColor;
 }
 
@@ -30,6 +29,6 @@ QuadVS_Output QuadVS( QuadVS_Input Input )
 
 float4 PS( QuadVS_Output input ) : SV_Target
 {
-	float3 WorldNormal = texWorldNormal.Sample( samLinear, input.Tex );
-	return saturate( dot( -(float3)vLightDir,WorldNormal) * vLightColor );
+	//float3 WorldNormal = texWorldNormal.Sample( samLinear, input.Tex );
+	return float4(1, 1, 1, 1);// saturate( dot( -(float3)vLightDir,WorldNormal) * vLightColor );
 }

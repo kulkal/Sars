@@ -37,7 +37,10 @@
     <None Include="QuadShader.fx">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="DeferredDirectional.fx.fx">
+    <None Include="DeferredDirectional.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="DeferredPoint.fx">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
