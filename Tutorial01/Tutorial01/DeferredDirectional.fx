@@ -1,5 +1,5 @@
-Texture2D<float4> texDepth : register( t0 );
-Texture2D<float4> texWorldNormal : register( t1 );
+Texture2D<float4> texWorldNormal : register( t0 );
+Texture2D<float4> texDepth : register( t1 );
 SamplerState samLinear : register( s0 );
 
 cbuffer ConstantBuffer : register( b0 )

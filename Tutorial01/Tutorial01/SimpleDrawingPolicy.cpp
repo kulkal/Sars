@@ -43,7 +43,7 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
             0.0f,//FLOAT SlopeScaledDepthBias;
             TRUE,//BOOL DepthClipEnable;
             FALSE,//BOOL ScissorEnable;
-            TRUE,//BOOL MultisampleEnable;
+            FALSE,//BOOL MultisampleEnable;
             FALSE//BOOL AntialiasedLineEnable;        
 	};
 

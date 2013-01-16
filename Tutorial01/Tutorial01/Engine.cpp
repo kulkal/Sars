@@ -180,7 +180,7 @@ void Engine::InitDevice()
 	descNormal.Height = _Height;
 	descNormal.MipLevels = 1;
 	descNormal.ArraySize = 1;
-	descNormal.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	descNormal.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;//DXGI_FORMAT_R32G32B32A32_FLOAT;
 	descNormal.SampleDesc.Count = 1;
 	descNormal.SampleDesc.Quality = 0;
 	descNormal.Usage = D3D11_USAGE_DEFAULT;
@@ -228,7 +228,6 @@ void Engine::InitDevice()
 	ZeroMemory( &descDSV, sizeof(descDSV) );
 	descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	//descDSV.Flags = D3D11_DSV_READ_ONLY_DEPTH;
 	descDSV.Texture2D.MipSlice = 0;
 	hr = _Device->CreateDepthStencilView( _DepthStencilTexture, &descDSV, &_DepthStencilView );
 	if( FAILED( hr ) )
@@ -237,7 +236,7 @@ void Engine::InitDevice()
 	ZeroMemory( &descDSV, sizeof(descDSV) );
 	descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	descDSV.Flags = D3D11_DSV_READ_ONLY_DEPTH;
+	descDSV.Flags = D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL;
 	descDSV.Texture2D.MipSlice = 0;
 	hr = _Device->CreateDepthStencilView( _DepthStencilTexture, &descDSV, &_ReadOnlyDepthStencilView );
 	if( FAILED( hr ) )
@@ -257,6 +256,7 @@ void Engine::InitDevice()
 	ZeroMemory( &DSStateDesc, sizeof(DSStateDesc) );
 	DSStateDesc.DepthEnable = TRUE;
     DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+
     DSStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
     DSStateDesc.StencilEnable = FALSE;
 	DSStateDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
@@ -269,7 +269,7 @@ void Engine::InitDevice()
     hr = _Device->CreateDepthStencilState(&DSStateDesc, &_DepthStateEnable);
 
 	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-
+	DSStateDesc.StencilWriteMask = 0x00;
     hr = _Device->CreateDepthStencilState(&DSStateDesc, &_DepthStateDisable);
 
 
@@ -541,7 +541,7 @@ void Engine::EndRendering()
 	ID3D11RenderTargetView* aRTViews[ 1] = { _RenderTargetView };
 	_ImmediateContext->OMSetRenderTargets( 1, aRTViews, _ReadOnlyDepthStencilView );     
 
-	ID3D11ShaderResourceView* aSRV[2] = {_DepthStencilSRV, _WorldNormalRV};
+	ID3D11ShaderResourceView* aSRV[2] = {_WorldNormalRV, _DepthStencilSRV};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRV );
 
     _ImmediateContext->OMSetDepthStencilState(_DepthStateDisable, 0);
@@ -569,9 +569,7 @@ void Engine::EndRendering()
 
 	_VisualizeWorldNormal = true;
 	if(_VisualizeWorldNormal)
-
 	{
-		//_ImmediateContext->PSSetShaderResources( 0, 1, &GEngine->_WorldNormalRV );
 		DrawFullScreenQuad11(_VisNormalPS, _Width/2, _Height/2);
 	}
 	
