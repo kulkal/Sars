@@ -57,6 +57,8 @@ Engine::Engine(void)
 	,_VisNormalPS(NULL)
 	,_VisDpethPS(NULL)
 	,_VisDpethPSCB(NULL)
+	,_DepthStateEnable(NULL)
+	,_DepthStateDisable(NULL)
 	
 {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -72,6 +74,9 @@ Engine::~Engine(void)
 	if( _DepthStencilView ) _DepthStencilView->Release();
 	if(_DepthStencilSRV) _DepthStencilSRV->Release();
 	if(_ReadOnlyDepthStencilView) _ReadOnlyDepthStencilView->Release();
+
+	if(_DepthStateEnable) _DepthStateEnable->Release();
+	if(_DepthStateDisable) _DepthStateDisable->Release();
 
 	if( _RenderTargetView ) _RenderTargetView->Release();
 	if( _SwapChain ) _SwapChain->Release();
@@ -247,6 +252,17 @@ void Engine::InitDevice()
 	hr = _Device->CreateShaderResourceView(_DepthStencilTexture, &srvDescDepth, &_DepthStencilSRV);
 	if( FAILED( hr ) )
 		assert(false);
+
+	D3D11_DEPTH_STENCIL_DESC  DSStateDesc;
+	ZeroMemory( &DSStateDesc, sizeof(DSStateDesc) );
+	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+
+    hr = _Device->CreateDepthStencilState(&DSStateDesc, &_DepthStateEnable);
+
+	ZeroMemory( &DSStateDesc, sizeof(DSStateDesc) );
+	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+
+    hr = _Device->CreateDepthStencilState(&DSStateDesc, &_DepthStateDisable);
 
 
 	// Setup the viewport
@@ -506,6 +522,9 @@ void Engine::BeginRendering()
 	float ClearNormalColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
 	_ImmediateContext->ClearRenderTargetView( _WorldNormalView, ClearNormalColor );
 	_ImmediateContext->ClearDepthStencilView( _DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0 );
+
+    _ImmediateContext->OMSetDepthStencilState(_DepthStateEnable, 0);
+
 }
 void Engine::EndRendering()
 {
@@ -516,6 +535,9 @@ void Engine::EndRendering()
 
 	ID3D11ShaderResourceView* aSRV[2] = {_DepthStencilSRV, _WorldNormalRV};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRV );
+
+    _ImmediateContext->OMSetDepthStencilState(_DepthStateDisable, 0);
+
 
 	// lighting pass
 	DeferredDirPSCBStruct cb;
@@ -542,7 +564,7 @@ void Engine::EndRendering()
 
 	{
 		//_ImmediateContext->PSSetShaderResources( 0, 1, &GEngine->_WorldNormalRV );
-		DrawFullScreenQuad11(GEngine->_VisNormalPS, GEngine->_Width/2, GEngine->_Height/2);
+		DrawFullScreenQuad11(_VisNormalPS, _Width/2, _Height/2);
 	}
 	
 	_VisualizeDepth = true;
@@ -551,11 +573,10 @@ void Engine::EndRendering()
 		VisDepthPSCBStruct cbVisDepth;
 		cbVisDepth.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
 		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
 		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
 
-		DrawFullScreenQuad11(GEngine->_VisDpethPS, GEngine->_Width/2, GEngine->_Height/2, GEngine->_Width/2, 0);
+		DrawFullScreenQuad11(_VisDpethPS, _Width/2, _Height/2, _Width/2, 0);
 	}
 	
 	_SwapChain->Present( 0, 0 );

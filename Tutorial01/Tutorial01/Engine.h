@@ -76,6 +76,9 @@ public:
 	ID3D11PixelShader*			_DeferredPointPS;
 	ID3D11Buffer*				_DeferredPointPSCB;
 
+	ID3D11DepthStencilState*	_DepthStateEnable;
+	ID3D11DepthStencilState*	_DepthStateDisable;
+
 
 	bool _VisualizeWorldNormal;
 	bool _VisualizeDepth;

@@ -1,7 +1,6 @@
 Texture2D<float4> texDepth : register( t0 );
 Texture2D<float4> texWorldNormal : register( t1 );
 SamplerState samLinear : register( s0 );
-//SamplerState LinearSampler : register (s1);
 
 cbuffer ConstantBuffer : register( b0 )
 {
