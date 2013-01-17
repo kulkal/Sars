@@ -34,7 +34,12 @@ float4 PS( QuadVS_Output input ) : SV_Target
     return texWorldNormal.Sample( samLinear, input.Tex );
 #elif VIS_DEPTH
 	float DeviceZ = texDepth.Sample( samLinear, input.Tex ).x;
-    //return  Projection._43 / (DeviceZ - Projection._33);
-	return  DeviceZ;
+	float n = 10;
+	float f = 1000;
+    //float LInearZ = (2.0 * n) / (f + n - DeviceZ * (f - n));
+	//float LInearZ = -Projection._34/(DeviceZ +Projection._33);
+	float LInearZ = 1.010101/(-DeviceZ -10.10101);
+
+	return  float4(LInearZ.xxx, 1);
 #endif
 }

@@ -222,6 +222,7 @@ void Engine::InitDevice()
 	hr = _Device->CreateTexture2D( &descDepth, NULL, &_DepthStencilTexture );
 	if( FAILED( hr ) )
 		assert(false);
+	
 
 	// Create the depth stencil view
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
@@ -268,6 +269,8 @@ void Engine::InitDevice()
 
     hr = _Device->CreateDepthStencilState(&DSStateDesc, &_DepthStateEnable);
 
+	DSStateDesc.DepthEnable = FALSE;
+    DSStateDesc.StencilEnable = FALSE;
 	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 	DSStateDesc.StencilWriteMask = 0x00;
     hr = _Device->CreateDepthStencilState(&DSStateDesc, &_DepthStateDisable);
@@ -287,13 +290,13 @@ void Engine::InitDevice()
 	
 
 	SCREEN_VERTEX svQuad[4];
-	svQuad[0].pos = XMFLOAT4( -1.0f, 1.0f, 0.5f, 1.0f );
+	svQuad[0].pos = XMFLOAT4( -1.0f, 1.0f, 0.0f, 1.0f );
 	svQuad[0].tex = XMFLOAT2( 0.0f, 0.0f );
-	svQuad[2].pos = XMFLOAT4( 1.0f, 1.0f, 0.5f, 1.0f );
+	svQuad[2].pos = XMFLOAT4( 1.0f, 1.0f, 0.0f, 1.0f );
 	svQuad[2].tex = XMFLOAT2( 1.0f, 0.0f );
-	svQuad[1].pos = XMFLOAT4( -1.0f, -1.0f, 0.5f, 1.0f );
+	svQuad[1].pos = XMFLOAT4( -1.0f, -1.0f, 0.0f, 1.0f );
 	svQuad[1].tex = XMFLOAT2( 0.0f, 1.0f );
-	svQuad[3].pos = XMFLOAT4( 1.0f, -1.0f, 0.5f, 1.0f );
+	svQuad[3].pos = XMFLOAT4( 1.0f, -1.0f, 0.0f, 1.0f );
 	svQuad[3].tex = XMFLOAT2( 1.0f, 1.0f );
 	D3D11_BUFFER_DESC vbdesc =
 	{
@@ -519,8 +522,12 @@ void Engine::BeginRendering()
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRS );
 
 	ID3D11RenderTargetView* aRTViews[ 2 ] = { _RenderTargetView, _WorldNormalView };
-
 	_ImmediateContext->OMSetRenderTargets( 2, aRTViews, _DepthStencilView );     
+    _ImmediateContext->OMSetDepthStencilState(_DepthStateEnable, 0);
+
+	/*ID3D11RenderTargetView* aRTViews[ 1 ] = {  _WorldNormalView };
+	_ImmediateContext->OMSetRenderTargets( 1, aRTViews, _DepthStencilView );     
+*/
 
 	_LineBatcher->BeginLine();
 
@@ -531,22 +538,29 @@ void Engine::BeginRendering()
 	_ImmediateContext->ClearRenderTargetView( _WorldNormalView, ClearNormalColor );
 	_ImmediateContext->ClearDepthStencilView( _DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0 );
 
-    _ImmediateContext->OMSetDepthStencilState(_DepthStateEnable, 0);
 
 }
 void Engine::EndRendering()
 {
-	_LineBatcher->Draw();
-	
+	//_LineBatcher->Draw();
+	ID3D11ShaderResourceView* aSRS[2] = {NULL, NULL};
+	_ImmediateContext->VSSetShaderResources( 0, 2, aSRS );
+
 	ID3D11RenderTargetView* aRTViews[ 1] = { _RenderTargetView };
 	_ImmediateContext->OMSetRenderTargets( 1, aRTViews, _ReadOnlyDepthStencilView );     
+    _ImmediateContext->OMSetDepthStencilState(_DepthStateDisable, 0);
+
 
 	ID3D11ShaderResourceView* aSRV[2] = {_WorldNormalRV, _DepthStencilSRV};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRV );
 
-    _ImmediateContext->OMSetDepthStencilState(_DepthStateDisable, 0);
 
+	/*HRESULT hr;
+	D3DX11SaveTextureToFile(_ImmediateContext, _WorldNormalBuffer, D3DX11_IFF_DDS, L"worldnormal.dds");
 
+	hr = D3DX11SaveTextureToFile(_ImmediateContext, _DepthStencilTexture, D3DX11_IFF_BMP , L"depth.dds");*/
+	
+	
 	// lighting pass
 	DeferredDirPSCBStruct cb;
 	XMStoreFloat4(&cb.vLightDir, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( 1, -1, -1, 1.0f )))));
@@ -567,12 +581,6 @@ void Engine::EndRendering()
 	//_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredPointPSCB );
 	//DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
 
-	_VisualizeWorldNormal = true;
-	if(_VisualizeWorldNormal)
-	{
-		DrawFullScreenQuad11(_VisNormalPS, _Width/2, _Height/2);
-	}
-	
 	_VisualizeDepth = true;
 	if(_VisualizeDepth)
 	{
@@ -584,6 +592,14 @@ void Engine::EndRendering()
 
 		DrawFullScreenQuad11(_VisDpethPS, _Width/2, _Height/2, _Width/2, 0);
 	}
+
+	_VisualizeWorldNormal = true;
+	if(_VisualizeWorldNormal)
+	{
+		DrawFullScreenQuad11(_VisNormalPS, _Width/2, _Height/2);
+	}
+	
+	
 	
 	_SwapChain->Present( 0, 0 );
 }

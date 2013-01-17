@@ -149,6 +149,7 @@ void GBufferDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderD
 
 	World = XMMatrixIdentity();
 	ConstantBufferStruct cb;
+	
 	cb.mWorld = XMMatrixTranspose( World );
 	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
 	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));

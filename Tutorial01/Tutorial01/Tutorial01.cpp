@@ -222,7 +222,7 @@ HRESULT InitDevice()
 	
 
 	g_View = XMMatrixLookAtRH( Eye, At, Up );
-	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, GEngine->_Width / (FLOAT)GEngine->_Height, 0.01f, 2000 );
+	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, GEngine->_Width / (FLOAT)GEngine->_Height, 10.f, 1000 );
 	g_World = XMMatrixIdentity();
 
 	XMStoreFloat4x4(&GEngine->_ViewMat, g_View);
