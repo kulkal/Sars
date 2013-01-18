@@ -49,6 +49,8 @@ public:
 
 	XMFLOAT4X4 _ViewMat;
 	XMFLOAT4X4 _ProjectionMat;
+	float		_Near;
+	float		_Far;
 
 	// debug line draw
 	LineBatcher* _LineBatcher;

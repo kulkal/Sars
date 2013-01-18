@@ -6,6 +6,7 @@ cbuffer ConstantBuffer : register( b0 )
 {
 	matrix View;
 	matrix Projection;
+	float4 ProjectionParams;
 }
 
 struct QuadVS_Input
@@ -34,12 +35,21 @@ float4 PS( QuadVS_Output input ) : SV_Target
     return texWorldNormal.Sample( samLinear, input.Tex );
 #elif VIS_DEPTH
 	float DeviceZ = texDepth.Sample( samLinear, input.Tex ).x;
-	float n = 10;
-	float f = 1000;
-    //float LInearZ = (2.0 * n) / (f + n - DeviceZ * (f - n));
-	//float LInearZ = -Projection._34/(DeviceZ +Projection._33);
-	float LInearZ = 1.010101/(-DeviceZ -10.10101);
+	
+	// ProjectionParams.x = zf/(zf - zn)
+	// ProjectionParams.y = zn/(zn - zf)
+	float LInearZ = ProjectionParams.y/(DeviceZ - ProjectionParams.x);
 
+	// Projection._34 = zn*zf/(zn-zf)
+	// Projection._33 = zf/(zn-zf)
+	//float A = Projection._34/f;
+	//float B = Projection._33;
+	//float A = ProjectionParams.z;
+	//float B = ProjectionParams.w;
+
+	//float LInearZ = A/(DeviceZ + B);
+	
+	
 	return  float4(LInearZ.xxx, 1);
 #endif
 }

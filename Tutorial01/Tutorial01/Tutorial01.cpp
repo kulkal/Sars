@@ -208,7 +208,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 //--------------------------------------------------------------------------------------
 HRESULT InitDevice()
 {
-	
 	GEngine->InitDevice();
 	
 	XMFLOAT4 EyeVal = XMFLOAT4( 0, 220.f, 250.f, 0.0f );
@@ -222,7 +221,7 @@ HRESULT InitDevice()
 	
 
 	g_View = XMMatrixLookAtRH( Eye, At, Up );
-	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, GEngine->_Width / (FLOAT)GEngine->_Height, 10.f, 1000 );
+	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, GEngine->_Width / (FLOAT)GEngine->_Height, GEngine->_Near, GEngine->_Far );
 	g_World = XMMatrixIdentity();
 
 	XMStoreFloat4x4(&GEngine->_ViewMat, g_View);

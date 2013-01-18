@@ -26,6 +26,7 @@ struct VisDepthPSCBStruct
 {
 	XMMATRIX mView;
 	XMMATRIX mProjection;
+	XMFLOAT4 ProjectionParams;
 };
 
 Engine* GEngine;
@@ -64,6 +65,8 @@ Engine::Engine(void)
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	QueryPerformanceFrequency(&_Freq);
 	QueryPerformanceCounter(&_PrevTime);
+	_Near = 10.f;
+	_Far = 500.f;
 	//_CrtSetBreakAlloc(2486860);
 }
 
@@ -587,6 +590,12 @@ void Engine::EndRendering()
 		VisDepthPSCBStruct cbVisDepth;
 		cbVisDepth.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
 		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
+		cbVisDepth.ProjectionParams.x = _Far/(_Far - _Near);
+		cbVisDepth.ProjectionParams.y = _Near/(_Near - _Far);
+		cbVisDepth.ProjectionParams.z = GEngine->_ProjectionMat._43/_Far;
+		cbVisDepth.ProjectionParams.w = GEngine->_ProjectionMat._33;
+
+
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
 		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
 
