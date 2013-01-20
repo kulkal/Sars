@@ -14,9 +14,6 @@ StaticMesh::StaticMesh(void)
 	_VertexBuffer(NULL),
 	_IndexBuffer(NULL),
 	_VertexStride(0),
-	/*_PositionArray(NULL),
-	_NormalArray(NULL),
-	_TexCoordArray(NULL),*/
 	_NumTexCoord(0),
 	_NumTriangle(0),
 	_NumVertex(0)
@@ -26,11 +23,6 @@ StaticMesh::StaticMesh(void)
 
 StaticMesh::~StaticMesh(void)
 {
-	//if(_PositionArray) delete[] _PositionArray;
-	//if(_NormalArray) delete[] _NormalArray;
-	//if(_TexCoordArray) delete[] _TexCoordArray;
-	//if(_IndiceArray) delete[] _IndiceArray;
-
 	if(_VertexBuffer) _VertexBuffer->Release();
 	if(_IndexBuffer) _IndexBuffer->Release();
 
@@ -59,7 +51,8 @@ bool StaticMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	FbxAMatrix& GlobalTransform = Importer->mScene->GetEvaluator()->GetNodeGlobalTransform(pNode);
 
 	FbxAMatrix TotalMatrix;
-	TotalMatrix = GlobalTransform * Geometry;
+	//TotalMatrix = GlobalTransform * Geometry;
+	TotalMatrix = GlobalTransform;
 
 	FbxAMatrix TotalMatrixForNormal;
 	TotalMatrixForNormal = TotalMatrix.Inverse();

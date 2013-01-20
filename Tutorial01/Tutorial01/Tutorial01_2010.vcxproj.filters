@@ -43,6 +43,12 @@
     <None Include="DeferredPoint.fx">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Common.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ComblineShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Tutorial01.cpp" />
@@ -57,7 +63,6 @@
     <ClCompile Include="DrawingPolicy.cpp" />
     <ClCompile Include="SimpleDrawingPolicy.cpp" />
     <ClCompile Include="ShaderRes.cpp" />
-    <ClCompile Include="RenderTargets.cpp" />
     <ClCompile Include="SkeletalMesh.cpp" />
     <ClCompile Include="SkeletalMeshComponent.cpp" />
     <ClCompile Include="LineBatcher.cpp" />
@@ -69,6 +74,8 @@
     <ClCompile Include="AnimClipInstance.cpp" />
     <ClCompile Include="MathUtil.cpp" />
     <ClCompile Include="GBufferDrawingPolicy.cpp" />
+    <ClCompile Include="Texture2D.cpp" />
+    <ClCompile Include="TextureDepth2D.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -88,7 +95,6 @@
     <ClInclude Include="DrawingPolicy.h" />
     <ClInclude Include="SimpleDrawingPolicy.h" />
     <ClInclude Include="ShaderRes.h" />
-    <ClInclude Include="RenderTargets.h" />
     <ClInclude Include="SkeletalMesh.h" />
     <ClInclude Include="SkeletalMeshComponent.h" />
     <ClInclude Include="Skeleton.h" />
@@ -101,6 +107,8 @@
     <ClInclude Include="AnimClipInstance.h" />
     <ClInclude Include="MathUtil.h" />
     <ClInclude Include="GBufferDrawingPolicy.h" />
+    <ClInclude Include="Texture2D.h" />
+    <ClInclude Include="TextureDepth2D.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

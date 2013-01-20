@@ -366,6 +366,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="ComblineShader.fx" />
+    <None Include="Common.hlsl" />
     <None Include="DeferredDirectional.fx" />
     <None Include="DeferredPoint.fx" />
     <None Include="GBufferShader.fx" />
@@ -390,7 +392,6 @@
     <ClCompile Include="LineBatcher.cpp" />
     <ClCompile Include="MathUtil.cpp" />
     <ClCompile Include="OutputDebug.cpp" />
-    <ClCompile Include="RenderTargets.cpp" />
     <ClCompile Include="ShaderRes.cpp" />
     <ClCompile Include="SimpleDrawingPolicy.cpp" />
     <ClCompile Include="SkeletalMesh.cpp" />
@@ -399,6 +400,8 @@
     <ClCompile Include="StaticMesh.cpp" />
     <ClCompile Include="StaticMeshComponent.cpp" />
     <ClCompile Include="StaticMeshEntity.cpp" />
+    <ClCompile Include="Texture2D.cpp" />
+    <ClCompile Include="TextureDepth2D.cpp" />
     <ClCompile Include="Tutorial01.cpp" />
     <ClCompile Include="Util.cpp" />
   </ItemGroup>
@@ -418,7 +421,6 @@
     <ClInclude Include="LineBatcher.h" />
     <ClInclude Include="MathUtil.h" />
     <ClInclude Include="OutputDebug.h" />
-    <ClInclude Include="RenderTargets.h" />
     <CLInclude Include="resource.h" />
     <ClInclude Include="ShaderRes.h" />
     <ClInclude Include="SimpleDrawingPolicy.h" />
@@ -429,6 +431,8 @@
     <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="StaticMeshComponent.h" />
     <ClInclude Include="StaticMeshEntity.h" />
+    <ClInclude Include="Texture2D.h" />
+    <ClInclude Include="TextureDepth2D.h" />
     <ClInclude Include="Util.h" />
     <ResourceCompile Include="Tutorial01.rc" />
   </ItemGroup>

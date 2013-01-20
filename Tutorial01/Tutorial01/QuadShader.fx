@@ -1,3 +1,4 @@
+#include "Common.hlsl"
 Texture2D<float4> texWorldNormal : register( t0 );
 Texture2D<float4> texDepth : register( t1 );
 SamplerState samLinear : register( s0 );
@@ -38,8 +39,8 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	
 	// ProjectionParams.x = zf/(zf - zn)
 	// ProjectionParams.y = zn/(zn - zf)
-	float LInearZ = ProjectionParams.y/(DeviceZ - ProjectionParams.x);
-
+	//float LinearZ = ProjectionParams.y/(DeviceZ - ProjectionParams.x);
+	float LinearZ = GetLinearDepth(DeviceZ, ProjectionParams.x, ProjectionParams.y);
 	// Projection._34 = zn*zf/(zn-zf)
 	// Projection._33 = zf/(zn-zf)
 	//float A = Projection._34/f;
@@ -50,6 +51,6 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	//float LInearZ = A/(DeviceZ + B);
 	
 	
-	return  float4(LInearZ.xxx, 1);
+	return  float4(LinearZ.xxx, 1);
 #endif
 }

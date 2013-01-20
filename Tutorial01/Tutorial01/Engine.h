@@ -13,6 +13,9 @@
 class SimpleDrawingPolicy;
 class GBufferDrawingPolicy;
 class LineBatcher;
+class Texture2D;
+class TextureDepth2D;
+
 class Engine
 {
 public:
@@ -25,20 +28,11 @@ public:
 	D3D_FEATURE_LEVEL       _FeatureLevel;
 	IDXGISwapChain*         _SwapChain;
 
-	ID3D11Texture2D*		_BackBuffer;
-	ID3D11RenderTargetView* _RenderTargetView;
-
-	ID3D11Texture2D*			_WorldNormalBuffer;
-	ID3D11RenderTargetView*		 _WorldNormalView;
-	ID3D11ShaderResourceView *	_WorldNormalRV;
-
-
-
-	ID3D11Texture2D*        _DepthStencilTexture;
-	ID3D11DepthStencilView* _DepthStencilView;
-	ID3D11ShaderResourceView *	_DepthStencilSRV;
-	ID3D11DepthStencilView *	_ReadOnlyDepthStencilView;
-
+	Texture2D*				_FrameBufferTexture;
+	Texture2D*				_SceneColorTexture;
+	Texture2D*				_LitTexture;
+	Texture2D*				_WorldNormalTexture;
+	TextureDepth2D*			_DepthTexture;
 
 	UINT _Width;
 	UINT _Height;
@@ -62,7 +56,7 @@ public:
 	LARGE_INTEGER _PrevTime;
 	LARGE_INTEGER _Freq;
 
-	// fullsqreen quad
+	// full sqreen quad
 	ID3D11Buffer*               g_pScreenQuadVB;
 	ID3D11InputLayout*          g_pQuadLayout;
 	ID3D11VertexShader*         g_pQuadVS;
@@ -78,8 +72,19 @@ public:
 	ID3D11PixelShader*			_DeferredPointPS;
 	ID3D11Buffer*				_DeferredPointPSCB;
 
+	ID3D11PixelShader*			_CombineLitPS;
+
 	ID3D11DepthStencilState*	_DepthStateEnable;
 	ID3D11DepthStencilState*	_DepthStateDisable;
+
+	ID3D11BlendState* _NormalBS;
+	ID3D11BlendState* _LightingBS;
+
+	enum EBlendState{
+		BS_NORMAL, BS_LIGHTING,
+		SIZE_BLENDSTATE,
+	};
+	std::vector<ID3D11BlendState*> _BlendStateArray;
 
 
 	bool _VisualizeWorldNormal;
@@ -89,6 +94,7 @@ public:
 	void InitDevice();
 	void BeginRendering();
 	void EndRendering();
+	void InitDeviceStates();
 
 	HRESULT CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut );
 	ID3D11PixelShader* CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines = NULL);

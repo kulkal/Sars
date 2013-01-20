@@ -31,13 +31,18 @@ PS_INPUT VS(  VS_INPUT input )
 
 	output.Norm = mul( input.Norm, World );
 	output.Norm = mul(output.Norm, BoneMat);
-	output.Norm = mul( input.Norm, World );
+    output.Norm = normalize(mul( output.Norm, View ));
+	
+	//output.Norm = mul( output.Norm, World );
 #else
 	output.Pos = float4(input.Pos, 1.f);
     output.Pos = mul( output.Pos, World );
     output.Pos = mul( output.Pos, View );
     output.Pos = mul( output.Pos, Projection );
+
 	output.Norm = mul( input.Norm, World );
+    output.Norm = mul( output.Norm, View );
+
 #endif
 #if TEXCOORD
 	output.Tex = input.Tex;
@@ -59,7 +64,7 @@ PS_OUTPUT PS( PS_INPUT input ) : SV_Target
 {
 
 	PS_OUTPUT output;
-	output.normal = float4(input.Norm, 1.f);
+	output.normal = float4(input.Norm, 0.f);
 #if TEXCOORD
 	output.color = float4(0.1f, 0.1f, 0.1f, 1.f) + txDiffuse.Sample( samLinear, input.Tex );
 #else

@@ -1,12 +1,7 @@
-Texture2D<float4> texWorldNormal : register( t0 );
-Texture2D<float4> texDepth : register( t1 );
+#include "Common.hlsl"
+Texture2D<float4> texSceneColor : register( t0 );
+Texture2D<float4> texLit : register( t1 );
 SamplerState samLinear : register( s0 );
-
-cbuffer ConstantBuffer : register( b0 )
-{
-	float4 vLightDir;
-	float4 vLightColor;
-}
 
 struct QuadVS_Input
 {
@@ -30,6 +25,8 @@ QuadVS_Output QuadVS( QuadVS_Input Input )
 
 float4 PS( QuadVS_Output input ) : SV_Target
 {
-	float3 WorldNormal = normalize(texWorldNormal.Sample( samLinear, input.Tex ).xyz);
-	return saturate( dot( -(float3)vLightDir,WorldNormal) * vLightColor );
+    float4 SceneColor = texSceneColor.Sample( samLinear, input.Tex );
+	float4 Lit = texLit.Sample( samLinear, input.Tex );
+	
+	return SceneColor * Lit;
 }

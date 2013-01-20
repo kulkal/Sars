@@ -3,6 +3,8 @@
 #include "SimpleDrawingPolicy.h"
 #include "LineBatcher.h"
 #include "GBufferDrawingPolicy.h"
+#include "Texture2D.h"
+#include "TextureDepth2D.h"
 
 struct SCREEN_VERTEX
 {
@@ -20,6 +22,9 @@ struct DeferredPointPSCBStruct
 {
 	XMFLOAT4 vLightPos;
 	XMFLOAT4 vLightColor;
+	XMMATRIX mView;
+	XMMATRIX mProjection;
+	XMFLOAT4 ProjectionParams;
 };
 
 struct VisDepthPSCBStruct
@@ -37,29 +42,28 @@ Engine::Engine(void)
 	,_DriverType(D3D_DRIVER_TYPE_NULL)
 	,_FeatureLevel(D3D_FEATURE_LEVEL_11_0)
 	,_SwapChain(NULL)
-	,_BackBuffer(NULL)
-	,_RenderTargetView(NULL)
-	,_DepthStencilView(NULL)
-	,_ReadOnlyDepthStencilView(NULL)
-	,_DepthStencilTexture(NULL)
-	,_WorldNormalBuffer(NULL)
-	,_WorldNormalView(NULL)
-	,_WorldNormalRV(NULL)
+	//,_BackBuffer(NULL)
+	//,_RenderTargetView(NULL)
 	,_SimpleDrawer(NULL)
 	,_LineBatcher(NULL)
 	,_TimeSeconds(0.f)
 	,_VisualizeWorldNormal(false)
-	,_VisualizeDepth(true)
+	,_VisualizeDepth(false)
 	,_DeferredDirPS(NULL)
 	,_DeferredDirPSCB(NULL)
 	,_DeferredPointPS(NULL)
 	,_DeferredPointPSCB(NULL)
-	,_DepthStencilSRV(NULL)
 	,_VisNormalPS(NULL)
 	,_VisDpethPS(NULL)
 	,_VisDpethPSCB(NULL)
 	,_DepthStateEnable(NULL)
 	,_DepthStateDisable(NULL)
+	,_WorldNormalTexture(NULL)
+	,_DepthTexture(NULL)
+	,_FrameBufferTexture(NULL)
+	,_SceneColorTexture(NULL)
+	,_LitTexture(NULL)
+	,_CombineLitPS(NULL)
 	
 {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -73,22 +77,13 @@ Engine::Engine(void)
 Engine::~Engine(void)
 {
 	if( _ImmediateContext ) _ImmediateContext->ClearState();
-	if( _DepthStencilTexture ) _DepthStencilTexture->Release();
-	if( _DepthStencilView ) _DepthStencilView->Release();
-	if(_DepthStencilSRV) _DepthStencilSRV->Release();
-	if(_ReadOnlyDepthStencilView) _ReadOnlyDepthStencilView->Release();
 
 	if(_DepthStateEnable) _DepthStateEnable->Release();
 	if(_DepthStateDisable) _DepthStateDisable->Release();
 
-	if( _RenderTargetView ) _RenderTargetView->Release();
 	if( _SwapChain ) _SwapChain->Release();
 	if( _ImmediateContext ) _ImmediateContext->Release();
 	if( _Device ) _Device->Release();
-
-	if(_WorldNormalBuffer) _WorldNormalBuffer->Release();
-	if(_WorldNormalView) _WorldNormalView->Release();
-	if(_WorldNormalRV) _WorldNormalRV->Release();
 
 	if(_VisNormalPS) _VisNormalPS->Release();
 	if(_VisDpethPS) _VisDpethPS->Release();
@@ -106,7 +101,20 @@ Engine::~Engine(void)
 	if(_GBufferDrawer) delete _GBufferDrawer;
 
 	if(_LineBatcher) delete _LineBatcher;
-	
+
+	if(_WorldNormalTexture) delete _WorldNormalTexture;
+	if(_DepthTexture) delete _DepthTexture;
+	if(_FrameBufferTexture) delete _FrameBufferTexture;
+	if(_SceneColorTexture) delete _SceneColorTexture;
+	if(_LitTexture) delete _LitTexture;
+
+	if(_CombineLitPS) _CombineLitPS->Release();
+
+	for(int i=0;i<_BlendStateArray.size();i++)
+	{
+		ID3D11BlendState* BS = _BlendStateArray[i];
+		BS->Release();
+	}
 }
 
 void Engine::InitDevice()
@@ -166,95 +174,34 @@ void Engine::InitDevice()
 		assert(false);
 
 	// Create a render target view
-	hr = _SwapChain->GetBuffer( 0, __uuidof( ID3D11Texture2D ), ( LPVOID* )&_BackBuffer );
+	ID3D11Texture2D*		BackBuffer;
+	hr = _SwapChain->GetBuffer( 0, __uuidof( ID3D11Texture2D ), ( LPVOID* )&BackBuffer );
 	if( FAILED( hr ) )
 		assert(false);
 
-	hr = _Device->CreateRenderTargetView( _BackBuffer, NULL, &_RenderTargetView );
-	_BackBuffer->Release();
-	if( FAILED( hr ) )
-		assert(false);
+	_FrameBufferTexture = new Texture2D(BackBuffer, true);
 
+	// scene color
+	CD3D11_TEXTURE2D_DESC DescSceneColorTex(DXGI_FORMAT_R16G16B16A16_FLOAT, _Width, _Height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_SHADER_RESOURCE_VIEW_DESC DescSceneColorSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DescSceneColorTex.Format, 0,  DescSceneColorTex.MipLevels);
+	_SceneColorTexture = new Texture2D(DescSceneColorTex, DescSceneColorSRV, true);
 
-	// world normal RT
-	D3D11_TEXTURE2D_DESC descNormal;
-	ZeroMemory( &descNormal, sizeof(descNormal) );
-	descNormal.Width = _Width;
-	descNormal.Height = _Height;
-	descNormal.MipLevels = 1;
-	descNormal.ArraySize = 1;
-	descNormal.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;//DXGI_FORMAT_R32G32B32A32_FLOAT;
-	descNormal.SampleDesc.Count = 1;
-	descNormal.SampleDesc.Quality = 0;
-	descNormal.Usage = D3D11_USAGE_DEFAULT;
-	descNormal.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	descNormal.CPUAccessFlags = 0;
-	descNormal.MiscFlags = 0;
-	hr = _Device->CreateTexture2D( &descNormal, NULL, &_WorldNormalBuffer );
-	if( FAILED( hr ) )
-		assert(false);
+	// lit
+	CD3D11_TEXTURE2D_DESC DescLitTex(DXGI_FORMAT_R16G16B16A16_FLOAT, _Width, _Height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_SHADER_RESOURCE_VIEW_DESC DescLitSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DescSceneColorTex.Format, 0, DescLitTex.MipLevels);
+	_LitTexture = new Texture2D(DescLitTex, DescLitSRV, true);
 
-	hr = _Device->CreateRenderTargetView( _WorldNormalBuffer, NULL, &_WorldNormalView );
-	if( FAILED( hr ) )
-		assert(false);
+	// world normal
+	CD3D11_TEXTURE2D_DESC DescWordNormalTex(DXGI_FORMAT_R16G16B16A16_FLOAT, _Width, _Height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_SHADER_RESOURCE_VIEW_DESC DescWorldNormalSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DescWordNormalTex.Format);
+	_WorldNormalTexture = new Texture2D(DescWordNormalTex, DescWorldNormalSRV, true);
 
-	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-	srvDesc.Format = descNormal.Format;
-	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = descNormal.MipLevels;
-	hr = _Device->CreateShaderResourceView(_WorldNormalBuffer, &srvDesc, &_WorldNormalRV);
-	if( FAILED( hr ) )
-		assert(false);
+	// depth stencil texture
+	CD3D11_TEXTURE2D_DESC DescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, _Width, _Height, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_DEPTH_STENCIL_VIEW_DESC  DescDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT, 0, 0, 0,0) ;
+	CD3D11_SHADER_RESOURCE_VIEW_DESC DescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
+	_DepthTexture = new TextureDepth2D(DescDepthTex, DescDSV, DescDepthSRV);
 
-
-	// Create depth stencil texture
-	D3D11_TEXTURE2D_DESC descDepth;
-	ZeroMemory( &descDepth, sizeof(descDepth) );
-	descDepth.Width = _Width;
-	descDepth.Height = _Height;
-	descDepth.MipLevels = 1;
-	descDepth.ArraySize = 1;
-	descDepth.Format =  DXGI_FORMAT_R24G8_TYPELESS;//DXGI_FORMAT_D24_UNORM_S8_UINT;
-	descDepth.SampleDesc.Count = 1;
-	descDepth.SampleDesc.Quality = 0;
-	descDepth.Usage = D3D11_USAGE_DEFAULT;
-	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-	descDepth.CPUAccessFlags = 0;
-	descDepth.MiscFlags = 0;
-	hr = _Device->CreateTexture2D( &descDepth, NULL, &_DepthStencilTexture );
-	if( FAILED( hr ) )
-		assert(false);
-	
-
-	// Create the depth stencil view
-	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
-	ZeroMemory( &descDSV, sizeof(descDSV) );
-	descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	descDSV.Texture2D.MipSlice = 0;
-	hr = _Device->CreateDepthStencilView( _DepthStencilTexture, &descDSV, &_DepthStencilView );
-	if( FAILED( hr ) )
-		assert(false);
-
-	ZeroMemory( &descDSV, sizeof(descDSV) );
-	descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	descDSV.Flags = D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL;
-	descDSV.Texture2D.MipSlice = 0;
-	hr = _Device->CreateDepthStencilView( _DepthStencilTexture, &descDSV, &_ReadOnlyDepthStencilView );
-	if( FAILED( hr ) )
-		assert(false);
-	
-	// depth srv
-	D3D11_SHADER_RESOURCE_VIEW_DESC srvDescDepth;
-	srvDescDepth.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS ;
-	srvDescDepth.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	srvDescDepth.Texture2D.MostDetailedMip = 0;
-	srvDescDepth.Texture2D.MipLevels = descNormal.MipLevels;
-	hr = _Device->CreateShaderResourceView(_DepthStencilTexture, &srvDescDepth, &_DepthStencilSRV);
-	if( FAILED( hr ) )
-		assert(false);
 
 	D3D11_DEPTH_STENCIL_DESC  DSStateDesc;
 	ZeroMemory( &DSStateDesc, sizeof(DSStateDesc) );
@@ -410,6 +357,10 @@ void Engine::InitDevice()
 
 	SetD3DResourceDebugName("_DeferredPointPSCB", _DeferredPointPSCB);
 	
+	_CombineLitPS = CreatePixelShaderSimple("ComblineShader.fx");
+
+	InitDeviceStates();
+
 	/////////////
 	_SimpleDrawer = new SimpleDrawingPolicy;
 	_GBufferDrawer = new GBufferDrawingPolicy;
@@ -524,49 +475,38 @@ void Engine::BeginRendering()
 	ID3D11ShaderResourceView* aSRS[2] = {NULL, NULL};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRS );
 
-	ID3D11RenderTargetView* aRTViews[ 2 ] = { _RenderTargetView, _WorldNormalView };
-	_ImmediateContext->OMSetRenderTargets( 2, aRTViews, _DepthStencilView );     
+	ID3D11RenderTargetView* aRTViews[ 2 ] = { _FrameBufferTexture->GetRTV(), _WorldNormalTexture->GetRTV() };
+	_ImmediateContext->OMSetRenderTargets( 2, aRTViews, _DepthTexture->GetDepthStencilView() );     
     _ImmediateContext->OMSetDepthStencilState(_DepthStateEnable, 0);
-
-	/*ID3D11RenderTargetView* aRTViews[ 1 ] = {  _WorldNormalView };
-	_ImmediateContext->OMSetRenderTargets( 1, aRTViews, _DepthStencilView );     
-*/
 
 	_LineBatcher->BeginLine();
 
 	// Just clear the backbuffer
 	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
-	_ImmediateContext->ClearRenderTargetView( _RenderTargetView, ClearColor );
+	_ImmediateContext->ClearRenderTargetView( _FrameBufferTexture->GetRTV(), ClearColor );
 	float ClearNormalColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
-	_ImmediateContext->ClearRenderTargetView( _WorldNormalView, ClearNormalColor );
-	_ImmediateContext->ClearDepthStencilView( _DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0 );
+	_ImmediateContext->ClearRenderTargetView( _WorldNormalTexture->GetRTV() , ClearNormalColor );
+	_ImmediateContext->ClearDepthStencilView( _DepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0 );
 
-
+	// g-buffer pass
 }
 void Engine::EndRendering()
 {
-	//_LineBatcher->Draw();
+	_LineBatcher->Draw();
 	ID3D11ShaderResourceView* aSRS[2] = {NULL, NULL};
 	_ImmediateContext->VSSetShaderResources( 0, 2, aSRS );
 
-	ID3D11RenderTargetView* aRTViews[ 1] = { _RenderTargetView };
-	_ImmediateContext->OMSetRenderTargets( 1, aRTViews, _ReadOnlyDepthStencilView );     
+	ID3D11RenderTargetView* aRTViews[ 1] = { _FrameBufferTexture->GetRTV() };
+	_ImmediateContext->OMSetRenderTargets( 1, aRTViews, _DepthTexture->GetReadOnlyDepthStencilView() );     
     _ImmediateContext->OMSetDepthStencilState(_DepthStateDisable, 0);
 
 
-	ID3D11ShaderResourceView* aSRV[2] = {_WorldNormalRV, _DepthStencilSRV};
+	ID3D11ShaderResourceView* aSRV[2] = {_WorldNormalTexture->GetSRV(), _DepthTexture->GetSRV()};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRV );
-
-
-	/*HRESULT hr;
-	D3DX11SaveTextureToFile(_ImmediateContext, _WorldNormalBuffer, D3DX11_IFF_DDS, L"worldnormal.dds");
-
-	hr = D3DX11SaveTextureToFile(_ImmediateContext, _DepthStencilTexture, D3DX11_IFF_BMP , L"depth.dds");*/
-	
 	
 	// lighting pass
 	DeferredDirPSCBStruct cb;
-	XMStoreFloat4(&cb.vLightDir, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( 1, -1, -1, 1.0f )))));
+	XMStoreFloat4(&cb.vLightDir, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( -1, 0,-1, 1.0f )))));
 	memcpy(&cb.vLightColor, &XMFLOAT4( 1.f, 0.f, 0.f, 1.f ), sizeof(XMFLOAT4));
 
 	_ImmediateContext->UpdateSubresource( _DeferredDirPSCB, 0, NULL, &cb, 0, 0 );
@@ -575,14 +515,21 @@ void Engine::EndRendering()
 
 
 
-	//DeferredPointPSCBStruct cbPoint;
-	//XMStoreFloat4(&cbPoint.vLightPos, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( 0, 10, 0, 1.0f )))));
-	////memcpy(&cb.vLightDir, &XMFLOAT4( -0.577f, 0.577f, 0.577f, 1.0f ), sizeof(XMFLOAT4));
-	//memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 1.f, 0.f, 1.f ), sizeof(XMFLOAT4));
+	DeferredPointPSCBStruct cbPoint;
+	XMStoreFloat4(&cbPoint.vLightPos, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( 0, -100000, -0,5200 )))));
+	//memcpy(&cb.vLightDir, &XMFLOAT4( -0.577f, 0.577f, 0.577f, 1.0f ), sizeof(XMFLOAT4));
+	memcpy(&cbPoint.vLightColor, &XMFLOAT4( 1.f, 1.f, 1.f, 1.f ), sizeof(XMFLOAT4));
 
-	//_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cb, 0, 0 );
-	//_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredPointPSCB );
-	//DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
+	cbPoint.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
+	cbPoint.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
+
+	cbPoint.ProjectionParams.x = _Far/(_Far - _Near);
+	cbPoint.ProjectionParams.y = _Near/(_Near - _Far);
+	cbPoint.ProjectionParams.z = _Far;
+	cbPoint.ProjectionParams.w = _Near;
+	_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
+	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredPointPSCB );
+	DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
 
 	_VisualizeDepth = true;
 	if(_VisualizeDepth)
@@ -592,25 +539,46 @@ void Engine::EndRendering()
 		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
 		cbVisDepth.ProjectionParams.x = _Far/(_Far - _Near);
 		cbVisDepth.ProjectionParams.y = _Near/(_Near - _Far);
-		cbVisDepth.ProjectionParams.z = GEngine->_ProjectionMat._43/_Far;
-		cbVisDepth.ProjectionParams.w = GEngine->_ProjectionMat._33;
+		cbVisDepth.ProjectionParams.z = _Far;
+		cbVisDepth.ProjectionParams.w = _Near;
 
 
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
 		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
 
-		DrawFullScreenQuad11(_VisDpethPS, _Width/2, _Height/2, _Width/2, 0);
+		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, _Width*0.75, 0);
 	}
 
 	_VisualizeWorldNormal = true;
 	if(_VisualizeWorldNormal)
 	{
-		DrawFullScreenQuad11(_VisNormalPS, _Width/2, _Height/2);
+		DrawFullScreenQuad11(_VisNormalPS, _Width/4, _Height/4);
 	}
 	
 	
 	
 	_SwapChain->Present( 0, 0 );
+}
+
+void Engine::InitDeviceStates()
+{
+	_BlendStateArray.resize(SIZE_BLENDSTATE);
+	_BlendStateArray[BS_LIGHTING];
+
+	CD3D11_BLEND_DESC DescBlend;
+
+	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_NORMAL]);
+
+	DescBlend.RenderTarget[0].BlendEnable = true;
+	DescBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+	DescBlend.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	DescBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	DescBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	DescBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	DescBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
+	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_LIGHTING]);
+
 }
 
 
