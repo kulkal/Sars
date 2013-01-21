@@ -56,8 +56,6 @@ Engine::Engine(void)
 	,_VisNormalPS(NULL)
 	,_VisDpethPS(NULL)
 	,_VisDpethPSCB(NULL)
-	,_DepthStateEnable(NULL)
-	,_DepthStateDisable(NULL)
 	,_WorldNormalTexture(NULL)
 	,_DepthTexture(NULL)
 	,_FrameBufferTexture(NULL)
@@ -77,9 +75,6 @@ Engine::Engine(void)
 Engine::~Engine(void)
 {
 	if( _ImmediateContext ) _ImmediateContext->ClearState();
-
-	if(_DepthStateEnable) _DepthStateEnable->Release();
-	if(_DepthStateDisable) _DepthStateDisable->Release();
 
 	if( _SwapChain ) _SwapChain->Release();
 	if( _ImmediateContext ) _ImmediateContext->Release();
@@ -112,7 +107,7 @@ Engine::~Engine(void)
 
 	for(int i=0;i<_BlendStateArray.size();i++)
 	{
-		BlendStateStruct& BS = _BlendStateArray[i];
+		BlendStateData& BS = _BlendStateArray[i];
 		BS.BS->Release();
 	}
 }
@@ -201,29 +196,6 @@ void Engine::InitDevice()
 	CD3D11_DEPTH_STENCIL_VIEW_DESC  DescDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT, 0, 0, 0,0) ;
 	CD3D11_SHADER_RESOURCE_VIEW_DESC DescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
 	_DepthTexture = new TextureDepth2D(DescDepthTex, DescDSV, DescDepthSRV);
-
-
-	D3D11_DEPTH_STENCIL_DESC  DSStateDesc;
-	ZeroMemory( &DSStateDesc, sizeof(DSStateDesc) );
-	DSStateDesc.DepthEnable = TRUE;
-    DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-
-    DSStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
-    DSStateDesc.StencilEnable = FALSE;
-	DSStateDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
-    DSStateDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
-    const D3D11_DEPTH_STENCILOP_DESC defaultStencilOp =
-    { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS };
-    DSStateDesc.FrontFace = defaultStencilOp;
-	DSStateDesc.BackFace = defaultStencilOp;
-
-    hr = _Device->CreateDepthStencilState(&DSStateDesc, &_DepthStateEnable);
-
-	DSStateDesc.DepthEnable = FALSE;
-    DSStateDesc.StencilEnable = FALSE;
-	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	DSStateDesc.StencilWriteMask = 0x00;
-    hr = _Device->CreateDepthStencilState(&DSStateDesc, &_DepthStateDisable);
 
 
 	// Setup the viewport
@@ -477,7 +449,7 @@ void Engine::BeginRendering()
 
 	ID3D11RenderTargetView* aRTViews[ 2 ] = { _SceneColorTexture->GetRTV(), _WorldNormalTexture->GetRTV() };
 	_ImmediateContext->OMSetRenderTargets( 2, aRTViews, _DepthTexture->GetDepthStencilView() );     
-    _ImmediateContext->OMSetDepthStencilState(_DepthStateEnable, 0);
+	SetDepthStencilState(DS_GBUFFER_PASS);
 
 	_LineBatcher->BeginLine();
 
@@ -498,7 +470,8 @@ void Engine::EndRendering()
 
 	ID3D11RenderTargetView* aRTViews[ 1] = { _LitTexture->GetRTV() };
 	_ImmediateContext->OMSetRenderTargets( 1, aRTViews, _DepthTexture->GetReadOnlyDepthStencilView() );     
-    _ImmediateContext->OMSetDepthStencilState(_DepthStateDisable, 0);
+    //_ImmediateContext->OMSetDepthStencilState(_DepthStateDisable, 0);
+	SetDepthStencilState(DS_LIGHTING_PASS);
 
 	float LitClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
 	_ImmediateContext->ClearRenderTargetView( _LitTexture->GetRTV() , LitClearColor );
@@ -511,7 +484,7 @@ void Engine::EndRendering()
 	// lighting pass
 	DeferredDirPSCBStruct cb;
 	XMStoreFloat4(&cb.vLightDir, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( 1, 0,-1, -1.0f )))));
-	memcpy(&cb.vLightColor, &XMFLOAT4( 0, 0, 0, 1.0f), sizeof(XMFLOAT4));
+	memcpy(&cb.vLightColor, &XMFLOAT4( 0.2, 0, 0, 1.0f), sizeof(XMFLOAT4));
 
 	_ImmediateContext->UpdateSubresource( _DeferredDirPSCB, 0, NULL, &cb, 0, 0 );
 	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredDirPSCB );
@@ -565,9 +538,6 @@ void Engine::EndRendering()
 		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
 		cbVisDepth.ProjectionParams.x = _Far/(_Far - _Near);
 		cbVisDepth.ProjectionParams.y = _Near/(_Near - _Far);
-	/*	cbVisDepth.ProjectionParams.z = _Far;
-		cbVisDepth.ProjectionParams.w = _Near;*/
-
 
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
 		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
@@ -587,8 +557,8 @@ void Engine::EndRendering()
 
 void Engine::InitDeviceStates()
 {
+	// blend state
 	_BlendStateArray.resize(SIZE_BLENDSTATE);
-	_BlendStateArray[BS_LIGHTING];
 
 	CD3D11_BLEND_DESC DescBlend(D3D11_DEFAULT);
 
@@ -604,11 +574,45 @@ void Engine::InitDeviceStates()
 
 	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_LIGHTING].BS);
 
+	// depth stencil state
+	_DepthStencilStateArray.resize(SIZE_DEPTHSTENCILSTATE);
+
+	// DS_GBUFFER_PASS
+	D3D11_DEPTH_STENCIL_DESC  DSStateDesc;
+	ZeroMemory( &DSStateDesc, sizeof(DSStateDesc) );
+	DSStateDesc.DepthEnable = TRUE;
+	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+
+	DSStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	DSStateDesc.StencilEnable = FALSE;
+	DSStateDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+	DSStateDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+	const D3D11_DEPTH_STENCILOP_DESC defaultStencilOp =
+	{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS };
+	DSStateDesc.FrontFace = defaultStencilOp;
+	DSStateDesc.BackFace = defaultStencilOp;
+
+	_DepthStencilStateArray[DS_GBUFFER_PASS].StencilRef = 0;
+	_Device->CreateDepthStencilState(&DSStateDesc, &_DepthStencilStateArray[DS_GBUFFER_PASS].DSS);
+
+	//DS_LIGHTING_PASS
+	DSStateDesc.DepthEnable = FALSE;
+	DSStateDesc.StencilEnable = FALSE;
+	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	_Device->CreateDepthStencilState(&DSStateDesc, &_DepthStencilStateArray[DS_LIGHTING_PASS].DSS);
+
+
 }
 
 void Engine::SetBlendState(EBlendState eBS)
 {
 	_ImmediateContext->OMSetBlendState(_BlendStateArray[eBS].BS, _BlendStateArray[eBS].BlendFactor, _BlendStateArray[eBS].SampleMask);
+
+}
+
+void Engine::SetDepthStencilState( EDepthStencilState eDSS )
+{
+	_ImmediateContext->OMSetDepthStencilState(_DepthStencilStateArray[eDSS].DSS, _DepthStencilStateArray[eDSS].StencilRef);
 
 }
 

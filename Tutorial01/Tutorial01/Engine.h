@@ -74,29 +74,45 @@ public:
 
 	ID3D11PixelShader*			_CombineLitPS;
 
-	ID3D11DepthStencilState*	_DepthStateEnable;
-	ID3D11DepthStencilState*	_DepthStateDisable;
 
-	ID3D11BlendState* _NormalBS;
-	ID3D11BlendState* _LightingBS;
+	// Depth Stencil States
+	enum EDepthStencilState
+	{
+		DS_GBUFFER_PASS,
+		DS_LIGHTING_PASS,
+		SIZE_DEPTHSTENCILSTATE,
+	};
+	struct DepthStencilStateData
+	{
+		ID3D11DepthStencilState* DSS;
+		UINT StencilRef;
+		DepthStencilStateData()
+		{
+			DSS = NULL;
+			StencilRef = 0;
+		}
+	};
+	std::vector<DepthStencilStateData> _DepthStencilStateArray;
 
+	// Blend States
 	enum EBlendState{
 		BS_NORMAL, BS_LIGHTING,
 		SIZE_BLENDSTATE,
 	};
-	struct BlendStateStruct
+	struct BlendStateData
 	{
 		ID3D11BlendState* BS;
 		float BlendFactor[8];
 		unsigned int SampleMask;
-		BlendStateStruct()
+		BlendStateData()
 		{
+			BS = NULL;
 			for(int i=0;i<8;i++)
 				BlendFactor[i] = 1.f;
 			SampleMask = 0xffffffff;
 		}
 	};
-	std::vector<BlendStateStruct> _BlendStateArray;
+	std::vector<BlendStateData> _BlendStateArray;
 
 
 	bool _VisualizeWorldNormal;
@@ -108,6 +124,7 @@ public:
 	void EndRendering();
 	void InitDeviceStates();
 	void SetBlendState(EBlendState eBS);
+	void SetDepthStencilState(EDepthStencilState eDSS);
 
 	HRESULT CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut );
 	ID3D11PixelShader* CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines = NULL);

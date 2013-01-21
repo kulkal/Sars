@@ -10,8 +10,7 @@ Texture2D txDiffuse ;
 SamplerState samLinear : register( s0 );
 cbuffer ConstantBuffer : register( b0 )
 {
-	matrix World;
-	matrix View;
+	matrix ModelView;
 	matrix Projection;
 }
 
@@ -24,22 +23,18 @@ PS_INPUT VS(  VS_INPUT input )
 #if GPUSKINNING
 	float4x4 BoneMat = CalcBoneMatrix(input.Bones, input.Weights);
 	output.Pos = float4(input.Pos, 1.f);
-	output.Pos = mul( output.Pos, World );
 	output.Pos = mul(output.Pos, BoneMat);
-    output.Pos = mul( output.Pos, View );
+    output.Pos = mul( output.Pos, ModelView );
     output.Pos = mul( output.Pos, Projection);
 
-	output.Norm = mul(input.Norm.xyz, World );
-	output.Norm = mul(output.Norm, BoneMat);
-    output.Norm = normalize(mul( output.Norm, View )).xyz;
+	output.Norm = mul(input.Norm, BoneMat);
+    output.Norm = mul( output.Norm, ModelView ).xyz;
 #else
 	output.Pos = float4(input.Pos, 1.f);
-    output.Pos = mul( output.Pos, World );
-    output.Pos = mul( output.Pos, View );
+    output.Pos = mul( output.Pos, ModelView );
     output.Pos = mul( output.Pos, Projection );
 
-	output.Norm = mul( input.Norm.xyz, World );
-    output.Norm = mul( output.Norm, View ).xyz;
+    output.Norm = mul( input.Norm, ModelView ).xyz;
 
 #endif
 #if TEXCOORD
@@ -64,7 +59,7 @@ PS_OUTPUT PS( PS_INPUT input ) : SV_Target
 	PS_OUTPUT output;
 	output.normal = float4(input.Norm, 0.f);
 #if TEXCOORD
-	output.color = float4(0.1f, 0.1f, 0.1f, 1.f) + txDiffuse.Sample( samLinear, input.Tex );
+	output.color = txDiffuse.Sample( samLinear, input.Tex );
 #else
 	output.color = float4(1.f, 1.f, 1.f, 1.f);
 

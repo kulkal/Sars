@@ -3,8 +3,7 @@
 
 struct ConstantBufferStruct
 {
-	XMMATRIX mWorld;
-	XMMATRIX mView;
+	XMMATRIX mModelView;
 	XMMATRIX mProjection;
 };
 
@@ -81,10 +80,8 @@ void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 {
 	XMMATRIX World;
 
-	World = XMMatrixIdentity();
 	ConstantBufferStruct cb;
-	cb.mWorld = XMMatrixTranspose( World );
-	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
+	cb.mModelView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
 	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
 
 	GEngine->_ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
@@ -110,48 +107,14 @@ void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 	GEngine->_ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }
 
-void GBufferDrawingPolicy::DrawSkeletalMesh(SkeletalMesh* pMesh)
-{
-	XMMATRIX World;
-
-	World = XMMatrixIdentity();
-	ConstantBufferStruct cb;
-	cb.mWorld = XMMatrixTranspose( World );
-	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
-	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-	
-	GEngine->_ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
-
-	ShaderRes* pShaderRes = GetShaderRes(pMesh->_NumTexCoord, GpuSkinVertex);
-
-
-	pShaderRes->SetShaderRes();
-
-	UINT offset = 0;
-	GEngine->_ImmediateContext->IASetVertexBuffers( 0, 1, &pMesh->_VertexBuffer, &pMesh->_VertexStride, &offset );
-	GEngine->_ImmediateContext->IASetIndexBuffer( pMesh->_IndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
-
-	GEngine->_ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
-
-
-	GEngine->_ImmediateContext->VSSetConstantBuffers( 0, 1, &ConstantBuffer );
-	GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &ConstantBuffer );
-
-	GEngine->_ImmediateContext->VSSetShaderResources( 0, 1, &pMesh->_BoneMatricesBufferRV );
-
-	GEngine->_ImmediateContext->PSSetSamplers( 0, 1, &_SamplerLinear );
-	GEngine->_ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
-}
 
 void GBufferDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData) 
 {
 	XMMATRIX World;
 
-	World = XMMatrixIdentity();
 	ConstantBufferStruct cb;
 	
-	cb.mWorld = XMMatrixTranspose( World );
-	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
+	cb.mModelView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
 	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
 
 	GEngine->_ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
