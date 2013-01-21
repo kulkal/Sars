@@ -70,7 +70,7 @@ Engine::Engine(void)
 	QueryPerformanceFrequency(&_Freq);
 	QueryPerformanceCounter(&_PrevTime);
 	_Near = 10.f;
-	_Far = 500.f;
+	_Far = 1000.f;
 	//_CrtSetBreakAlloc(2486860);
 }
 
@@ -112,8 +112,8 @@ Engine::~Engine(void)
 
 	for(int i=0;i<_BlendStateArray.size();i++)
 	{
-		ID3D11BlendState* BS = _BlendStateArray[i];
-		BS->Release();
+		BlendStateStruct& BS = _BlendStateArray[i];
+		BS.BS->Release();
 	}
 }
 
@@ -242,10 +242,10 @@ void Engine::InitDevice()
 	SCREEN_VERTEX svQuad[4];
 	svQuad[0].pos = XMFLOAT4( -1.0f, 1.0f, 0.0f, 1.0f );
 	svQuad[0].tex = XMFLOAT2( 0.0f, 0.0f );
-	svQuad[2].pos = XMFLOAT4( 1.0f, 1.0f, 0.0f, 1.0f );
-	svQuad[2].tex = XMFLOAT2( 1.0f, 0.0f );
 	svQuad[1].pos = XMFLOAT4( -1.0f, -1.0f, 0.0f, 1.0f );
 	svQuad[1].tex = XMFLOAT2( 0.0f, 1.0f );
+	svQuad[2].pos = XMFLOAT4( 1.0f, 1.0f, 0.0f, 1.0f );
+	svQuad[2].tex = XMFLOAT2( 1.0f, 0.0f );
 	svQuad[3].pos = XMFLOAT4( 1.0f, -1.0f, 0.0f, 1.0f );
 	svQuad[3].tex = XMFLOAT2( 1.0f, 1.0f );
 	D3D11_BUFFER_DESC vbdesc =
@@ -475,7 +475,7 @@ void Engine::BeginRendering()
 	ID3D11ShaderResourceView* aSRS[2] = {NULL, NULL};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRS );
 
-	ID3D11RenderTargetView* aRTViews[ 2 ] = { _FrameBufferTexture->GetRTV(), _WorldNormalTexture->GetRTV() };
+	ID3D11RenderTargetView* aRTViews[ 2 ] = { _SceneColorTexture->GetRTV(), _WorldNormalTexture->GetRTV() };
 	_ImmediateContext->OMSetRenderTargets( 2, aRTViews, _DepthTexture->GetDepthStencilView() );     
     _ImmediateContext->OMSetDepthStencilState(_DepthStateEnable, 0);
 
@@ -483,7 +483,7 @@ void Engine::BeginRendering()
 
 	// Just clear the backbuffer
 	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
-	_ImmediateContext->ClearRenderTargetView( _FrameBufferTexture->GetRTV(), ClearColor );
+	_ImmediateContext->ClearRenderTargetView( _SceneColorTexture->GetRTV(), ClearColor );
 	float ClearNormalColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
 	_ImmediateContext->ClearRenderTargetView( _WorldNormalTexture->GetRTV() , ClearNormalColor );
 	_ImmediateContext->ClearDepthStencilView( _DepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0 );
@@ -496,18 +496,22 @@ void Engine::EndRendering()
 	ID3D11ShaderResourceView* aSRS[2] = {NULL, NULL};
 	_ImmediateContext->VSSetShaderResources( 0, 2, aSRS );
 
-	ID3D11RenderTargetView* aRTViews[ 1] = { _FrameBufferTexture->GetRTV() };
+	ID3D11RenderTargetView* aRTViews[ 1] = { _LitTexture->GetRTV() };
 	_ImmediateContext->OMSetRenderTargets( 1, aRTViews, _DepthTexture->GetReadOnlyDepthStencilView() );     
     _ImmediateContext->OMSetDepthStencilState(_DepthStateDisable, 0);
 
+	float LitClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
+	_ImmediateContext->ClearRenderTargetView( _LitTexture->GetRTV() , LitClearColor );
 
 	ID3D11ShaderResourceView* aSRV[2] = {_WorldNormalTexture->GetSRV(), _DepthTexture->GetSRV()};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRV );
+
+	SetBlendState(BS_LIGHTING);
 	
 	// lighting pass
 	DeferredDirPSCBStruct cb;
-	XMStoreFloat4(&cb.vLightDir, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( -1, 0,-1, 1.0f )))));
-	memcpy(&cb.vLightColor, &XMFLOAT4( 1.f, 0.f, 0.f, 1.f ), sizeof(XMFLOAT4));
+	XMStoreFloat4(&cb.vLightDir, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( 1, 0,-1, -1.0f )))));
+	memcpy(&cb.vLightColor, &XMFLOAT4( 0, 0, 0, 1.0f), sizeof(XMFLOAT4));
 
 	_ImmediateContext->UpdateSubresource( _DeferredDirPSCB, 0, NULL, &cb, 0, 0 );
 	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredDirPSCB );
@@ -516,9 +520,11 @@ void Engine::EndRendering()
 
 
 	DeferredPointPSCBStruct cbPoint;
-	XMStoreFloat4(&cbPoint.vLightPos, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( 0, -100000, -0,5200 )))));
-	//memcpy(&cb.vLightDir, &XMFLOAT4( -0.577f, 0.577f, 0.577f, 1.0f ), sizeof(XMFLOAT4));
-	memcpy(&cbPoint.vLightColor, &XMFLOAT4( 1.f, 1.f, 1.f, 1.f ), sizeof(XMFLOAT4));
+	XMFLOAT3 LightPos = XMFLOAT3( 0, 50, 100 );
+	XMVECTOR LightParam = XMVector3TransformCoord(XMLoadFloat3(&LightPos), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
+	XMStoreFloat4(&cbPoint.vLightPos, LightParam );
+
+	memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 0.f, 13.f, 100.f ), sizeof(XMFLOAT4));
 
 	cbPoint.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
 	cbPoint.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
@@ -526,10 +532,30 @@ void Engine::EndRendering()
 	cbPoint.ProjectionParams.x = _Far/(_Far - _Near);
 	cbPoint.ProjectionParams.y = _Near/(_Near - _Far);
 	cbPoint.ProjectionParams.z = _Far;
-	cbPoint.ProjectionParams.w = _Near;
 	_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
 	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredPointPSCB );
 	DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
+
+	XMFLOAT3 LightPos2 = XMFLOAT3( 100, 50, -0 );
+	XMVECTOR LightParam2 = XMVector3TransformCoord(XMLoadFloat3(&LightPos2), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
+	XMStoreFloat4(&cbPoint.vLightPos, LightParam2 );
+	memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 1.f, 0.f, 100.f ), sizeof(XMFLOAT4));
+	_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
+	DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
+
+	SetBlendState(BS_NORMAL);
+	
+	ID3D11RenderTargetView* aRTViewsCombine[ 1] = { _FrameBufferTexture->GetRTV() };
+	_ImmediateContext->OMSetRenderTargets( 1, aRTViewsCombine, _DepthTexture->GetReadOnlyDepthStencilView() );
+
+	ID3D11ShaderResourceView* aSRVCombine[2] = {_SceneColorTexture->GetSRV(), _LitTexture->GetSRV()};
+	_ImmediateContext->PSSetShaderResources( 0, 2, aSRVCombine );
+	
+	DrawFullScreenQuad11(_CombineLitPS, _Width, _Height);
+
+
+	ID3D11ShaderResourceView* aSRVVis[2] = {_WorldNormalTexture->GetSRV(), _DepthTexture->GetSRV()};
+	_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
 
 	_VisualizeDepth = true;
 	if(_VisualizeDepth)
@@ -539,8 +565,8 @@ void Engine::EndRendering()
 		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
 		cbVisDepth.ProjectionParams.x = _Far/(_Far - _Near);
 		cbVisDepth.ProjectionParams.y = _Near/(_Near - _Far);
-		cbVisDepth.ProjectionParams.z = _Far;
-		cbVisDepth.ProjectionParams.w = _Near;
+	/*	cbVisDepth.ProjectionParams.z = _Far;
+		cbVisDepth.ProjectionParams.w = _Near;*/
 
 
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
@@ -556,7 +582,6 @@ void Engine::EndRendering()
 	}
 	
 	
-	
 	_SwapChain->Present( 0, 0 );
 }
 
@@ -565,9 +590,9 @@ void Engine::InitDeviceStates()
 	_BlendStateArray.resize(SIZE_BLENDSTATE);
 	_BlendStateArray[BS_LIGHTING];
 
-	CD3D11_BLEND_DESC DescBlend;
+	CD3D11_BLEND_DESC DescBlend(D3D11_DEFAULT);
 
-	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_NORMAL]);
+	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_NORMAL].BS);
 
 	DescBlend.RenderTarget[0].BlendEnable = true;
 	DescBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
@@ -577,8 +602,13 @@ void Engine::InitDeviceStates()
 	DescBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 	DescBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 
-	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_LIGHTING]);
+	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_LIGHTING].BS);
 
 }
 
+void Engine::SetBlendState(EBlendState eBS)
+{
+	_ImmediateContext->OMSetBlendState(_BlendStateArray[eBS].BS, _BlendStateArray[eBS].BlendFactor, _BlendStateArray[eBS].SampleMask);
+
+}
 

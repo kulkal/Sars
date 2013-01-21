@@ -84,7 +84,19 @@ public:
 		BS_NORMAL, BS_LIGHTING,
 		SIZE_BLENDSTATE,
 	};
-	std::vector<ID3D11BlendState*> _BlendStateArray;
+	struct BlendStateStruct
+	{
+		ID3D11BlendState* BS;
+		float BlendFactor[8];
+		unsigned int SampleMask;
+		BlendStateStruct()
+		{
+			for(int i=0;i<8;i++)
+				BlendFactor[i] = 1.f;
+			SampleMask = 0xffffffff;
+		}
+	};
+	std::vector<BlendStateStruct> _BlendStateArray;
 
 
 	bool _VisualizeWorldNormal;
@@ -95,6 +107,7 @@ public:
 	void BeginRendering();
 	void EndRendering();
 	void InitDeviceStates();
+	void SetBlendState(EBlendState eBS);
 
 	HRESULT CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut );
 	ID3D11PixelShader* CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines = NULL);

@@ -13,6 +13,6 @@ float3 GetViewPosition(float LinearDepth, float2 ScreenPosition, float Proj11, f
     ViewPosition.z = LinearDepth;
     // Solve the two projection equations
     ViewPosition.xy = screenSpaceRay.xy * ViewPosition.z;
-    
+    ViewPosition.z *= -1;
     return ViewPosition;
 }

@@ -29,19 +29,17 @@ PS_INPUT VS(  VS_INPUT input )
     output.Pos = mul( output.Pos, View );
     output.Pos = mul( output.Pos, Projection);
 
-	output.Norm = mul( input.Norm, World );
+	output.Norm = mul(input.Norm.xyz, World );
 	output.Norm = mul(output.Norm, BoneMat);
-    output.Norm = normalize(mul( output.Norm, View ));
-	
-	//output.Norm = mul( output.Norm, World );
+    output.Norm = normalize(mul( output.Norm, View )).xyz;
 #else
 	output.Pos = float4(input.Pos, 1.f);
     output.Pos = mul( output.Pos, World );
     output.Pos = mul( output.Pos, View );
     output.Pos = mul( output.Pos, Projection );
 
-	output.Norm = mul( input.Norm, World );
-    output.Norm = mul( output.Norm, View );
+	output.Norm = mul( input.Norm.xyz, World );
+    output.Norm = mul( output.Norm, View ).xyz;
 
 #endif
 #if TEXCOORD

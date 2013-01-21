@@ -211,7 +211,7 @@ HRESULT InitDevice()
 	GEngine->InitDevice();
 	
 	XMFLOAT4 EyeVal = XMFLOAT4( 0, 220.f, 250.f, 0.0f );
-	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
+	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 0.0f, 0.0f, 0.0f );
 	XMFLOAT4 UpVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
 
     // Initialize the view matrix

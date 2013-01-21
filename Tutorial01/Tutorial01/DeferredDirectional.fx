@@ -31,5 +31,5 @@ QuadVS_Output QuadVS( QuadVS_Input Input )
 float4 PS( QuadVS_Output input ) : SV_Target
 {
 	float3 WorldNormal = normalize(texWorldNormal.Sample( samLinear, input.Tex ).xyz);
-	return saturate( dot( -(float3)vLightDir,WorldNormal) * vLightColor );
+	return saturate( dot( -(float3)vLightDir,WorldNormal) * vLightColor );// + float4(0.05, 0.05, 0.05, 1);
 }

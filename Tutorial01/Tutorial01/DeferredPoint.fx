@@ -39,16 +39,32 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	float3 ViewNormal = texWorldNormal.Sample( samLinear, input.Tex ).xyz;
 	
 	float DeviceDepth = texDepth.Sample( samLinear, input.Tex ).x;
-	float LinearDepth =  GetLinearDepth(DeviceDepth, ProjectionParams.x, ProjectionParams.y);
+	float LinearDepth =  GetLinearDepth(DeviceDepth, ProjectionParams.x, ProjectionParams.y) * ProjectionParams.z;
 
-	float2 ScreenPosition = input.Tex.xy*2 - 1;
+	float2 ScreenPosition = input.Tex.xy * 2 -1;
+	ScreenPosition.y = -ScreenPosition.y;
 	float3 ViewPosition = GetViewPosition(LinearDepth, ScreenPosition, Projection._11, Projection._22);
 
 	float3 LightDir = vLightPos.xyz - ViewPosition;
-	float LightDit = length(LightDir);
-	float LightRange = vLightPos.w;
-	//float Attenuation = 1/( dot(LightDir, LightDir)/(LightRange*LightRange) );
-	float Attenuation = saturate(1-LightDit/LightRange);
+	float LightDist = length(LightDir);
+	LightDir = normalize(LightDir);
+	float LightRange = vLightColor.w;
+	float Attenuation = saturate(1-LightDist/LightRange);
 	Attenuation*=Attenuation;
-	return  float4(saturate( dot(-LightDir,ViewNormal) * vLightColor.xyz ), 1.f);// * Attenuation;
+
+	float NdotL = dot(LightDir,ViewNormal);
+	return float4(NdotL *vLightColor.xyz *Attenuation , 1);
+
+	if(LightDist < 100)
+		return float4(1, 0, 0, 1);
+	else
+		return float4(0, 0, 1, 1);
+		
+	/*
+	if(ViewPosition.x < 150 ) 
+		return float4(1, 0, 0, 1);
+	else
+		return float4(0, 0, 1, 1);
+		*/
+	//return  float4(saturate(  * vLightColor.xyz), 1.f) * Attenuation;
 }
