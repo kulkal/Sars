@@ -53,18 +53,8 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	Attenuation*=Attenuation;
 
 	float NdotL = dot(LightDir,ViewNormal);
-	return float4(NdotL *vLightColor.xyz *Attenuation , 1);
 
-	if(LightDist < 100)
-		return float4(1, 0, 0, 1);
-	else
-		return float4(0, 0, 1, 1);
-		
-	/*
-	if(ViewPosition.x < 150 ) 
-		return float4(1, 0, 0, 1);
-	else
-		return float4(0, 0, 1, 1);
-		*/
-	//return  float4(saturate(  * vLightColor.xyz), 1.f) * Attenuation;
+	float3 Specular = CalcBlinPhong(LightDir, ViewNormal, 100);
+
+	return float4(NdotL *vLightColor.xyz * Attenuation , 1) + float4(Specular.xyz, 1) * Attenuation;
 }

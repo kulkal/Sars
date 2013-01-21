@@ -16,3 +16,10 @@ float3 GetViewPosition(float LinearDepth, float2 ScreenPosition, float Proj11, f
     ViewPosition.z *= -1;
     return ViewPosition;
 }
+
+float CalcBlinPhong(float3 LightDir, float3 ViewNormal, float SpecularExponent)
+{
+	float3 ViewDir = float3(0, 0, 1);
+	float3 HalfVector = normalize( LightDir + ViewDir );
+	return pow( saturate( dot( ViewNormal, HalfVector ) ), SpecularExponent ) ;
+}

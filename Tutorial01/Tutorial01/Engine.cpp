@@ -42,8 +42,6 @@ Engine::Engine(void)
 	,_DriverType(D3D_DRIVER_TYPE_NULL)
 	,_FeatureLevel(D3D_FEATURE_LEVEL_11_0)
 	,_SwapChain(NULL)
-	//,_BackBuffer(NULL)
-	//,_RenderTargetView(NULL)
 	,_SimpleDrawer(NULL)
 	,_LineBatcher(NULL)
 	,_TimeSeconds(0.f)
@@ -109,6 +107,12 @@ Engine::~Engine(void)
 	{
 		BlendStateData& BS = _BlendStateArray[i];
 		BS.BS->Release();
+	}
+
+	for(int i=0;i<_DepthStencilStateArray.size();i++)
+	{
+		DepthStencilStateData& DSS = _DepthStencilStateArray[i];
+		DSS.DSS->Release();
 	}
 }
 
@@ -483,7 +487,9 @@ void Engine::EndRendering()
 	
 	// lighting pass
 	DeferredDirPSCBStruct cb;
-	XMStoreFloat4(&cb.vLightDir, (XMVector4Normalize(XMLoadFloat4(&XMFLOAT4( 1, 0,-1, -1.0f )))));
+	XMFLOAT3 LightDir = XMFLOAT3( 0.2, -1, 0 );
+	XMVECTOR LightDirParam = XMVector3Normalize(XMVector3TransformNormal(XMLoadFloat3(&LightDir), (XMLoadFloat4x4(&GEngine->_ViewMat) ) ) );
+	XMStoreFloat4(&cb.vLightDir, LightDirParam);
 	memcpy(&cb.vLightColor, &XMFLOAT4( 0.2, 0, 0, 1.0f), sizeof(XMFLOAT4));
 
 	_ImmediateContext->UpdateSubresource( _DeferredDirPSCB, 0, NULL, &cb, 0, 0 );
@@ -497,7 +503,7 @@ void Engine::EndRendering()
 	XMVECTOR LightParam = XMVector3TransformCoord(XMLoadFloat3(&LightPos), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
 	XMStoreFloat4(&cbPoint.vLightPos, LightParam );
 
-	memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 0.f, 13.f, 100.f ), sizeof(XMFLOAT4));
+	memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 0.f, 1, 100.f ), sizeof(XMFLOAT4));
 
 	cbPoint.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
 	cbPoint.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));

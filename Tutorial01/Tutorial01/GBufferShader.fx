@@ -28,7 +28,7 @@ PS_INPUT VS(  VS_INPUT input )
     output.Pos = mul( output.Pos, Projection);
 
 	output.Norm = mul(input.Norm, BoneMat);
-    output.Norm = mul( output.Norm, ModelView ).xyz;
+    output.Norm = normalize(mul( output.Norm, ModelView ).xyz);
 #else
 	output.Pos = float4(input.Pos, 1.f);
     output.Pos = mul( output.Pos, ModelView );

@@ -1,3 +1,5 @@
+#include "Common.hlsl"
+
 Texture2D<float4> texWorldNormal : register( t0 );
 Texture2D<float4> texDepth : register( t1 );
 SamplerState samLinear : register( s0 );
@@ -30,6 +32,10 @@ QuadVS_Output QuadVS( QuadVS_Input Input )
 
 float4 PS( QuadVS_Output input ) : SV_Target
 {
-	float3 WorldNormal = normalize(texWorldNormal.Sample( samLinear, input.Tex ).xyz);
-	return saturate( dot( -(float3)vLightDir,WorldNormal) * vLightColor );// + float4(0.05, 0.05, 0.05, 1);
+	float3 LightDir = - vLightDir.xyz;
+	float3 ViewNormal = normalize(texWorldNormal.Sample( samLinear, input.Tex ).xyz);
+	float NdotL = dot(LightDir, ViewNormal);
+	
+	float3 Specular = CalcBlinPhong(LightDir, ViewNormal, 100);
+	return saturate( NdotL * vLightColor ) + float4(Specular.xyz * vLightColor.xyz, 1);
 }
