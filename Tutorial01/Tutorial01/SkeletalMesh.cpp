@@ -85,7 +85,7 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	FbxAMatrix TotalMatrixForNormal;
 	TotalMatrixForNormal = TotalMatrix.Inverse();
 	TotalMatrixForNormal = TotalMatrixForNormal.Transpose();
-
+	
 	if (!Mesh->IsTriangleMesh())
 	{
 		FbxGeometryConverter lConverter(Mesh->GetNode()->GetFbxManager());

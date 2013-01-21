@@ -454,6 +454,7 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 
 				FbxVector4 GlobalT = ParentGlobalPose.GetT();
 
+
 				IsBoneCluser = true;
 			}
 		}
@@ -510,9 +511,8 @@ void FbxFileImporter::ImportSkeleton(Skeleton** OutSkeleton, SkeletonPose** OutR
 				RefPosJoint._Scale.x = (float)LocalS[0];
 				RefPosJoint._Scale.y = (float)LocalS[1];
 				RefPosJoint._Scale.z = (float)LocalS[2];
-				//char Str[128];
-				//sprintf(Str, "%s is dummy bone, %d\n", Joint._Name.c_str(), NodeIndex);
-				//OutputDebugStringA(Str);
+
+				//cout_debug("scale : %f %f %f\n", LocalS[0], LocalS[1], LocalS[2]);
 		}
 	}
 
