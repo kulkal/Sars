@@ -249,14 +249,14 @@ HRESULT InitDevice()
 		GSkeletalMeshComponent->AddSkeletalMesh(SkeletalMeshArray[i]);
 	}
 	FbxImporterObj.ImportSkeleton(&GSkeleton, &GPose);
-	//FbxImporterObj.ImportAnimClip(AnimClipArray);
+	FbxImporterObj.ImportAnimClip(AnimClipArray);
 
 	GSkeletalMeshComponent->SetSkeleton(GSkeleton);
 	GSkeletalMeshComponent->SetCurrentPose(GPose);
 
 	GEngine->Tick();
 
-	//GSkeletalMeshComponent->PlayAnim(AnimClipArray[1], 0, -1.f);
+	GSkeletalMeshComponent->PlayAnim(AnimClipArray[1], 0, 0.2f);
 
 	FbxFileImporter FbxImporterObj2("other.fbx");
 	FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
@@ -329,6 +329,7 @@ void Render()
 	memcpy(GEngine->_SimpleDrawer->vLightColors, vLightColors, sizeof(XMFLOAT4)*2);
 	memcpy(GEngine->_SimpleDrawer->vLightDirs, vLightDirs, sizeof(XMFLOAT4)*2);
 
+	
 	for(unsigned int i=0;i<StaticMeshArray.size();i++)
 	{
 		//GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
@@ -357,6 +358,8 @@ void Render()
 	}
 	
 	GEngine->EndRendering();
+
+	
 }
 
 

@@ -255,6 +255,7 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 				lCurrentNormal = lNormalElement->GetDirectArray().GetAt(lNormalIndex);
 
 				FbxVector4 FinalNormal = lCurrentNormal;//TotalMatrixForNormal.MultT(lCurrentNormal);
+				//FbxVector4 FinalNormal = TotalMatrixForNormal.MultT(lCurrentNormal);
 				FinalNormal.Normalize();
 				_NormalArray[lIndex].x = static_cast<float>(FinalNormal[0]);
 				_NormalArray[lIndex].y = static_cast<float>(FinalNormal[1]);

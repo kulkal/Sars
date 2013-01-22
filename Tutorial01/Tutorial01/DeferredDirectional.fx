@@ -37,5 +37,5 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	float NdotL = dot(LightDir, ViewNormal);
 	
 	float3 Specular = CalcBlinPhong(LightDir, ViewNormal, 100);
-	return saturate( NdotL * vLightColor ) + float4(Specular.xyz * vLightColor.xyz, 1);
+	return saturate( NdotL * vLightColor ) + float4(Specular.xyz * vLightColor.xyz, 1) + float4(0.01, 0, 0, 1);
 }

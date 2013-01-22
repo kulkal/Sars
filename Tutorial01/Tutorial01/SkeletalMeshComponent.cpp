@@ -139,7 +139,7 @@ void SkeletalMeshComponent::Tick( float DeltaSeconds )
 	UpdateBoneMatrices();
 }
 
-void SkeletalMeshComponent::PlayAnim(AnimationClip* InClip, int InNumPlay, int InRate)
+void SkeletalMeshComponent::PlayAnim(AnimationClip* InClip, int InNumPlay, float InRate)
 {
 	_CurrentAnim = new AnimClipInstance(InClip);
 	_CurrentAnim->Play(InNumPlay);

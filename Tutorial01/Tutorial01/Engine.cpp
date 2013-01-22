@@ -454,6 +454,7 @@ void Engine::BeginRendering()
 	ID3D11RenderTargetView* aRTViews[ 2 ] = { _SceneColorTexture->GetRTV(), _WorldNormalTexture->GetRTV() };
 	_ImmediateContext->OMSetRenderTargets( 2, aRTViews, _DepthTexture->GetDepthStencilView() );     
 	SetDepthStencilState(DS_GBUFFER_PASS);
+	SetBlendState(Engine::BS_NORMAL);
 
 	_LineBatcher->BeginLine();
 
@@ -474,8 +475,6 @@ void Engine::EndRendering()
 
 	ID3D11RenderTargetView* aRTViews[ 1] = { _LitTexture->GetRTV() };
 	_ImmediateContext->OMSetRenderTargets( 1, aRTViews, _DepthTexture->GetReadOnlyDepthStencilView() );     
-    //_ImmediateContext->OMSetDepthStencilState(_DepthStateDisable, 0);
-	SetDepthStencilState(DS_LIGHTING_PASS);
 
 	float LitClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
 	_ImmediateContext->ClearRenderTargetView( _LitTexture->GetRTV() , LitClearColor );
@@ -484,54 +483,68 @@ void Engine::EndRendering()
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRV );
 
 	SetBlendState(BS_LIGHTING);
+	SetDepthStencilState(DS_LIGHTING_PASS);
 	
-	// lighting pass
-	DeferredDirPSCBStruct cb;
-	XMFLOAT3 LightDir = XMFLOAT3( 0.2, -1, 0 );
-	XMVECTOR LightDirParam = XMVector3Normalize(XMVector3TransformNormal(XMLoadFloat3(&LightDir), (XMLoadFloat4x4(&GEngine->_ViewMat) ) ) );
-	XMStoreFloat4(&cb.vLightDir, LightDirParam);
-	memcpy(&cb.vLightColor, &XMFLOAT4( 0.2, 0, 0, 1.0f), sizeof(XMFLOAT4));
 
-	_ImmediateContext->UpdateSubresource( _DeferredDirPSCB, 0, NULL, &cb, 0, 0 );
-	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredDirPSCB );
-	DrawFullScreenQuad11(GEngine->_DeferredDirPS, GEngine->_Width, GEngine->_Height);
+	bool bDeferredLighting = true;
+	if(bDeferredLighting)
+	{
+		// lighting pass
+
+		DeferredDirPSCBStruct cb;
+		XMFLOAT3 LightDir = XMFLOAT3(-0.577f, 0.577f, -0.577f );
+		XMVECTOR LightDirParam = XMVector3Normalize(XMVector3TransformNormal(XMLoadFloat3(&LightDir), (XMLoadFloat4x4(&GEngine->_ViewMat) ) ) );
+		XMStoreFloat4(&cb.vLightDir, LightDirParam);
+		memcpy(&cb.vLightColor, &XMFLOAT4( 0.2, 0, 0, 1.0f), sizeof(XMFLOAT4));
+
+		_ImmediateContext->UpdateSubresource( _DeferredDirPSCB, 0, NULL, &cb, 0, 0 );
+		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredDirPSCB );
+		DrawFullScreenQuad11(GEngine->_DeferredDirPS, GEngine->_Width, GEngine->_Height);
 
 
+		XMFLOAT3 LightDir2 = XMFLOAT3( 0.0f, 0.0f, -1.0f );
+		XMVECTOR LightDirParam2 = XMVector3Normalize(XMVector3TransformNormal(XMLoadFloat3(&LightDir2), (XMLoadFloat4x4(&GEngine->_ViewMat) ) ) );
+		XMStoreFloat4(&cb.vLightDir, LightDirParam2);
+		memcpy(&cb.vLightColor, &XMFLOAT4( 0.2, 0, 0, 1.0f), sizeof(XMFLOAT4));
 
-	DeferredPointPSCBStruct cbPoint;
-	XMFLOAT3 LightPos = XMFLOAT3( 0, 50, 100 );
-	XMVECTOR LightParam = XMVector3TransformCoord(XMLoadFloat3(&LightPos), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
-	XMStoreFloat4(&cbPoint.vLightPos, LightParam );
+		_ImmediateContext->UpdateSubresource( _DeferredDirPSCB, 0, NULL, &cb, 0, 0 );
+		DrawFullScreenQuad11(GEngine->_DeferredDirPS, GEngine->_Width, GEngine->_Height);
 
-	memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 0.f, 1, 100.f ), sizeof(XMFLOAT4));
 
-	cbPoint.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
-	cbPoint.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
+		DeferredPointPSCBStruct cbPoint;
+		XMFLOAT3 LightPos = XMFLOAT3( 0, 50, 100 );
+		XMVECTOR LightParam = XMVector3TransformCoord(XMLoadFloat3(&LightPos), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
+		XMStoreFloat4(&cbPoint.vLightPos, LightParam );
 
-	cbPoint.ProjectionParams.x = _Far/(_Far - _Near);
-	cbPoint.ProjectionParams.y = _Near/(_Near - _Far);
-	cbPoint.ProjectionParams.z = _Far;
-	_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
-	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredPointPSCB );
-	DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
+		memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 0.f, 1, 100.f ), sizeof(XMFLOAT4));
 
-	XMFLOAT3 LightPos2 = XMFLOAT3( 100, 50, -0 );
-	XMVECTOR LightParam2 = XMVector3TransformCoord(XMLoadFloat3(&LightPos2), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
-	XMStoreFloat4(&cbPoint.vLightPos, LightParam2 );
-	memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 1.f, 0.f, 100.f ), sizeof(XMFLOAT4));
-	_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
-	DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
+		cbPoint.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
+		cbPoint.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
 
-	SetBlendState(BS_NORMAL);
+		cbPoint.ProjectionParams.x = _Far/(_Far - _Near);
+		cbPoint.ProjectionParams.y = _Near/(_Near - _Far);
+		cbPoint.ProjectionParams.z = _Far;
+		_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
+		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredPointPSCB );
+		DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
+
+		XMFLOAT3 LightPos2 = XMFLOAT3( 100, 50, -0 );
+		XMVECTOR LightParam2 = XMVector3TransformCoord(XMLoadFloat3(&LightPos2), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
+		XMStoreFloat4(&cbPoint.vLightPos, LightParam2 );
+		memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 1.f, 0.f, 100.f ), sizeof(XMFLOAT4));
+		_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
+		DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
+
+		SetBlendState(BS_NORMAL);
 	
-	ID3D11RenderTargetView* aRTViewsCombine[ 1] = { _FrameBufferTexture->GetRTV() };
-	_ImmediateContext->OMSetRenderTargets( 1, aRTViewsCombine, _DepthTexture->GetReadOnlyDepthStencilView() );
+		ID3D11RenderTargetView* aRTViewsCombine[ 1] = { _FrameBufferTexture->GetRTV() };
+		_ImmediateContext->OMSetRenderTargets( 1, aRTViewsCombine, _DepthTexture->GetReadOnlyDepthStencilView() );
 
-	ID3D11ShaderResourceView* aSRVCombine[2] = {_SceneColorTexture->GetSRV(), _LitTexture->GetSRV()};
-	_ImmediateContext->PSSetShaderResources( 0, 2, aSRVCombine );
+		ID3D11ShaderResourceView* aSRVCombine[2] = {_SceneColorTexture->GetSRV(), _LitTexture->GetSRV()};
+		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVCombine );
 	
-	DrawFullScreenQuad11(_CombineLitPS, _Width, _Height);
-
+		DrawFullScreenQuad11(_CombineLitPS, _Width, _Height);
+	}
 
 	ID3D11ShaderResourceView* aSRVVis[2] = {_WorldNormalTexture->GetSRV(), _DepthTexture->GetSRV()};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
@@ -557,8 +570,17 @@ void Engine::EndRendering()
 		DrawFullScreenQuad11(_VisNormalPS, _Width/4, _Height/4);
 	}
 	
-	
 	_SwapChain->Present( 0, 0 );
+}
+
+void Engine::StartRenderingFrameBuffer()
+{
+	ID3D11RenderTargetView* aRTViewsCombine[ 1] = { _FrameBufferTexture->GetRTV() };
+	_ImmediateContext->OMSetRenderTargets( 1, aRTViewsCombine, _DepthTexture->GetDepthStencilView() );
+
+	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
+	_ImmediateContext->ClearRenderTargetView( _FrameBufferTexture->GetRTV(), ClearColor );
+	_ImmediateContext->ClearDepthStencilView( _DepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0 );
 }
 
 void Engine::InitDeviceStates()
