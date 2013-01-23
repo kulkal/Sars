@@ -49,12 +49,6 @@ ID3D11ShaderResourceView*           g_pTextureRV = NULL;
 XMMATRIX                g_Projection;
 XMMATRIX                g_World;
 XMMATRIX                g_World2;
-std::vector<StaticMesh*> StaticMeshArray;
-std::vector<SkeletalMesh*> SkeletalMeshArray;
-std::vector<AnimationClip*> AnimClipArray;
-Skeleton* GSkeleton;
-SkeletonPose* GPose;
-SkeletalMeshComponent* GSkeletalMeshComponent;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -228,38 +222,7 @@ HRESULT InitDevice()
 	XMStoreFloat4x4(&GEngine->_ProjectionMat, g_Projection);
 
 
-	HRESULT hr;
-	// Load the Texture
-	hr = D3DX11CreateShaderResourceViewFromFile( GEngine->_Device, L"seafloor.dds", NULL, NULL, &g_pTextureRV, NULL );
-	if( FAILED( hr ) )
-		return hr;
-
-	GSkeletalMeshComponent = new SkeletalMeshComponent;
-	GSkeleton = new Skeleton;
-	GPose = new SkeletonPose;
-
-	FbxFileImporter FbxImporterObj("humanoid.fbx");
-	//FbxFileImporter FbxImporterObj("box_skin.fbx");
-	//FbxImporterObj.ImportStaticMesh(StaticMeshArray);
-
-	FbxImporterObj.ImportSkeletalMesh(SkeletalMeshArray);
-
-	for(unsigned int i=0;i<SkeletalMeshArray.size();i++)
-	{
-		GSkeletalMeshComponent->AddSkeletalMesh(SkeletalMeshArray[i]);
-	}
-	FbxImporterObj.ImportSkeleton(&GSkeleton, &GPose);
-	//FbxImporterObj.ImportAnimClip(AnimClipArray);
-
-	GSkeletalMeshComponent->SetSkeleton(GSkeleton);
-	GSkeletalMeshComponent->SetCurrentPose(GPose);
-
-	GEngine->Tick();
-
-	//GSkeletalMeshComponent->PlayAnim(AnimClipArray[1], 0, 0.2f);
-
-	FbxFileImporter FbxImporterObj2("other.fbx");
-	FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
+	
 
 	//GEngine->InitDevice();
 
@@ -271,7 +234,6 @@ HRESULT InitDevice()
 //--------------------------------------------------------------------------------------
 void Render()
 {
-	GEngine->BeginRendering();
 
 
 	// Update our time
@@ -323,39 +285,14 @@ void Render()
     //
    
 
-	GEngine->_ImmediateContext->PSSetShaderResources( 0, 1, &g_pTextureRV );
 
 
 	memcpy(GEngine->_SimpleDrawer->vLightColors, vLightColors, sizeof(XMFLOAT4)*2);
 	memcpy(GEngine->_SimpleDrawer->vLightDirs, vLightDirs, sizeof(XMFLOAT4)*2);
 
-	
-	for(unsigned int i=0;i<StaticMeshArray.size();i++)
-	{
-		//GEngine->_SimpleDrawer->DrawStaticMesh(StaticMeshArray[i]);
-	}
+	GEngine->BeginRendering();
 
-	if(GSkeletalMeshComponent)
-	{
-		GSkeletalMeshComponent->Tick(GEngine->_DeltaSeconds);
-		for(unsigned int i=0;i<GSkeletalMeshComponent->_RenderDataArray.size();i++)
-		{
-			//GEngine->_SimpleDrawer->DrawSkeletalMeshData(GSkeletalMeshComponent->_RenderDataArray[i]);
-		}
-	}
-
-	for(unsigned int i=0;i<StaticMeshArray.size();i++)
-	{
-		GEngine->_GBufferDrawer->DrawStaticMesh(StaticMeshArray[i]);
-	}
-
-	if(GSkeletalMeshComponent)
-	{
-		for(unsigned int i=0;i<GSkeletalMeshComponent->_RenderDataArray.size();i++)
-		{
-			GEngine->_GBufferDrawer->DrawSkeletalMeshData(GSkeletalMeshComponent->_RenderDataArray[i]);
-		}
-	}
+	GEngine->Render();
 	
 	GEngine->EndRendering();
 
@@ -368,29 +305,6 @@ void Render()
 //--------------------------------------------------------------------------------------
 void CleanupDevice()
 {
-	if( g_pTextureRV ) g_pTextureRV->Release();
-
-	if(GSkeleton) delete GSkeleton;
-	if(GPose) delete GPose;
-	if(GSkeletalMeshComponent) delete GSkeletalMeshComponent;
-
-	for(unsigned int i=0;i<StaticMeshArray.size();i++)
-	{
-		StaticMesh* Mesh = StaticMeshArray[i];
-		delete Mesh;
-	}
-
-	for(unsigned int i=0;i<SkeletalMeshArray.size();i++)
-	{
-		SkeletalMesh* Mesh = SkeletalMeshArray[i];
-		delete Mesh;
-	}
-
-	for(unsigned int i=0;i<AnimClipArray.size();i++)
-	{
-		AnimationClip* Clip = AnimClipArray[i];
-		delete Clip;
-	}
 
 	if(GEngine) delete GEngine;
 }

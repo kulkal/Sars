@@ -9,12 +9,20 @@
 
 #include "Util.h"
 #include "OutputDebug.h"
+#include "Skeleton.h"
 
 class SimpleDrawingPolicy;
 class GBufferDrawingPolicy;
 class LineBatcher;
 class Texture2D;
 class TextureDepth2D;
+
+class StaticMesh;
+class SkeletalMesh;
+class SkeletalMeshComponent;
+class AnimationClip;
+class LightComponent;
+
 
 class Engine
 {
@@ -33,6 +41,7 @@ public:
 	Texture2D*				_LitTexture;
 	Texture2D*				_WorldNormalTexture;
 	TextureDepth2D*			_DepthTexture;
+	TextureDepth2D*			_ShadowDepthTexture;
 
 	UINT _Width;
 	UINT _Height;
@@ -117,11 +126,24 @@ public:
 
 	bool _VisualizeWorldNormal;
 	bool _VisualizeDepth;
+
+	std::vector<StaticMesh*> _StaticMeshArray;
+	std::vector<SkeletalMesh*> _SkeletalMeshArray;
+	std::vector<AnimationClip*> _AnimClipArray;
+	Skeleton* _GSkeleton;
+	SkeletonPose* _GPose;
+	SkeletalMeshComponent* _GSkeletalMeshComponent;
+	ID3D11ShaderResourceView*           _TextureRV ;
+
+	std::vector<LightComponent*> _LightCompArray;
+
 public:
 	void Tick();
 	void InitDevice();
 	void BeginRendering();
+	void Render();
 	void EndRendering();
+	void RenderShadowMap();
 	void InitDeviceStates();
 	void SetBlendState(EBlendState eBS);
 	void SetDepthStencilState(EDepthStencilState eDSS);

@@ -76,6 +76,9 @@
     <ClCompile Include="GBufferDrawingPolicy.cpp" />
     <ClCompile Include="Texture2D.cpp" />
     <ClCompile Include="TextureDepth2D.cpp" />
+    <ClCompile Include="LightComponent.cpp" />
+    <ClCompile Include="PointLightComponent.cpp" />
+    <ClCompile Include="DirectionalLightComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -109,6 +112,9 @@
     <ClInclude Include="GBufferDrawingPolicy.h" />
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="TextureDepth2D.h" />
+    <ClInclude Include="LightComponent.h" />
+    <ClInclude Include="PointLightComponent.h" />
+    <ClInclude Include="DirectionalLightComponent.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
