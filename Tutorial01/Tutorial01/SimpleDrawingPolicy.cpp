@@ -51,7 +51,7 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
     if ( FAILED( hr ) )
 		assert(false);
 
-	SetD3DResourceDebugName("SimpleDrawingPolicyRS", RS);
+	//SetD3DResourceDebugName("SimpleDrawingPolicyRS", RS);
 
 
     GEngine->_ImmediateContext->RSSetState(RS);
@@ -69,7 +69,7 @@ SimpleDrawingPolicy::SimpleDrawingPolicy(void)
 	if( FAILED( hr ) )
 		assert(false);
 
-	SetD3DResourceDebugName("SimpleDrawingPolicy_SamplerLinear", _SamplerLinear);
+	//SetD3DResourceDebugName("SimpleDrawingPolicy_SamplerLinear", _SamplerLinear);
 
 }
 

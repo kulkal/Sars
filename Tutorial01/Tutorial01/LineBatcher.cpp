@@ -125,6 +125,7 @@ void LineBatcher::InitDevice()
 
 void LineBatcher::AddLine(XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 Color1, XMFLOAT3 Color2)
 {
+	return;
 	float DistSqr = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
 	if(DistSqr < 0.0001f)
 		return;

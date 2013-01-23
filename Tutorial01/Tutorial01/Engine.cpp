@@ -150,7 +150,7 @@ void Engine::InitDevice()
 	sd.BufferCount = 1;
 	sd.BufferDesc.Width = _Width;
 	sd.BufferDesc.Height = _Height;
-	sd.BufferDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	sd.BufferDesc.RefreshRate.Numerator = 60;
 	sd.BufferDesc.RefreshRate.Denominator = 1;
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;

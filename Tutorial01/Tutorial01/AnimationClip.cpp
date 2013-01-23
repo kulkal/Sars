@@ -33,7 +33,7 @@ void AnimationClip::GetCurrentPose(SkeletonPose& InPose, float CurrentTime)
 	}
 }
 
-void FindKeyIndices(std::vector<float> TimeArray, float NormalizedTime, float LocalTime, int& KeyIndex0, int& KeyIndex1, float& Alpha)
+void FindKeyIndices(std::vector<float>& TimeArray, float NormalizedTime, float LocalTime, int& KeyIndex0, int& KeyIndex1, float& Alpha)
 {
 	int EstimatedKeyIndex = TimeArray.size() * NormalizedTime;
 	if(EstimatedKeyIndex == 0)

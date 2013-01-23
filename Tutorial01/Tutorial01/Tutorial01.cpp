@@ -249,14 +249,14 @@ HRESULT InitDevice()
 		GSkeletalMeshComponent->AddSkeletalMesh(SkeletalMeshArray[i]);
 	}
 	FbxImporterObj.ImportSkeleton(&GSkeleton, &GPose);
-	FbxImporterObj.ImportAnimClip(AnimClipArray);
+	//FbxImporterObj.ImportAnimClip(AnimClipArray);
 
 	GSkeletalMeshComponent->SetSkeleton(GSkeleton);
 	GSkeletalMeshComponent->SetCurrentPose(GPose);
 
 	GEngine->Tick();
 
-	GSkeletalMeshComponent->PlayAnim(AnimClipArray[1], 0, 0.2f);
+	//GSkeletalMeshComponent->PlayAnim(AnimClipArray[1], 0, 0.2f);
 
 	FbxFileImporter FbxImporterObj2("other.fbx");
 	FbxImporterObj2.ImportStaticMesh(StaticMeshArray);
