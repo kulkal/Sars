@@ -22,7 +22,7 @@ class SkeletalMesh;
 class SkeletalMeshComponent;
 class AnimationClip;
 class LightComponent;
-
+class DirectionalLightComponent;
 
 class Engine
 {
@@ -137,6 +137,8 @@ public:
 
 	std::vector<LightComponent*> _LightCompArray;
 
+	DirectionalLightComponent* _SunLight;
+
 public:
 	void Tick();
 	void InitDevice();
@@ -148,7 +150,9 @@ public:
 	void SetBlendState(EBlendState eBS);
 	void SetDepthStencilState(EDepthStencilState eDSS);
 
-	void StartRenderingFrameBuffer();
+	void StartRenderingFrameBuffer(bool bClearColor, bool bClearDepth, bool bReadOnlyDepth);
+	void StartRenderingGBuffers();
+	void StartRenderingLightingBuffer(bool bClear);
 
 	HRESULT CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut );
 	ID3D11PixelShader* CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines = NULL);

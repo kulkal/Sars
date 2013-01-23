@@ -81,7 +81,7 @@ SimpleDrawingPolicy::~SimpleDrawingPolicy(void)
 	if(_SamplerLinear)_SamplerLinear->Release();
 }
 
-void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
+void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMFLOAT4X4& ViewMat, XMFLOAT4X4& ProjectionMat )
 {
 	XMMATRIX World;
 
@@ -117,7 +117,7 @@ void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 	GEngine->_ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }
 
-void SimpleDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData) 
+void SimpleDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData, XMFLOAT4X4& ViewMat, XMFLOAT4X4& ProjectionMat) 
 {
 	XMMATRIX World;
 

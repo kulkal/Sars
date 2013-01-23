@@ -76,13 +76,13 @@ GBufferDrawingPolicy::~GBufferDrawingPolicy(void)
 	if(_SamplerLinear)_SamplerLinear->Release();
 }
 
-void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
+void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMFLOAT4X4& ViewMat, XMFLOAT4X4& ProjectionMat)
 {
 	XMMATRIX World;
 
 	ConstantBufferStruct cb;
-	cb.mModelView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
-	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
+	cb.mModelView = XMMatrixTranspose( XMLoadFloat4x4( &ViewMat ));
+	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&ProjectionMat));
 
 	GEngine->_ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
 
@@ -108,14 +108,14 @@ void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh )
 }
 
 
-void GBufferDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData) 
+void GBufferDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData, XMFLOAT4X4& ViewMat, XMFLOAT4X4& ProjectionMat) 
 {
 	XMMATRIX World;
 
 	ConstantBufferStruct cb;
 	
-	cb.mModelView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
-	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
+	cb.mModelView = XMMatrixTranspose( XMLoadFloat4x4( &ViewMat ));
+	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&ProjectionMat));
 
 	GEngine->_ImmediateContext->UpdateSubresource( ConstantBuffer, 0, NULL, &cb, 0, 0 );
 

@@ -9,6 +9,7 @@
 #include "SkeletalMesh.h"
 #include "DirectionalLightComponent.h"
 #include "PointLightComponent.h"
+#include "AnimationClip.h"
 
 
 struct SCREEN_VERTEX
@@ -240,7 +241,12 @@ void Engine::InitDevice()
 	CD3D11_SHADER_RESOURCE_VIEW_DESC DescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
 	_DepthTexture = new TextureDepth2D(DescDepthTex, DescDSV, DescDepthSRV);
 
-	_ShadowDepthTexture = new TextureDepth2D(DescDepthTex, DescDSV, DescDepthSRV);
+	UINT ShadowTexWidth = 1024;
+	UINT ShadowTexHeight = 1024;
+	CD3D11_TEXTURE2D_DESC ShadowDescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, ShadowTexWidth, ShadowTexHeight, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_DEPTH_STENCIL_VIEW_DESC  ShadowDescDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT, 0, 0, 0,0) ;
+	CD3D11_SHADER_RESOURCE_VIEW_DESC ShadowDescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
+	_ShadowDepthTexture = new TextureDepth2D(ShadowDescDepthTex, ShadowDescDSV, ShadowDescDepthSRV);
 
 	// Setup the viewport
 	D3D11_VIEWPORT vp;
@@ -401,14 +407,14 @@ void Engine::InitDevice()
 		_GSkeletalMeshComponent->AddSkeletalMesh(_SkeletalMeshArray[i]);
 	}
 	FbxImporterObj.ImportSkeleton(&_GSkeleton, &_GPose);
-	//FbxImporterObj.ImportAnimClip(AnimClipArray);
+	FbxImporterObj.ImportAnimClip(_AnimClipArray);
 
 	_GSkeletalMeshComponent->SetSkeleton(_GSkeleton);
 	_GSkeletalMeshComponent->SetCurrentPose(_GPose);
 
 	GEngine->Tick();
 
-	//GSkeletalMeshComponent->PlayAnim(AnimClipArray[1], 0, 0.2f);
+	_GSkeletalMeshComponent->PlayAnim(_AnimClipArray[1], 0, 0.2f);
 
 	FbxFileImporter FbxImporterObj2("other.fbx");
 	FbxImporterObj2.ImportStaticMesh(GEngine->_StaticMeshArray);
@@ -418,8 +424,8 @@ void Engine::InitDevice()
 	if( FAILED( hr ) )
 		assert(false);
 
-	DirectionalLightComponent* DirLight1 = new DirectionalLightComponent(XMFLOAT4(1.f, 0.f, 0.f, 1.F), XMFLOAT3(-0.577f, 0.577f, -0.577f) );
-	_LightCompArray.push_back(DirLight1);
+	_SunLight = new DirectionalLightComponent(XMFLOAT4(0.2f, 0.f, 0.f, 1.F), XMFLOAT3(1.f, -1.f, -1.f) );
+	_LightCompArray.push_back(_SunLight);
 
 	PointLightComponent* PointLight1 = new PointLightComponent(XMFLOAT4( 0.f, 1.f, 0.f, 1.0f), XMFLOAT3(  0.f, 0, 100.f  ), 200.f);
 	_LightCompArray.push_back(PointLight1);
@@ -537,58 +543,36 @@ void Engine::BeginRendering()
 	_LineBatcher->BeginLine();
 
 	// z pre pass?
+
+	RenderShadowMap();
 }
 
 
 void Engine::Render()
 {
 	// g-buffer pass
-
-	ID3D11ShaderResourceView* aSRS[2] = {NULL, NULL};
-	_ImmediateContext->PSSetShaderResources( 0, 2, aSRS );
-
-	ID3D11RenderTargetView* aRTViews[ 2 ] = { _SceneColorTexture->GetRTV(), _WorldNormalTexture->GetRTV() };
-	_ImmediateContext->OMSetRenderTargets( 2, aRTViews, _DepthTexture->GetDepthStencilView() );     
-	SetDepthStencilState(DS_GBUFFER_PASS);
-	SetBlendState(Engine::BS_NORMAL);
-
-	// Just clear the backbuffer
-	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
-	_ImmediateContext->ClearRenderTargetView( _SceneColorTexture->GetRTV(), ClearColor );
-	float ClearNormalColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
-	_ImmediateContext->ClearRenderTargetView( _WorldNormalTexture->GetRTV() , ClearNormalColor );
-	_ImmediateContext->ClearDepthStencilView( _DepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0 );
-
+	StartRenderingGBuffers();
 
 	_ImmediateContext->PSSetShaderResources( 0, 1, &_TextureRV );
 
 	// draw scene into g-buffer
 	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
 	{
-		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i]);
+		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], _ViewMat, _ProjectionMat);
 	}
 
 	if(_GSkeletalMeshComponent)
 	{
 		for(unsigned int i=0;i<_GSkeletalMeshComponent->_RenderDataArray.size();i++)
 		{
-			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i]);
+			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], _ViewMat, _ProjectionMat);
 		}
 	}
 
 	// lighting pass
-
-	ID3D11ShaderResourceView* aSRSLit[2] = {NULL, NULL};
-	_ImmediateContext->VSSetShaderResources( 0, 2, aSRSLit );
-
-	ID3D11RenderTargetView* aRTViewsLit[ 1] = { _LitTexture->GetRTV() };
-	_ImmediateContext->OMSetRenderTargets( 1, aRTViewsLit, _DepthTexture->GetReadOnlyDepthStencilView() );     
-
-	float LitClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
-	_ImmediateContext->ClearRenderTargetView( _LitTexture->GetRTV() , LitClearColor );
+	StartRenderingLightingBuffer(true);
 
 	ID3D11ShaderResourceView* aSRV[2] = {_WorldNormalTexture->GetSRV(), _DepthTexture->GetSRV()};
-
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRV );
 
 	SetBlendState(BS_LIGHTING);
@@ -600,59 +584,14 @@ void Engine::Render()
 		Light->RenderLightDeferred();
 	}
 
-	/*DeferredDirPSCBStruct cb;
-	XMFLOAT3 LightDir = XMFLOAT3(-0.577f, 0.577f, -0.577f );
-	XMVECTOR LightDirParam = XMVector3Normalize(XMVector3TransformNormal(XMLoadFloat3(&LightDir), (XMLoadFloat4x4(&GEngine->_ViewMat) ) ) );
-	XMStoreFloat4(&cb.vLightDir, LightDirParam);
-	memcpy(&cb.vLightColor, &XMFLOAT4( 0.2, 0, 0, 1.0f), sizeof(XMFLOAT4));
-
-	_ImmediateContext->UpdateSubresource( _DeferredDirPSCB, 0, NULL, &cb, 0, 0 );
-	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredDirPSCB );
-	DrawFullScreenQuad11(GEngine->_DeferredDirPS, GEngine->_Width, GEngine->_Height);
-
-
-	XMFLOAT3 LightDir2 = XMFLOAT3( 0.0f, 0.0f, -1.0f );
-	XMVECTOR LightDirParam2 = XMVector3Normalize(XMVector3TransformNormal(XMLoadFloat3(&LightDir2), (XMLoadFloat4x4(&GEngine->_ViewMat) ) ) );
-	XMStoreFloat4(&cb.vLightDir, LightDirParam2);
-	memcpy(&cb.vLightColor, &XMFLOAT4( 0.2, 0, 0, 1.0f), sizeof(XMFLOAT4));
-
-	_ImmediateContext->UpdateSubresource( _DeferredDirPSCB, 0, NULL, &cb, 0, 0 );
-	DrawFullScreenQuad11(GEngine->_DeferredDirPS, GEngine->_Width, GEngine->_Height);
-
-
-	DeferredPointPSCBStruct cbPoint;
-	XMFLOAT3 LightPos = XMFLOAT3( 0, 50, 100 );
-	XMVECTOR LightParam = XMVector3TransformCoord(XMLoadFloat3(&LightPos), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
-	XMStoreFloat4(&cbPoint.vLightPos, LightParam );
-
-	memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 0.f, 1, 100.f ), sizeof(XMFLOAT4));
-
-	cbPoint.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
-	cbPoint.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-
-	cbPoint.ProjectionParams.x = _Far/(_Far - _Near);
-	cbPoint.ProjectionParams.y = _Near/(_Near - _Far);
-	cbPoint.ProjectionParams.z = _Far;
-	_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
-	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredPointPSCB );
-	DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
-
-	XMFLOAT3 LightPos2 = XMFLOAT3( 100, 50, -0 );
-	XMVECTOR LightParam2 = XMVector3TransformCoord(XMLoadFloat3(&LightPos2), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
-	XMStoreFloat4(&cbPoint.vLightPos, LightParam2 );
-	memcpy(&cbPoint.vLightColor, &XMFLOAT4( 0.f, 1.f, 0.f, 100.f ), sizeof(XMFLOAT4));
-	_ImmediateContext->UpdateSubresource( _DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
-	DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);*/
 
 	// combine pass
 	SetBlendState(BS_NORMAL);
-	
-	ID3D11RenderTargetView* aRTViewsCombine[ 1] = { _FrameBufferTexture->GetRTV() };
-	_ImmediateContext->OMSetRenderTargets( 1, aRTViewsCombine, _DepthTexture->GetReadOnlyDepthStencilView() );
+
+	StartRenderingFrameBuffer(false, false, true);
 
 	ID3D11ShaderResourceView* aSRVCombine[2] = {_SceneColorTexture->GetSRV(), _LitTexture->GetSRV()};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRVCombine );
-	
 	DrawFullScreenQuad11(_CombineLitPS, _Width, _Height);
 
 }
@@ -672,7 +611,6 @@ void Engine::EndRendering()
 		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
 		cbVisDepth.ProjectionParams.x = _Far/(_Far - _Near);
 		cbVisDepth.ProjectionParams.y = _Near/(_Near - _Far);
-
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
 		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
 
@@ -684,18 +622,77 @@ void Engine::EndRendering()
 	{
 		DrawFullScreenQuad11(_VisNormalPS, _Width/4, _Height/4);
 	}
+
+
+	bool _VisualizeShadowMap = true;
+	if(_VisualizeShadowMap)
+	{
+		ID3D11ShaderResourceView* aSRVVis[2] = {NULL, _ShadowDepthTexture->GetSRV()};
+		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
+
+		VisDepthPSCBStruct cbVisDepth;
+		cbVisDepth.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
+		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
+		cbVisDepth.ProjectionParams.x = _Far/(_Far - _Near);
+		cbVisDepth.ProjectionParams.y = _Near/(_Near - _Far);
+
+		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
+		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
+
+		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, 0, _Height*0.75);
+	}
 	
 	_SwapChain->Present( 0, 0 );
 }
 
-void Engine::StartRenderingFrameBuffer()
+void Engine::StartRenderingFrameBuffer(bool bClearColor, bool bClearDepth, bool bReadOnlyDepth)
 {
 	ID3D11RenderTargetView* aRTViewsCombine[ 1] = { _FrameBufferTexture->GetRTV() };
+	if(bReadOnlyDepth)
+		_ImmediateContext->OMSetRenderTargets( 1, aRTViewsCombine, _DepthTexture->GetReadOnlyDepthStencilView() );
+	else
 	_ImmediateContext->OMSetRenderTargets( 1, aRTViewsCombine, _DepthTexture->GetDepthStencilView() );
 
+	if(bClearColor)
+	{
+		float ClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
+		_ImmediateContext->ClearRenderTargetView( _FrameBufferTexture->GetRTV(), ClearColor );
+	}
+	if(bClearDepth)
+		_ImmediateContext->ClearDepthStencilView( _DepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0 );
+}
+
+void Engine::StartRenderingGBuffers()
+{
+	ID3D11ShaderResourceView* aSRS[2] = {NULL, NULL};
+	_ImmediateContext->PSSetShaderResources( 0, 2, aSRS );
+
+	ID3D11RenderTargetView* aRTViews[ 2 ] = { _SceneColorTexture->GetRTV(), _WorldNormalTexture->GetRTV() };
+	_ImmediateContext->OMSetRenderTargets( 2, aRTViews, _DepthTexture->GetDepthStencilView() );     
+	SetDepthStencilState(DS_GBUFFER_PASS);
+	SetBlendState(Engine::BS_NORMAL);
+
+	// Just clear the backbuffer
 	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
-	_ImmediateContext->ClearRenderTargetView( _FrameBufferTexture->GetRTV(), ClearColor );
+	_ImmediateContext->ClearRenderTargetView( _SceneColorTexture->GetRTV(), ClearColor );
+	float ClearNormalColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
+	_ImmediateContext->ClearRenderTargetView( _WorldNormalTexture->GetRTV() , ClearNormalColor );
 	_ImmediateContext->ClearDepthStencilView( _DepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0 );
+}
+
+void Engine::StartRenderingLightingBuffer(bool bClear)
+{
+	ID3D11ShaderResourceView* aSRSLit[2] = {NULL, NULL};
+	_ImmediateContext->VSSetShaderResources( 0, 2, aSRSLit );
+
+	ID3D11RenderTargetView* aRTViewsLit[ 1] = { _LitTexture->GetRTV() };
+	_ImmediateContext->OMSetRenderTargets( 1, aRTViewsLit, _DepthTexture->GetReadOnlyDepthStencilView() );     
+
+	if(bClear)
+	{
+		float LitClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
+		_ImmediateContext->ClearRenderTargetView( _LitTexture->GetRTV() , LitClearColor );
+	}
 }
 
 void Engine::InitDeviceStates()
@@ -749,6 +746,58 @@ void Engine::InitDeviceStates()
 
 void Engine::RenderShadowMap()
 {
+	ID3D11RenderTargetView* aRTV[ 1] = { NULL };
+	_ImmediateContext->OMSetRenderTargets( 1, aRTV, _ShadowDepthTexture->GetDepthStencilView() );
+	_ImmediateContext->ClearDepthStencilView( _ShadowDepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
+
+	SetDepthStencilState(DS_GBUFFER_PASS);
+
+	D3D11_VIEWPORT vpOld[D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX];
+	UINT nViewPorts = 1;
+	_ImmediateContext->RSGetViewports( &nViewPorts, vpOld );
+
+	// Setup the viewport to match the backbuffer
+	D3D11_VIEWPORT vp;
+	vp.Width = (float)1024;
+	vp.Height = (float)1024;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	_ImmediateContext->RSSetViewports( 1, &vp );
+    // Initialize the view matrix
+
+	XMVECTOR At = XMLoadFloat3(&XMFLOAT3(0.f, 0, 0.f));
+	XMVECTOR Eye =  At - XMLoadFloat3(&_SunLight->_LightDirection) * 220.f;
+
+	XMVECTOR Up = XMLoadFloat3(&XMFLOAT3(0.f, 0.f, 1.f));
+	
+	XMMATRIX View = XMMatrixLookAtRH( Eye, At, Up );
+	//XMMATRIX Projection = XMMatrixOrthographicOffCenterRH(-5, 5, -5, 5, -500, 500);
+	XMMATRIX Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, 1024 /1024, GEngine->_Near, 2000 );
+
+
+	XMFLOAT4X4 ViewMat;
+	XMFLOAT4X4 ProjectionMat;
+
+	XMStoreFloat4x4(&ViewMat, View);
+	XMStoreFloat4x4(&ProjectionMat, Projection);
+
+
+	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
+	{
+		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], ViewMat, ProjectionMat);
+	}
+
+	if(_GSkeletalMeshComponent)
+	{
+		for(unsigned int i=0;i<_GSkeletalMeshComponent->_RenderDataArray.size();i++)
+		{
+			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], ViewMat, ProjectionMat);
+		}
+	}
+
+	_ImmediateContext->RSSetViewports( nViewPorts, vpOld );
 }
 
 void Engine::SetBlendState(EBlendState eBS)
