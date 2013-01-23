@@ -812,3 +812,10 @@ void Engine::SetDepthStencilState( EDepthStencilState eDSS )
 
 }
 
+float Engine::_GetTimeSeconds()
+{
+	LARGE_INTEGER CurrentTime;
+	QueryPerformanceCounter(&CurrentTime);
+	return (float)(CurrentTime.QuadPart)/(float)_Freq.QuadPart;
+}
+
