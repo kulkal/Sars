@@ -150,6 +150,9 @@ public:
 	void SetBlendState(EBlendState eBS);
 	void SetDepthStencilState(EDepthStencilState eDSS);
 
+	
+	float _GetTimeSeconds();	
+
 	void StartRenderingFrameBuffer(bool bClearColor, bool bClearDepth, bool bReadOnlyDepth);
 	void StartRenderingGBuffers();
 	void StartRenderingLightingBuffer(bool bClear);

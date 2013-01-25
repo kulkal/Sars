@@ -407,14 +407,14 @@ void Engine::InitDevice()
 		_GSkeletalMeshComponent->AddSkeletalMesh(_SkeletalMeshArray[i]);
 	}
 	FbxImporterObj.ImportSkeleton(&_GSkeleton, &_GPose);
-	FbxImporterObj.ImportAnimClip(_AnimClipArray);
+	//FbxImporterObj.ImportAnimClip(_AnimClipArray);
 
 	_GSkeletalMeshComponent->SetSkeleton(_GSkeleton);
 	_GSkeletalMeshComponent->SetCurrentPose(_GPose);
 
 	GEngine->Tick();
 
-	_GSkeletalMeshComponent->PlayAnim(_AnimClipArray[1], 0, 0.2f);
+	//_GSkeletalMeshComponent->PlayAnim(_AnimClipArray[1], 0, 0.2f);
 
 	FbxFileImporter FbxImporterObj2("other.fbx");
 	FbxImporterObj2.ImportStaticMesh(GEngine->_StaticMeshArray);
