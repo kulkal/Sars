@@ -33,6 +33,11 @@ struct DeferredPointPSCBStruct
 	XMFLOAT4 ProjectionParams;
 };
 
+struct DeferredShadowPSCBStruct
+{
+	XMMATRIX mShadowMatrix;
+};
+
 struct VisDepthPSCBStruct
 {
 	XMMATRIX mView;
@@ -57,6 +62,8 @@ Engine::Engine(void)
 	,_DeferredDirPSCB(NULL)
 	,_DeferredPointPS(NULL)
 	,_DeferredPointPSCB(NULL)
+	,_DeferredShadowPS(NULL)
+	,_DeferredShadowPSCB(NULL)
 	,_VisNormalPS(NULL)
 	,_VisDpethPS(NULL)
 	,_VisDpethPSCB(NULL)
@@ -97,6 +104,8 @@ Engine::~Engine(void)
 	if(_DeferredDirPSCB) _DeferredDirPSCB->Release();
 	if(_DeferredPointPS) _DeferredPointPS->Release();
 	if(_DeferredPointPSCB) _DeferredPointPSCB->Release();
+	if(_DeferredShadowPS) _DeferredPointPS->Release();
+	if(_DeferredShadowPSCB) _DeferredPointPSCB->Release();
 
 	if(_SimpleDrawer) delete _SimpleDrawer;
 	if(_GBufferDrawer) delete _GBufferDrawer;
@@ -380,6 +389,20 @@ void Engine::InitDevice()
 	SetD3DResourceDebugName("_DeferredPointPSCB", _DeferredPointPSCB);
 	
 	_CombineLitPS = CreatePixelShaderSimple("ComblineShader.fx");
+
+	// deferred shadow
+	ZeroMemory( &bdc, sizeof(bdc) );
+	bdc.Usage = D3D11_USAGE_DEFAULT;
+	bdc.ByteWidth = sizeof(DeferredShadowPSCBStruct);
+	bdc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bdc.CPUAccessFlags = 0;
+	hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &_DeferredShadowPSCB );
+	if( FAILED( hr ) )
+		assert(false);
+
+	SetD3DResourceDebugName("_DeferredSahdowtPSCB", _DeferredShadowPSCB);
+	
+	_DeferredShadowPS = CreatePixelShaderSimple("DeferredShadow.fx");
 
 	InitDeviceStates();
 
@@ -798,6 +821,12 @@ void Engine::RenderShadowMap()
 	}
 
 	_ImmediateContext->RSSetViewports( nViewPorts, vpOld );
+}
+
+void Engine::RenderDeferredShadow()
+{
+	
+
 }
 
 void Engine::SetBlendState(EBlendState eBS)

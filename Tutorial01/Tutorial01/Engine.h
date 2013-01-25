@@ -80,9 +80,11 @@ public:
 
 	ID3D11PixelShader*			_DeferredPointPS;
 	ID3D11Buffer*				_DeferredPointPSCB;
-
+	
 	ID3D11PixelShader*			_CombineLitPS;
 
+	ID3D11PixelShader*			_DeferredShadowPS;
+	ID3D11Buffer*				_DeferredShadowPSCB;
 
 	// Depth Stencil States
 	enum EDepthStencilState
@@ -145,11 +147,12 @@ public:
 	void BeginRendering();
 	void Render();
 	void EndRendering();
-	void RenderShadowMap();
 	void InitDeviceStates();
 	void SetBlendState(EBlendState eBS);
 	void SetDepthStencilState(EDepthStencilState eDSS);
 
+	void RenderShadowMap();
+	void RenderDeferredShadow();
 	
 	float _GetTimeSeconds();	
 

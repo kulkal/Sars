@@ -79,6 +79,7 @@
     <ClCompile Include="LightComponent.cpp" />
     <ClCompile Include="PointLightComponent.cpp" />
     <ClCompile Include="DirectionalLightComponent.cpp" />
+    <ClCompile Include="Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -115,6 +116,7 @@
     <ClInclude Include="LightComponent.h" />
     <ClInclude Include="PointLightComponent.h" />
     <ClInclude Include="DirectionalLightComponent.h" />
+    <ClInclude Include="Shader.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
