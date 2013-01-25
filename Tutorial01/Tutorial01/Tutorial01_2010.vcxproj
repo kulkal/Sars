@@ -370,6 +370,7 @@
     <None Include="Common.hlsl" />
     <None Include="DeferredDirectional.fx" />
     <None Include="DeferredPoint.fx" />
+    <None Include="DeferredShadow.fx" />
     <None Include="GBufferShader.fx" />
     <None Include="GpuSkinning.hlsl" />
     <None Include="LineShader.fx" />

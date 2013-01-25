@@ -769,6 +769,9 @@ void Engine::InitDeviceStates()
 
 void Engine::RenderShadowMap()
 {
+	ID3D11ShaderResourceView* aSRS[2] = {NULL, NULL};
+	_ImmediateContext->PSSetShaderResources( 0, 2, aSRS );
+
 	ID3D11RenderTargetView* aRTV[ 1] = { NULL };
 	_ImmediateContext->OMSetRenderTargets( 1, aRTV, _ShadowDepthTexture->GetDepthStencilView() );
 	_ImmediateContext->ClearDepthStencilView( _ShadowDepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
@@ -800,23 +803,22 @@ void Engine::RenderShadowMap()
 	XMMATRIX Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, 1024 /1024, GEngine->_Near, 2000 );
 
 
-	XMFLOAT4X4 ViewMat;
 	XMFLOAT4X4 ProjectionMat;
 
-	XMStoreFloat4x4(&ViewMat, View);
+	XMStoreFloat4x4(&_SunShadowMat, View);
 	XMStoreFloat4x4(&ProjectionMat, Projection);
 
 
 	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
 	{
-		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], ViewMat, ProjectionMat);
+		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], _SunShadowMat, ProjectionMat);
 	}
 
 	if(_GSkeletalMeshComponent)
 	{
 		for(unsigned int i=0;i<_GSkeletalMeshComponent->_RenderDataArray.size();i++)
 		{
-			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], ViewMat, ProjectionMat);
+			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], _SunShadowMat, ProjectionMat);
 		}
 	}
 

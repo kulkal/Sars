@@ -55,6 +55,8 @@ public:
 	float		_Near;
 	float		_Far;
 
+	XMFLOAT4X4 _SunShadowMat;
+
 	// debug line draw
 	LineBatcher* _LineBatcher;
 
@@ -164,6 +166,7 @@ public:
 	ID3D11PixelShader* CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines = NULL);
 	void DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Height, UINT TopLeftX = 0, UINT TopLeftY = 0);
 
+	float _GetTimeSeconds();
 	Engine(void);
 	virtual ~Engine(void);
 };
