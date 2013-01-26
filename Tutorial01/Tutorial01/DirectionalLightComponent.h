@@ -1,5 +1,13 @@
 #pragma once
 #include "lightcomponent.h"
+
+
+struct DeferredDirPSCBStruct
+{
+	XMFLOAT4 vLightDir;
+	XMFLOAT4 vLightColor;
+};
+
 class DirectionalLightComponent :
 	public LightComponent
 {

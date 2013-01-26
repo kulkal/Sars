@@ -18,24 +18,14 @@ struct SCREEN_VERTEX
 	XMFLOAT2 tex;
 };
 
-struct DeferredDirPSCBStruct
-{
-	XMFLOAT4 vLightDir;
-	XMFLOAT4 vLightColor;
-};
-
-struct DeferredPointPSCBStruct
-{
-	XMFLOAT4 vLightPos;
-	XMFLOAT4 vLightColor;
-	XMMATRIX mView;
-	XMMATRIX mProjection;
-	XMFLOAT4 ProjectionParams;
-};
-
 struct DeferredShadowPSCBStruct
 {
-	XMMATRIX mShadowMatrix;
+	XMMATRIX Projection;
+	XMFLOAT4 ProjectionParams;
+	XMFLOAT4 ViewportParams;
+	XMMATRIX ShadowMatrix;
+	/*XMMATRIX ShadowProjection;
+	XMFLOAT4 ShadowProjectionParams;*/
 };
 
 struct VisDepthPSCBStruct
@@ -75,6 +65,7 @@ Engine::Engine(void)
 	,_CombineLitPS(NULL)
 	,_TextureRV(NULL)
 	,_ShadowDepthTexture(NULL)
+	,_DeferredShadowTexture(NULL)
 	
 {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -104,8 +95,9 @@ Engine::~Engine(void)
 	if(_DeferredDirPSCB) _DeferredDirPSCB->Release();
 	if(_DeferredPointPS) _DeferredPointPS->Release();
 	if(_DeferredPointPSCB) _DeferredPointPSCB->Release();
-	if(_DeferredShadowPS) _DeferredPointPS->Release();
-	if(_DeferredShadowPSCB) _DeferredPointPSCB->Release();
+	if(_DeferredShadowPS) _DeferredShadowPS->Release();
+	if(_DeferredShadowPSCB) _DeferredShadowPSCB->Release();
+
 
 	if(_SimpleDrawer) delete _SimpleDrawer;
 	if(_GBufferDrawer) delete _GBufferDrawer;
@@ -118,6 +110,7 @@ Engine::~Engine(void)
 	if(_SceneColorTexture) delete _SceneColorTexture;
 	if(_LitTexture) delete _LitTexture;
 	if(_ShadowDepthTexture) delete _ShadowDepthTexture;
+	if(_DeferredShadowTexture) delete _DeferredShadowTexture;
 
 
 	if(_CombineLitPS) _CombineLitPS->Release();
@@ -256,6 +249,12 @@ void Engine::InitDevice()
 	CD3D11_DEPTH_STENCIL_VIEW_DESC  ShadowDescDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT, 0, 0, 0,0) ;
 	CD3D11_SHADER_RESOURCE_VIEW_DESC ShadowDescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
 	_ShadowDepthTexture = new TextureDepth2D(ShadowDescDepthTex, ShadowDescDSV, ShadowDescDepthSRV);
+
+	// shadow result
+	CD3D11_TEXTURE2D_DESC DescShadowTex(DXGI_FORMAT_R8G8B8A8_UNORM, _Width, _Height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_SHADER_RESOURCE_VIEW_DESC DescShadowSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DescShadowTex.Format, 0, DescShadowTex.MipLevels);
+	_DeferredShadowTexture = new Texture2D(DescShadowTex, DescShadowSRV, true);
+	
 
 	// Setup the viewport
 	D3D11_VIEWPORT vp;
@@ -592,8 +591,12 @@ void Engine::Render()
 		}
 	}
 
+	// render shadows to shadow result buffer
+	RenderDeferredShadow();
+
 	// lighting pass
 	StartRenderingLightingBuffer(true);
+
 
 	ID3D11ShaderResourceView* aSRV[2] = {_WorldNormalTexture->GetSRV(), _DepthTexture->GetSRV()};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRV );
@@ -606,7 +609,6 @@ void Engine::Render()
 		LightComponent* Light = _LightCompArray[i];
 		Light->RenderLightDeferred();
 	}
-
 
 	// combine pass
 	SetBlendState(BS_NORMAL);
@@ -646,6 +648,13 @@ void Engine::EndRendering()
 		DrawFullScreenQuad11(_VisNormalPS, _Width/4, _Height/4);
 	}
 
+	bool _VisualizeShadow = true;
+	if(_VisualizeShadow)
+	{
+		ID3D11ShaderResourceView* aSRVVis[1] = {_DeferredShadowTexture->GetSRV(), };
+		_ImmediateContext->PSSetShaderResources( 0, 1, aSRVVis );
+		DrawFullScreenQuad11(_VisNormalPS, _Width/2, _Height/2, _Width*0.5, _Height*0.5);
+	}
 
 	bool _VisualizeShadowMap = true;
 	if(_VisualizeShadowMap)
@@ -734,8 +743,17 @@ void Engine::InitDeviceStates()
 	DescBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
 	DescBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 	DescBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-
 	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_LIGHTING].BS);
+
+	DescBlend.RenderTarget[0].BlendEnable = true;
+	DescBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+	DescBlend.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	DescBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_REV_SUBTRACT   ;
+	DescBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	DescBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	DescBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_REV_SUBTRACT   ;
+	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_SHADOW].BS);
+
 
 	// depth stencil state
 	_DepthStencilStateArray.resize(SIZE_DEPTHSTENCILSTATE);
@@ -793,6 +811,9 @@ void Engine::RenderShadowMap()
 	_ImmediateContext->RSSetViewports( 1, &vp );
     // Initialize the view matrix
 
+	_SunShadowNear = 10.f;
+	_SunShadowFar = 2000.f;
+
 	XMVECTOR At = XMLoadFloat3(&XMFLOAT3(0.f, 0, 0.f));
 	XMVECTOR Eye =  At - XMLoadFloat3(&_SunLight->_LightDirection) * 220.f;
 
@@ -800,25 +821,21 @@ void Engine::RenderShadowMap()
 	
 	XMMATRIX View = XMMatrixLookAtRH( Eye, At, Up );
 	//XMMATRIX Projection = XMMatrixOrthographicOffCenterRH(-5, 5, -5, 5, -500, 500);
-	XMMATRIX Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, 1024 /1024, GEngine->_Near, 2000 );
-
-
-	XMFLOAT4X4 ProjectionMat;
+	XMMATRIX Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, 1024 /1024, _SunShadowNear, _SunShadowFar );
 
 	XMStoreFloat4x4(&_SunShadowMat, View);
-	XMStoreFloat4x4(&ProjectionMat, Projection);
-
+	XMStoreFloat4x4(&_SunShadowProjectionMat, Projection);
 
 	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
 	{
-		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], _SunShadowMat, ProjectionMat);
+		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], _SunShadowMat, _SunShadowProjectionMat);
 	}
 
 	if(_GSkeletalMeshComponent)
 	{
 		for(unsigned int i=0;i<_GSkeletalMeshComponent->_RenderDataArray.size();i++)
 		{
-			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], _SunShadowMat, ProjectionMat);
+			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], _SunShadowMat, _SunShadowProjectionMat);
 		}
 	}
 
@@ -827,7 +844,42 @@ void Engine::RenderShadowMap()
 
 void Engine::RenderDeferredShadow()
 {
+	ID3D11RenderTargetView* aRTViewsLit[ 1] = { _DeferredShadowTexture->GetRTV() };
+	_ImmediateContext->OMSetRenderTargets( 1, aRTViewsLit, NULL);     
+
+	//float ShadowClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
+	float ShadowClearColor[4] = { 1.f, 1.f, 1.f, 1.f }; //red,green,blue,alpha
+	_ImmediateContext->ClearRenderTargetView( _DeferredShadowTexture->GetRTV() , ShadowClearColor );
+
+	ID3D11ShaderResourceView* aSRVVis[2] = {_DepthTexture->GetSRV(), _ShadowDepthTexture->GetSRV()};
+	_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
+
+	SetDepthStencilState(DS_LIGHTING_PASS);
+	SetBlendState(BS_SHADOW); // litbuffer.a -= shadow mask
+	//SetBlendState(BS_LIGHTING); 
+
 	
+	DeferredShadowPSCBStruct cbShadow;
+
+	cbShadow.Projection = XMMatrixTranspose( XMLoadFloat4x4(&_ProjectionMat));
+	cbShadow.ProjectionParams.x = _Far/(_Far - _Near);
+	cbShadow.ProjectionParams.y = _Near/(_Near - _Far);
+	cbShadow.ProjectionParams.z = _Far;
+	cbShadow.ViewportParams.x = (float)_Width;
+	cbShadow.ViewportParams.y = (float)_Height;
+
+	XMVECTOR Det;
+	XMMATRIX InvViewMatrix = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
+	cbShadow.ShadowMatrix = XMMatrixTranspose(InvViewMatrix * XMLoadFloat4x4(&_SunShadowMat) * XMLoadFloat4x4(&_SunShadowProjectionMat));
+	//cbShadow.ShadowProjection = XMLoadFloat4x4(&_SunShadowProjectionMat);
+
+	//cbShadow.ShadowProjectionParams.x = _SunShadowFar/(_SunShadowFar - _SunShadowNear);
+	//cbShadow.ShadowProjectionParams.y = _SunShadowNear/(_SunShadowNear - _SunShadowFar);
+	//cbShadow.ShadowProjectionParams.z = _SunShadowFar;
+
+	_ImmediateContext->UpdateSubresource( _DeferredShadowPSCB, 0, NULL, &cbShadow, 0, 0 );
+	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredShadowPSCB );
+	DrawFullScreenQuad11(_DeferredShadowPS, _Width, _Height);
 
 }
 

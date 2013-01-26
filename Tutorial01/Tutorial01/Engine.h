@@ -39,6 +39,8 @@ public:
 	Texture2D*				_FrameBufferTexture;
 	Texture2D*				_SceneColorTexture;
 	Texture2D*				_LitTexture;
+	Texture2D*				_DeferredShadowTexture;
+
 	Texture2D*				_WorldNormalTexture;
 	TextureDepth2D*			_DepthTexture;
 	TextureDepth2D*			_ShadowDepthTexture;
@@ -56,6 +58,9 @@ public:
 	float		_Far;
 
 	XMFLOAT4X4 _SunShadowMat;
+	XMFLOAT4X4 _SunShadowProjectionMat;
+	float		_SunShadowNear;
+	float		_SunShadowFar;
 
 	// debug line draw
 	LineBatcher* _LineBatcher;
@@ -109,7 +114,7 @@ public:
 
 	// Blend States
 	enum EBlendState{
-		BS_NORMAL, BS_LIGHTING,
+		BS_NORMAL, BS_LIGHTING, BS_SHADOW,
 		SIZE_BLENDSTATE,
 	};
 	struct BlendStateData
@@ -166,7 +171,6 @@ public:
 	ID3D11PixelShader* CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines = NULL);
 	void DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Height, UINT TopLeftX = 0, UINT TopLeftY = 0);
 
-	float _GetTimeSeconds();
 	Engine(void);
 	virtual ~Engine(void);
 };

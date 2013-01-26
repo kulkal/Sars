@@ -10,6 +10,7 @@ cbuffer ConstantBuffer : register( b0 )
 	matrix View;
 	matrix Projection;
 	float4 ProjectionParams;
+	float4 ViewportParams;
 }
 
 struct QuadVS_Input
@@ -32,8 +33,6 @@ QuadVS_Output QuadVS( QuadVS_Input Input )
     return Output;
 }
 
-
-
 float4 PS( QuadVS_Output input ) : SV_Target
 {
 	float3 ViewNormal = texWorldNormal.Sample( samLinear, input.Tex ).xyz;
@@ -41,8 +40,12 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	float DeviceDepth = texDepth.Sample( samLinear, input.Tex ).x;
 	float LinearDepth =  GetLinearDepth(DeviceDepth, ProjectionParams.x, ProjectionParams.y) * ProjectionParams.z;
 
-	float2 ScreenPosition = input.Tex.xy * 2 -1;
+	float2 ScreenPosition = input.Pos.xy;
+	ScreenPosition.x /= ViewportParams.x;
+	ScreenPosition.y /= ViewportParams.y;
+	ScreenPosition.xy = ScreenPosition.xy * 2 -1;
 	ScreenPosition.y = -ScreenPosition.y;
+
 	float3 ViewPosition = GetViewPosition(LinearDepth, ScreenPosition, Projection._11, Projection._22);
 
 	float3 LightDir = vLightPos.xyz - ViewPosition;

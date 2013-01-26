@@ -5,7 +5,10 @@ SamplerState samLinear : register( s0 );
 
 cbuffer ConstantBuffer : register( b0 )
 {
-	float4x4 ShadowMatrix;
+	matrix Projection;
+	float4 ProjectionParams;
+	float4 ViewportParams;
+	matrix ShadowMatrix;
 }
 
 struct QuadVS_Input
@@ -34,11 +37,47 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	float DeviceDepth = texDepth.Sample( samLinear, input.Tex ).x;
 	float LinearDepth =  GetLinearDepth(DeviceDepth, ProjectionParams.x, ProjectionParams.y) * ProjectionParams.z;
 
-	float2 ScreenPosition = input.Tex.xy * 2 -1;
+	float2 ScreenPosition = input.Pos.xy;
+	ScreenPosition.x /= ViewportParams.x;
+	ScreenPosition.y /= ViewportParams.y;
+	ScreenPosition.xy = ScreenPosition.xy * 2 -1;
 	ScreenPosition.y = -ScreenPosition.y;
-	float3 ViewPosition = GetViewPosition(LinearDepth, ScreenPosition, Projection._11, Projection._22);
 
+	float4 ViewPosition = float4(GetViewPosition(LinearDepth, ScreenPosition, Projection._11, Projection._22).xyz, 1);
 	// transform view position into shadow space
+	
 
-	return float(1, 0, 0, 0);
+
+	float4 ShadowPos = mul(ViewPosition, ShadowMatrix);
+	
+
+
+	//if(ShadowPos.z >350)
+	//	return float4(0, 1, 1, 1);
+	//else
+	//	return float4(1, 1, 0, 1);
+	
+
+	//return float4(ShadowPos.zzz, 1);
+
+	ShadowPos.xyz /= ShadowPos.w;
+
+
+	ShadowPos.xy = ShadowPos.xy *0.5 + 0.5;
+	float2 ShadowTex = ShadowPos.xy; //*0.5 + 0.5;
+	ShadowTex.y = 1- ShadowTex.y;
+	float ShadowDeviceDepth = texShadowMap.Sample( samLinear, ShadowTex.xy ).x;
+	//float ShadowLinearDepth = GetLinearDepth(ShadowDeviceDepth, ShadowProjectionParams.x, ShadowProjectionParams.y);// * ShadowProjectionParams.z;
+
+	//float LZ = LinearDepth/ProjectionParams.z;
+	//return float4(LZ, LZ,LZ, LZ);
+
+	//float SZ =ShadowDeviceDepth;
+	//return float4(SZ, SZ,SZ, SZ);
+	
+
+	if(ShadowPos.z-0.001 > ShadowDeviceDepth)
+		return float4(1, 1, 1, 1);
+	else
+		return float4(0, 0, 0, 0);
 }

@@ -1,15 +1,6 @@
 #include "PointLightComponent.h"
 #include "Engine.h"
 
-struct DeferredPointPSCBStruct
-{
-	XMFLOAT4 vLightPos;
-	XMFLOAT4 vLightColor;
-	XMMATRIX mView;
-	XMMATRIX mProjection;
-	XMFLOAT4 ProjectionParams;
-};
-
 PointLightComponent::PointLightComponent(XMFLOAT4 LightColor, XMFLOAT3 LightPos, float LightRange)
 	:LightComponent(LightColor)
 	,_LightPos(LightPos)
@@ -36,6 +27,8 @@ void PointLightComponent::RenderLightDeferred()
 	cbPoint.ProjectionParams.x = GEngine->_Far/(GEngine->_Far - GEngine->_Near);
 	cbPoint.ProjectionParams.y = GEngine->_Near/(GEngine->_Near - GEngine->_Far);
 	cbPoint.ProjectionParams.z = GEngine->_Far;
+	cbPoint.ViewportParams.x = (float)GEngine->_Width;
+	cbPoint.ViewportParams.y = (float)GEngine->_Height;
 	GEngine->_ImmediateContext->UpdateSubresource( GEngine->_DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
 	GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &GEngine->_DeferredPointPSCB );
 	GEngine->DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);

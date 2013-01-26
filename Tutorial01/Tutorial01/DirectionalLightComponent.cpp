@@ -1,11 +1,6 @@
 #include "DirectionalLightComponent.h"
 #include "Engine.h"
 
-struct DeferredDirPSCBStruct
-{
-	XMFLOAT4 vLightDir;
-	XMFLOAT4 vLightColor;
-};
 
 DirectionalLightComponent::DirectionalLightComponent(XMFLOAT4 LightColor, XMFLOAT3 LightDir)
 	:LightComponent(LightColor)
