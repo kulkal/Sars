@@ -402,6 +402,7 @@
     <ClCompile Include="SkeletalMesh.cpp" />
     <ClCompile Include="SkeletalMeshComponent.cpp" />
     <ClCompile Include="SkeletalMeshRenderData.cpp" />
+    <ClCompile Include="StateManager.cpp" />
     <ClCompile Include="StaticMesh.cpp" />
     <ClCompile Include="StaticMeshComponent.cpp" />
     <ClCompile Include="StaticMeshEntity.cpp" />
@@ -437,6 +438,7 @@
     <ClInclude Include="SkeletalMeshComponent.h" />
     <ClInclude Include="SkeletalMeshRenderData.h" />
     <ClInclude Include="Skeleton.h" />
+    <ClInclude Include="StateManager.h" />
     <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="StaticMeshComponent.h" />
     <ClInclude Include="StaticMeshEntity.h" />

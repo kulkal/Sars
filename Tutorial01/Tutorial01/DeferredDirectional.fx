@@ -2,6 +2,7 @@
 
 Texture2D<float4> texWorldNormal : register( t0 );
 Texture2D<float4> texDepth : register( t1 );
+Texture2D<float4> texShadowMap : register( t2 );
 SamplerState samLinear : register( s0 );
 
 cbuffer ConstantBuffer : register( b0 )
@@ -34,8 +35,13 @@ float4 PS( QuadVS_Output input ) : SV_Target
 {
 	float3 LightDir = - vLightDir.xyz;
 	float3 ViewNormal = normalize(texWorldNormal.Sample( samLinear, input.Tex ).xyz);
+	float4 Shadow = texShadowMap.Sample(samLinear, input.Tex);
+
 	float NdotL = dot(LightDir, ViewNormal);
 	
+
 	float3 Specular = CalcBlinPhong(LightDir, ViewNormal, 100);
-	return saturate( NdotL * vLightColor ) + float4(Specular.xyz * vLightColor.xyz, 1) + float4(0.01, 0, 0, 1);
+	float4 Light =  saturate( NdotL * vLightColor ) + float4(Specular.xyz * vLightColor.xyz, 1);
+
+	return Light * Shadow;
 }

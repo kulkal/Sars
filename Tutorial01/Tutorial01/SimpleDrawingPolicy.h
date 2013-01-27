@@ -9,7 +9,6 @@ class SimpleDrawingPolicy :
 {
 	ID3D11Buffer*           ConstantBuffer;
 	ID3D11RasterizerState*	 RS;
-	ID3D11SamplerState*		_SamplerLinear;
 
 public:
 	XMFLOAT4 vLightDirs[2];

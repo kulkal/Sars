@@ -24,6 +24,7 @@ class AnimationClip;
 class LightComponent;
 class DirectionalLightComponent;
 
+
 class Engine
 {
 public:
@@ -44,6 +45,8 @@ public:
 	Texture2D*				_WorldNormalTexture;
 	TextureDepth2D*			_DepthTexture;
 	TextureDepth2D*			_ShadowDepthTexture;
+	UINT					_ShadowMapSize;
+
 
 	UINT _Width;
 	UINT _Height;
@@ -93,46 +96,6 @@ public:
 	ID3D11PixelShader*			_DeferredShadowPS;
 	ID3D11Buffer*				_DeferredShadowPSCB;
 
-	// Depth Stencil States
-	enum EDepthStencilState
-	{
-		DS_GBUFFER_PASS,
-		DS_LIGHTING_PASS,
-		SIZE_DEPTHSTENCILSTATE,
-	};
-	struct DepthStencilStateData
-	{
-		ID3D11DepthStencilState* DSS;
-		UINT StencilRef;
-		DepthStencilStateData()
-		{
-			DSS = NULL;
-			StencilRef = 0;
-		}
-	};
-	std::vector<DepthStencilStateData> _DepthStencilStateArray;
-
-	// Blend States
-	enum EBlendState{
-		BS_NORMAL, BS_LIGHTING, BS_SHADOW,
-		SIZE_BLENDSTATE,
-	};
-	struct BlendStateData
-	{
-		ID3D11BlendState* BS;
-		float BlendFactor[8];
-		unsigned int SampleMask;
-		BlendStateData()
-		{
-			BS = NULL;
-			for(int i=0;i<8;i++)
-				BlendFactor[i] = 1.f;
-			SampleMask = 0xffffffff;
-		}
-	};
-	std::vector<BlendStateData> _BlendStateArray;
-
-
 	bool _VisualizeWorldNormal;
 	bool _VisualizeDepth;
 
@@ -154,9 +117,6 @@ public:
 	void BeginRendering();
 	void Render();
 	void EndRendering();
-	void InitDeviceStates();
-	void SetBlendState(EBlendState eBS);
-	void SetDepthStencilState(EDepthStencilState eDSS);
 
 	void RenderShadowMap();
 	void RenderDeferredShadow();

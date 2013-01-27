@@ -2,7 +2,9 @@
 Texture2D<float4> texDepth : register( t0 );
 Texture2D<float4> texShadowMap : register( t1 );
 SamplerState samLinear : register( s0 );
+SamplerComparisonState samShadow : register( s1 );
 
+#define SHADOW_EPSYLON 0.001
 cbuffer ConstantBuffer : register( b0 )
 {
 	matrix Projection;
@@ -46,19 +48,7 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	float4 ViewPosition = float4(GetViewPosition(LinearDepth, ScreenPosition, Projection._11, Projection._22).xyz, 1);
 	// transform view position into shadow space
 	
-
-
 	float4 ShadowPos = mul(ViewPosition, ShadowMatrix);
-	
-
-
-	//if(ShadowPos.z >350)
-	//	return float4(0, 1, 1, 1);
-	//else
-	//	return float4(1, 1, 0, 1);
-	
-
-	//return float4(ShadowPos.zzz, 1);
 
 	ShadowPos.xyz /= ShadowPos.w;
 
@@ -66,18 +56,26 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	ShadowPos.xy = ShadowPos.xy *0.5 + 0.5;
 	float2 ShadowTex = ShadowPos.xy; //*0.5 + 0.5;
 	ShadowTex.y = 1- ShadowTex.y;
-	float ShadowDeviceDepth = texShadowMap.Sample( samLinear, ShadowTex.xy ).x;
-	//float ShadowLinearDepth = GetLinearDepth(ShadowDeviceDepth, ShadowProjectionParams.x, ShadowProjectionParams.y);// * ShadowProjectionParams.z;
 
-	//float LZ = LinearDepth/ProjectionParams.z;
-	//return float4(LZ, LZ,LZ, LZ);
+	float ShadowMapSize = ViewportParams.z;
 
-	//float SZ =ShadowDeviceDepth;
-	//return float4(SZ, SZ,SZ, SZ);
-	
+	float2 texelpos = ShadowMapSize * ShadowTex;
+        
+    // Determine the lerp amounts           
+    float2 lerps = frac( texelpos );
 
-	if(ShadowPos.z-0.001 > ShadowDeviceDepth)
-		return float4(1, 1, 1, 1);
-	else
-		return float4(0, 0, 0, 0);
+	float DepthCompareVal = ShadowPos.z - SHADOW_EPSYLON;
+	//float ShadowDeviceDepth = texShadowMap.Sample( samLinear, ShadowTex.xy ).x;
+
+	float sourcevals[4];
+	sourcevals[0] = texShadowMap.SampleCmpLevelZero(samShadow, ShadowTex.xy, DepthCompareVal).x;
+	sourcevals[1] = texShadowMap.SampleCmpLevelZero(samShadow, ShadowTex.xy + float2(1.0/ShadowMapSize, 0), DepthCompareVal).x;
+	sourcevals[2] = texShadowMap.SampleCmpLevelZero(samShadow, ShadowTex.xy + float2(0, 1.0/ShadowMapSize), DepthCompareVal).x;
+	sourcevals[3] = texShadowMap.SampleCmpLevelZero(samShadow, ShadowTex.xy + float2(1.0/ShadowMapSize, 1.0/ShadowMapSize), DepthCompareVal).x;
+
+	float ShadowVal = lerp( lerp( sourcevals[0], sourcevals[1], lerps.x ),
+                                  lerp( sourcevals[2], sourcevals[3], lerps.x ),
+                                  lerps.y );
+
+	return 1-float4(ShadowVal, ShadowVal, ShadowVal, ShadowVal);
 }

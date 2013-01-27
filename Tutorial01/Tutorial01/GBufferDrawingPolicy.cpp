@@ -1,4 +1,5 @@
 #include "GBufferDrawingPolicy.h"
+#include "StateManager.h"
 
 
 struct ConstantBufferStruct
@@ -10,7 +11,6 @@ struct ConstantBufferStruct
 GBufferDrawingPolicy::GBufferDrawingPolicy(void)
 	:ConstantBuffer(NULL)
 	,RS(NULL)
-	,_SamplerLinear(NULL)
 {
 	FileName = "GBufferShader.fx";
 
@@ -51,21 +51,6 @@ GBufferDrawingPolicy::GBufferDrawingPolicy(void)
 
 
 	GEngine->_ImmediateContext->RSSetState(RS);
-
-	D3D11_SAMPLER_DESC sampDesc;
-	ZeroMemory( &sampDesc, sizeof(sampDesc) );
-	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	sampDesc.MinLOD = 0;
-	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	hr = GEngine->_Device->CreateSamplerState( &sampDesc, &_SamplerLinear );
-	if( FAILED( hr ) )
-		assert(false);
-
-	SetD3DResourceDebugName("GBufferDrawingPolicy_SamplerLinear", _SamplerLinear);
 }
 
 
@@ -73,7 +58,6 @@ GBufferDrawingPolicy::~GBufferDrawingPolicy(void)
 {
 	if(ConstantBuffer) ConstantBuffer->Release();
 	if(RS) RS->Release();
-	if(_SamplerLinear)_SamplerLinear->Release();
 }
 
 void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMFLOAT4X4& ViewMat, XMFLOAT4X4& ProjectionMat)
@@ -101,7 +85,7 @@ void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMFLOAT4X4& ViewMa
 	GEngine->_ImmediateContext->VSSetConstantBuffers( 0, 1, &ConstantBuffer );
 	GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &ConstantBuffer );
 
-	GEngine->_ImmediateContext->PSSetSamplers( 0, 1, &_SamplerLinear );
+	SET_PS_SAMPLER(0, SS_LINEAR);
 
 
 	GEngine->_ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
@@ -136,6 +120,7 @@ void GBufferDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderD
 
 	GEngine->_ImmediateContext->VSSetShaderResources( 0, 1, &pRenderData->_BoneMatricesBufferRV );
 
-	GEngine->_ImmediateContext->PSSetSamplers( 0, 1, &_SamplerLinear );
+	SET_PS_SAMPLER(0, SS_LINEAR);
+
 	GEngine->_ImmediateContext->DrawIndexed( pRenderData->_SkeletalMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }

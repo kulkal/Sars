@@ -83,6 +83,7 @@
     <ClCompile Include="PointLightComponent.cpp" />
     <ClCompile Include="DirectionalLightComponent.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="StateManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -120,6 +121,7 @@
     <ClInclude Include="PointLightComponent.h" />
     <ClInclude Include="DirectionalLightComponent.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="StateManager.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

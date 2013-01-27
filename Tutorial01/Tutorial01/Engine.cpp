@@ -10,7 +10,7 @@
 #include "DirectionalLightComponent.h"
 #include "PointLightComponent.h"
 #include "AnimationClip.h"
-
+#include "StateManager.h"
 
 struct SCREEN_VERTEX
 {
@@ -24,8 +24,6 @@ struct DeferredShadowPSCBStruct
 	XMFLOAT4 ProjectionParams;
 	XMFLOAT4 ViewportParams;
 	XMMATRIX ShadowMatrix;
-	/*XMMATRIX ShadowProjection;
-	XMFLOAT4 ShadowProjectionParams;*/
 };
 
 struct VisDepthPSCBStruct
@@ -73,6 +71,7 @@ Engine::Engine(void)
 	QueryPerformanceCounter(&_PrevTime);
 	_Near = 10.f;
 	_Far = 1000.f;
+	_ShadowMapSize = 512;
 	//_CrtSetBreakAlloc(2486860);
 }
 
@@ -115,17 +114,7 @@ Engine::~Engine(void)
 
 	if(_CombineLitPS) _CombineLitPS->Release();
 
-	for(int i=0;i<_BlendStateArray.size();i++)
-	{
-		BlendStateData& BS = _BlendStateArray[i];
-		BS.BS->Release();
-	}
-
-	for(int i=0;i<_DepthStencilStateArray.size();i++)
-	{
-		DepthStencilStateData& DSS = _DepthStencilStateArray[i];
-		DSS.DSS->Release();
-	}
+	
 
 	if(_GSkeleton) delete _GSkeleton;
 	if(_GPose) delete _GPose;
@@ -156,6 +145,8 @@ Engine::~Engine(void)
 	}
 
 	if( _TextureRV ) _TextureRV->Release();
+
+	if(GStateManager) delete GStateManager;
 }
 
 void Engine::InitDevice()
@@ -243,9 +234,7 @@ void Engine::InitDevice()
 	CD3D11_SHADER_RESOURCE_VIEW_DESC DescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
 	_DepthTexture = new TextureDepth2D(DescDepthTex, DescDSV, DescDepthSRV);
 
-	UINT ShadowTexWidth = 1024;
-	UINT ShadowTexHeight = 1024;
-	CD3D11_TEXTURE2D_DESC ShadowDescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, ShadowTexWidth, ShadowTexHeight, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_TEXTURE2D_DESC ShadowDescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, _ShadowMapSize, _ShadowMapSize, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
 	CD3D11_DEPTH_STENCIL_VIEW_DESC  ShadowDescDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT, 0, 0, 0,0) ;
 	CD3D11_SHADER_RESOURCE_VIEW_DESC ShadowDescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
 	_ShadowDepthTexture = new TextureDepth2D(ShadowDescDepthTex, ShadowDescDSV, ShadowDescDepthSRV);
@@ -403,8 +392,6 @@ void Engine::InitDevice()
 	
 	_DeferredShadowPS = CreatePixelShaderSimple("DeferredShadow.fx");
 
-	InitDeviceStates();
-
 	/////////////
 	_SimpleDrawer = new SimpleDrawingPolicy;
 	_GBufferDrawer = new GBufferDrawingPolicy;
@@ -445,6 +432,9 @@ void Engine::InitDevice()
 	hr = D3DX11CreateShaderResourceViewFromFile( GEngine->_Device, L"seafloor.dds", NULL, NULL, &_TextureRV, NULL );
 	if( FAILED( hr ) )
 		assert(false);
+
+	GStateManager = new StateManager;
+	GStateManager->Init();
 
 	_SunLight = new DirectionalLightComponent(XMFLOAT4(0.2f, 0.f, 0.f, 1.F), XMFLOAT3(1.f, -1.f, -1.f) );
 	_LightCompArray.push_back(_SunLight);
@@ -598,11 +588,11 @@ void Engine::Render()
 	StartRenderingLightingBuffer(true);
 
 
-	ID3D11ShaderResourceView* aSRV[2] = {_WorldNormalTexture->GetSRV(), _DepthTexture->GetSRV()};
-	_ImmediateContext->PSSetShaderResources( 0, 2, aSRV );
+	ID3D11ShaderResourceView* aSRV[3] = {_WorldNormalTexture->GetSRV(), _DepthTexture->GetSRV(), _DeferredShadowTexture->GetSRV()};
+	_ImmediateContext->PSSetShaderResources( 0, 3, aSRV );
 
-	SetBlendState(BS_LIGHTING);
-	SetDepthStencilState(DS_LIGHTING_PASS);
+	SET_BLEND_STATE(BS_LIGHTING);
+	SET_DEPTHSTENCIL_STATE(DS_LIGHTING_PASS);
 
 	for(unsigned int i=0;i<_LightCompArray.size();i++)
 	{
@@ -611,7 +601,7 @@ void Engine::Render()
 	}
 
 	// combine pass
-	SetBlendState(BS_NORMAL);
+	SET_BLEND_STATE(BS_NORMAL);
 
 	StartRenderingFrameBuffer(false, false, true);
 
@@ -648,7 +638,7 @@ void Engine::EndRendering()
 		DrawFullScreenQuad11(_VisNormalPS, _Width/4, _Height/4);
 	}
 
-	bool _VisualizeShadow = true;
+	bool _VisualizeShadow = false;
 	if(_VisualizeShadow)
 	{
 		ID3D11ShaderResourceView* aSRVVis[1] = {_DeferredShadowTexture->GetSRV(), };
@@ -701,8 +691,8 @@ void Engine::StartRenderingGBuffers()
 
 	ID3D11RenderTargetView* aRTViews[ 2 ] = { _SceneColorTexture->GetRTV(), _WorldNormalTexture->GetRTV() };
 	_ImmediateContext->OMSetRenderTargets( 2, aRTViews, _DepthTexture->GetDepthStencilView() );     
-	SetDepthStencilState(DS_GBUFFER_PASS);
-	SetBlendState(Engine::BS_NORMAL);
+	SET_DEPTHSTENCIL_STATE(DS_GBUFFER_PASS);
+	SET_BLEND_STATE(BS_NORMAL);
 
 	// Just clear the backbuffer
 	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.0f }; //red,green,blue,alpha
@@ -727,74 +717,16 @@ void Engine::StartRenderingLightingBuffer(bool bClear)
 	}
 }
 
-void Engine::InitDeviceStates()
-{
-	// blend state
-	_BlendStateArray.resize(SIZE_BLENDSTATE);
-
-	CD3D11_BLEND_DESC DescBlend(D3D11_DEFAULT);
-
-	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_NORMAL].BS);
-
-	DescBlend.RenderTarget[0].BlendEnable = true;
-	DescBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-	DescBlend.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
-	DescBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-	DescBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-	DescBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-	DescBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_LIGHTING].BS);
-
-	DescBlend.RenderTarget[0].BlendEnable = true;
-	DescBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-	DescBlend.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
-	DescBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_REV_SUBTRACT   ;
-	DescBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-	DescBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-	DescBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_REV_SUBTRACT   ;
-	_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_SHADOW].BS);
-
-
-	// depth stencil state
-	_DepthStencilStateArray.resize(SIZE_DEPTHSTENCILSTATE);
-
-	// DS_GBUFFER_PASS
-	D3D11_DEPTH_STENCIL_DESC  DSStateDesc;
-	ZeroMemory( &DSStateDesc, sizeof(DSStateDesc) );
-	DSStateDesc.DepthEnable = TRUE;
-	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-
-	DSStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	DSStateDesc.StencilEnable = FALSE;
-	DSStateDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
-	DSStateDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
-	const D3D11_DEPTH_STENCILOP_DESC defaultStencilOp =
-	{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS };
-	DSStateDesc.FrontFace = defaultStencilOp;
-	DSStateDesc.BackFace = defaultStencilOp;
-
-	_DepthStencilStateArray[DS_GBUFFER_PASS].StencilRef = 0;
-	_Device->CreateDepthStencilState(&DSStateDesc, &_DepthStencilStateArray[DS_GBUFFER_PASS].DSS);
-
-	//DS_LIGHTING_PASS
-	DSStateDesc.DepthEnable = FALSE;
-	DSStateDesc.StencilEnable = FALSE;
-	DSStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	_Device->CreateDepthStencilState(&DSStateDesc, &_DepthStencilStateArray[DS_LIGHTING_PASS].DSS);
-
-
-}
-
 void Engine::RenderShadowMap()
 {
-	ID3D11ShaderResourceView* aSRS[2] = {NULL, NULL};
-	_ImmediateContext->PSSetShaderResources( 0, 2, aSRS );
+	ID3D11ShaderResourceView* aSRS[3] = {NULL, NULL, NULL};
+	_ImmediateContext->PSSetShaderResources( 0, 3, aSRS );
 
 	ID3D11RenderTargetView* aRTV[ 1] = { NULL };
 	_ImmediateContext->OMSetRenderTargets( 1, aRTV, _ShadowDepthTexture->GetDepthStencilView() );
 	_ImmediateContext->ClearDepthStencilView( _ShadowDepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 
-	SetDepthStencilState(DS_GBUFFER_PASS);
+	SET_DEPTHSTENCIL_STATE(DS_GBUFFER_PASS);
 
 	D3D11_VIEWPORT vpOld[D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX];
 	UINT nViewPorts = 1;
@@ -802,8 +734,8 @@ void Engine::RenderShadowMap()
 
 	// Setup the viewport to match the backbuffer
 	D3D11_VIEWPORT vp;
-	vp.Width = (float)1024;
-	vp.Height = (float)1024;
+	vp.Width = (float)_ShadowMapSize;
+	vp.Height = (float)_ShadowMapSize;
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
 	vp.TopLeftX = 0;
@@ -821,7 +753,7 @@ void Engine::RenderShadowMap()
 	
 	XMMATRIX View = XMMatrixLookAtRH( Eye, At, Up );
 	//XMMATRIX Projection = XMMatrixOrthographicOffCenterRH(-5, 5, -5, 5, -500, 500);
-	XMMATRIX Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, 1024 /1024, _SunShadowNear, _SunShadowFar );
+	XMMATRIX Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, _ShadowMapSize /_ShadowMapSize, _SunShadowNear, _SunShadowFar );
 
 	XMStoreFloat4x4(&_SunShadowMat, View);
 	XMStoreFloat4x4(&_SunShadowProjectionMat, Projection);
@@ -854,9 +786,11 @@ void Engine::RenderDeferredShadow()
 	ID3D11ShaderResourceView* aSRVVis[2] = {_DepthTexture->GetSRV(), _ShadowDepthTexture->GetSRV()};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
 
-	SetDepthStencilState(DS_LIGHTING_PASS);
-	SetBlendState(BS_SHADOW); // litbuffer.a -= shadow mask
-	//SetBlendState(BS_LIGHTING); 
+	SET_DEPTHSTENCIL_STATE(DS_LIGHTING_PASS);
+	SET_BLEND_STATE(BS_SHADOW); // litbuffer.a -= shadow mask
+	SET_PS_SAMPLER(0, SS_LINEAR);
+	SET_PS_SAMPLER(1, SS_SHADOW);
+	//SET_BLEND_STATE(BS_LIGHTING); 
 
 	
 	DeferredShadowPSCBStruct cbShadow;
@@ -867,6 +801,7 @@ void Engine::RenderDeferredShadow()
 	cbShadow.ProjectionParams.z = _Far;
 	cbShadow.ViewportParams.x = (float)_Width;
 	cbShadow.ViewportParams.y = (float)_Height;
+	cbShadow.ViewportParams.z = (float)_ShadowMapSize;
 
 	XMVECTOR Det;
 	XMMATRIX InvViewMatrix = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
@@ -881,18 +816,7 @@ void Engine::RenderDeferredShadow()
 	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredShadowPSCB );
 	DrawFullScreenQuad11(_DeferredShadowPS, _Width, _Height);
 
-}
-
-void Engine::SetBlendState(EBlendState eBS)
-{
-	_ImmediateContext->OMSetBlendState(_BlendStateArray[eBS].BS, _BlendStateArray[eBS].BlendFactor, _BlendStateArray[eBS].SampleMask);
-
-}
-
-void Engine::SetDepthStencilState( EDepthStencilState eDSS )
-{
-	_ImmediateContext->OMSetDepthStencilState(_DepthStencilStateArray[eDSS].DSS, _DepthStencilStateArray[eDSS].StencilRef);
-
+	SET_PS_SAMPLER(0, SS_LINEAR);
 }
 
 float Engine::_GetTimeSeconds()
