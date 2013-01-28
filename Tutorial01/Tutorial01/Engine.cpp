@@ -71,7 +71,7 @@ Engine::Engine(void)
 	QueryPerformanceCounter(&_PrevTime);
 	_Near = 10.f;
 	_Far = 1000.f;
-	_ShadowMapSize = 512;
+	_ShadowMapSize = 128;
 	//_CrtSetBreakAlloc(2486860);
 }
 

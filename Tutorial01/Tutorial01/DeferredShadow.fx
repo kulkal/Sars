@@ -57,25 +57,19 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	float2 ShadowTex = ShadowPos.xy; //*0.5 + 0.5;
 	ShadowTex.y = 1- ShadowTex.y;
 
-	float ShadowMapSize = ViewportParams.z;
-
-	float2 texelpos = ShadowMapSize * ShadowTex;
-        
-    // Determine the lerp amounts           
-    float2 lerps = frac( texelpos );
-
+	float ShadowTexSize = ViewportParams.z;
 	float DepthCompareVal = ShadowPos.z - SHADOW_EPSYLON;
 	//float ShadowDeviceDepth = texShadowMap.Sample( samLinear, ShadowTex.xy ).x;
 
-	float sourcevals[4];
-	sourcevals[0] = texShadowMap.SampleCmpLevelZero(samShadow, ShadowTex.xy, DepthCompareVal).x;
-	sourcevals[1] = texShadowMap.SampleCmpLevelZero(samShadow, ShadowTex.xy + float2(1.0/ShadowMapSize, 0), DepthCompareVal).x;
-	sourcevals[2] = texShadowMap.SampleCmpLevelZero(samShadow, ShadowTex.xy + float2(0, 1.0/ShadowMapSize), DepthCompareVal).x;
-	sourcevals[3] = texShadowMap.SampleCmpLevelZero(samShadow, ShadowTex.xy + float2(1.0/ShadowMapSize, 1.0/ShadowMapSize), DepthCompareVal).x;
+	float x, y;
+	float ShadowVal = 0;
+	for (y = -1.5; y <= 1.5; y += 1.0)
+		for (x = -1.5; x <= 1.5; x += 1.0)
+			 ShadowVal += texShadowMap.SampleCmpLevelZero( samShadow, ShadowTex.xy + float2(x/ShadowTexSize,y/ShadowTexSize), DepthCompareVal );
+	
+	//ShadowVal += texShadowMap.SampleCmpLevelZero( samShadow, ShadowTex.xy , DepthCompareVal );
 
-	float ShadowVal = lerp( lerp( sourcevals[0], sourcevals[1], lerps.x ),
-                                  lerp( sourcevals[2], sourcevals[3], lerps.x ),
-                                  lerps.y );
+	ShadowVal /= 16;
 
 	return 1-float4(ShadowVal, ShadowVal, ShadowVal, ShadowVal);
 }
