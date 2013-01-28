@@ -3,6 +3,8 @@
 
 class Shader
 {
+	// std::map<ShaderMapKey, ShaderRes*> ShaderMap;
+	// shader constants
 
 	ID3D11InputLayout*		_VertexLayout;
 
