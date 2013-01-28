@@ -71,7 +71,7 @@ Engine::Engine(void)
 	QueryPerformanceCounter(&_PrevTime);
 	_Near = 10.f;
 	_Far = 1000.f;
-	_ShadowMapSize = 128;
+	_ShadowMapSize = 1024;
 	//_CrtSetBreakAlloc(2486860);
 }
 
@@ -416,14 +416,14 @@ void Engine::InitDevice()
 		_GSkeletalMeshComponent->AddSkeletalMesh(_SkeletalMeshArray[i]);
 	}
 	FbxImporterObj.ImportSkeleton(&_GSkeleton, &_GPose);
-	//FbxImporterObj.ImportAnimClip(_AnimClipArray);
+	FbxImporterObj.ImportAnimClip(_AnimClipArray);
 
 	_GSkeletalMeshComponent->SetSkeleton(_GSkeleton);
 	_GSkeletalMeshComponent->SetCurrentPose(_GPose);
 
 	GEngine->Tick();
 
-	//_GSkeletalMeshComponent->PlayAnim(_AnimClipArray[1], 0, 0.2f);
+	_GSkeletalMeshComponent->PlayAnim(_AnimClipArray[1], 0, 0.2f);
 
 	FbxFileImporter FbxImporterObj2("other.fbx");
 	FbxImporterObj2.ImportStaticMesh(GEngine->_StaticMeshArray);
@@ -593,6 +593,8 @@ void Engine::Render()
 
 	SET_BLEND_STATE(BS_LIGHTING);
 	SET_DEPTHSTENCIL_STATE(DS_LIGHTING_PASS);
+	SET_PS_SAMPLER(0, SS_POINT);
+	SET_PS_SAMPLER(1, SS_POINT);
 
 	for(unsigned int i=0;i<_LightCompArray.size();i++)
 	{
@@ -602,7 +604,8 @@ void Engine::Render()
 
 	// combine pass
 	SET_BLEND_STATE(BS_NORMAL);
-
+	SET_PS_SAMPLER(0, SS_LINEAR);
+	SET_PS_SAMPLER(1, SS_LINEAR);
 	StartRenderingFrameBuffer(false, false, true);
 
 	ID3D11ShaderResourceView* aSRVCombine[2] = {_SceneColorTexture->GetSRV(), _LitTexture->GetSRV()};

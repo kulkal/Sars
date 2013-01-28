@@ -17,7 +17,7 @@ enum EBlendState{
 
 enum ESamplerState
 {
-	SS_LINEAR, SS_SHADOW,
+	SS_POINT, SS_LINEAR, SS_SHADOW,
 	SIZE_SAMPLERSTATE,
 };
 
