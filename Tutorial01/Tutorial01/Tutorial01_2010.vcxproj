@@ -410,6 +410,7 @@
     <ClCompile Include="TextureDepth2D.cpp" />
     <ClCompile Include="Tutorial01.cpp" />
     <ClCompile Include="Util.cpp" />
+    <ClCompile Include="xnacollision.cpp" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
@@ -445,6 +446,7 @@
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="TextureDepth2D.h" />
     <ClInclude Include="Util.h" />
+    <ClInclude Include="xnacollision.h" />
     <ResourceCompile Include="Tutorial01.rc" />
   </ItemGroup>
   <ItemGroup>

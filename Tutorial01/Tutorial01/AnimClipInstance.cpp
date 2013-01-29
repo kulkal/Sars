@@ -2,7 +2,6 @@
 #include "MathUtil.h"
 #include "OutputDebug.h"
 #include "Engine.h"
-#define FLOAT_MAX  3.40282e+038
 AnimClipInstance::AnimClipInstance(AnimationClip* InClip)
 	:_Clip(InClip)
 	,_LocalTime(0.f)

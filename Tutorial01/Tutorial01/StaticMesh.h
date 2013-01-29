@@ -52,6 +52,7 @@ public:
 
 	bool ImportFromFbxMesh(FbxMesh* Mesh, FbxFileImporter* Importer);
 
+
 	StaticMesh(void);
 	virtual ~StaticMesh(void);
 };

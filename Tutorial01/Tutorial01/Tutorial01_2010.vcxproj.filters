@@ -84,6 +84,7 @@
     <ClCompile Include="DirectionalLightComponent.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="StateManager.cpp" />
+    <ClCompile Include="xnacollision.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -122,6 +123,7 @@
     <ClInclude Include="DirectionalLightComponent.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="StateManager.h" />
+    <ClInclude Include="xnacollision.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

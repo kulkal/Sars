@@ -11,6 +11,9 @@
 #include "PointLightComponent.h"
 #include "AnimationClip.h"
 #include "StateManager.h"
+#include "StaticMeshComponent.h"
+#include "xnacollision.h"
+#include "MathUtil.h"
 
 struct SCREEN_VERTEX
 {
@@ -64,6 +67,7 @@ Engine::Engine(void)
 	,_TextureRV(NULL)
 	,_ShadowDepthTexture(NULL)
 	,_DeferredShadowTexture(NULL)
+	,_StaticMeshComponent(NULL)
 	
 {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -71,7 +75,7 @@ Engine::Engine(void)
 	QueryPerformanceCounter(&_PrevTime);
 	_Near = 10.f;
 	_Far = 1000.f;
-	_ShadowMapSize = 1024;
+	_ShadowMapSize = 512;
 	//_CrtSetBreakAlloc(2486860);
 }
 
@@ -119,6 +123,7 @@ Engine::~Engine(void)
 	if(_GSkeleton) delete _GSkeleton;
 	if(_GPose) delete _GPose;
 	if(_GSkeletalMeshComponent) delete _GSkeletalMeshComponent;
+	if(_StaticMeshComponent) delete _StaticMeshComponent;
 
 	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
 	{
@@ -416,17 +421,26 @@ void Engine::InitDevice()
 		_GSkeletalMeshComponent->AddSkeletalMesh(_SkeletalMeshArray[i]);
 	}
 	FbxImporterObj.ImportSkeleton(&_GSkeleton, &_GPose);
-	FbxImporterObj.ImportAnimClip(_AnimClipArray);
+	//FbxImporterObj.ImportAnimClip(_AnimClipArray);
 
 	_GSkeletalMeshComponent->SetSkeleton(_GSkeleton);
 	_GSkeletalMeshComponent->SetCurrentPose(_GPose);
 
 	GEngine->Tick();
 
-	_GSkeletalMeshComponent->PlayAnim(_AnimClipArray[1], 0, 0.2f);
+	//_GSkeletalMeshComponent->PlayAnim(_AnimClipArray[1], 0, 0.2f);
 
 	FbxFileImporter FbxImporterObj2("other.fbx");
-	FbxImporterObj2.ImportStaticMesh(GEngine->_StaticMeshArray);
+	FbxImporterObj2.ImportStaticMesh(_StaticMeshArray);
+
+	_StaticMeshComponent = new StaticMeshComponent;
+	for(int i=0;i<_StaticMeshArray.size();i++)
+	{
+		_StaticMeshComponent->AddStaticMesh(_StaticMeshArray[i]);
+	}
+
+	cout_debug("staticmesh aabb min: %f %f %f\n", _StaticMeshComponent->_AABBMin.x, _StaticMeshComponent->_AABBMin.y, _StaticMeshComponent->_AABBMin.z);
+	cout_debug("staticmesh aabb max: %f %f %f\n", _StaticMeshComponent->_AABBMax.x, _StaticMeshComponent->_AABBMax.y, _StaticMeshComponent->_AABBMax.z);
 
 	// Load the Texture
 	hr = D3DX11CreateShaderResourceViewFromFile( GEngine->_Device, L"seafloor.dds", NULL, NULL, &_TextureRV, NULL );
@@ -568,9 +582,10 @@ void Engine::Render()
 	_ImmediateContext->PSSetShaderResources( 0, 1, &_TextureRV );
 
 	// draw scene into g-buffer
-	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
+	for(unsigned int i=0;i<_StaticMeshComponent->_StaticMeshArray.size();i++)
 	{
-		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], _ViewMat, _ProjectionMat);
+		StaticMesh* Mesh = _StaticMeshComponent->_StaticMeshArray[i];
+		_GBufferDrawer->DrawStaticMesh(Mesh, _ViewMat, _ProjectionMat);
 	}
 
 	if(_GSkeletalMeshComponent)
@@ -719,7 +734,40 @@ void Engine::StartRenderingLightingBuffer(bool bClear)
 		_ImmediateContext->ClearRenderTargetView( _LitTexture->GetRTV() , LitClearColor );
 	}
 }
+void CreateFrustumPointsFromCascadeInterval( float fCascadeIntervalBegin, 
+	FLOAT fCascadeIntervalEnd, 
+	XMMATRIX &vProjection,
+	XMVECTOR* pvCornerPointsWorld ) 
+{
 
+	XNA::Frustum vViewFrust;
+	ComputeFrustumFromProjection( &vViewFrust, &vProjection );
+	vViewFrust.Near = fCascadeIntervalBegin;
+	vViewFrust.Far = fCascadeIntervalEnd;
+
+	static const XMVECTORU32 vGrabY = {0x00000000,0xFFFFFFFF,0x00000000,0x00000000};
+	static const XMVECTORU32 vGrabX = {0xFFFFFFFF,0x00000000,0x00000000,0x00000000};
+
+	XMVECTORF32 vRightTop = {vViewFrust.RightSlope,vViewFrust.TopSlope,1.0f,1.0f};
+	XMVECTORF32 vLeftBottom = {vViewFrust.LeftSlope,vViewFrust.BottomSlope,1.0f,1.0f};
+	XMVECTORF32 vNear = {vViewFrust.Near,vViewFrust.Near,vViewFrust.Near,1.0f};
+	XMVECTORF32 vFar = {vViewFrust.Far,vViewFrust.Far,vViewFrust.Far,1.0f};
+	XMVECTOR vRightTopNear = XMVectorMultiply( vRightTop, vNear );
+	XMVECTOR vRightTopFar = XMVectorMultiply( vRightTop, vFar );
+	XMVECTOR vLeftBottomNear = XMVectorMultiply( vLeftBottom, vNear );
+	XMVECTOR vLeftBottomFar = XMVectorMultiply( vLeftBottom, vFar );
+
+	pvCornerPointsWorld[0] = vRightTopNear;
+	pvCornerPointsWorld[1] = XMVectorSelect( vRightTopNear, vLeftBottomNear, vGrabX );
+	pvCornerPointsWorld[2] = vLeftBottomNear;
+	pvCornerPointsWorld[3] = XMVectorSelect( vRightTopNear, vLeftBottomNear,vGrabY );
+
+	pvCornerPointsWorld[4] = vRightTopFar;
+	pvCornerPointsWorld[5] = XMVectorSelect( vRightTopFar, vLeftBottomFar, vGrabX );
+	pvCornerPointsWorld[6] = vLeftBottomFar;
+	pvCornerPointsWorld[7] = XMVectorSelect( vRightTopFar ,vLeftBottomFar, vGrabY );
+
+}
 void Engine::RenderShadowMap()
 {
 	ID3D11ShaderResourceView* aSRS[3] = {NULL, NULL, NULL};
@@ -749,17 +797,57 @@ void Engine::RenderShadowMap()
 	_SunShadowNear = 10.f;
 	_SunShadowFar = 2000.f;
 
-	XMVECTOR At = XMLoadFloat3(&XMFLOAT3(0.f, 0, 0.f));
-	XMVECTOR Eye =  At - XMLoadFloat3(&_SunLight->_LightDirection) * 220.f;
+	XMVECTOR Min = XMLoadFloat3(&_StaticMeshComponent->_AABBMin);
+	XMVECTOR Max = XMLoadFloat3(&_StaticMeshComponent->_AABBMax);
+	XMVECTOR Center = (Min + Max)*0.5f;
+
+
+
+	XMVECTOR At = Center;//= XMLoadFloat3(&XMFLOAT3(0.f, 0, 0.f));
+	XMVECTOR Eye =  At - XMLoadFloat3(&_SunLight->_LightDirection) * 200.f;
 
 	XMVECTOR Up = XMLoadFloat3(&XMFLOAT3(0.f, 0.f, 1.f));
 	
-	XMMATRIX View = XMMatrixLookAtRH( Eye, At, Up );
-	//XMMATRIX Projection = XMMatrixOrthographicOffCenterRH(-5, 5, -5, 5, -500, 500);
-	XMMATRIX Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, _ShadowMapSize /_ShadowMapSize, _SunShadowNear, _SunShadowFar );
+	XMMATRIX LightView = XMMatrixLookAtRH( Eye, At, Up );
 
-	XMStoreFloat4x4(&_SunShadowMat, View);
-	XMStoreFloat4x4(&_SunShadowProjectionMat, Projection);
+	
+	FLOAT fFrustumIntervalBegin, fFrustumIntervalEnd;
+	FLOAT fCameraNearFarRange = _Far - _Near;
+
+	fFrustumIntervalBegin = 0;
+	fFrustumIntervalEnd = fCameraNearFarRange*0.3;
+
+	XMVECTOR vFrustumPoints[8];
+	CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, XMLoadFloat4x4(&_ProjectionMat), vFrustumPoints); 
+	XMVECTOR vLightCameraOrthographicMin;  // light space frustrum aabb 
+	XMVECTOR vLightCameraOrthographicMax;
+	vLightCameraOrthographicMin = XMLoadFloat3(&XMFLOAT3(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX));;
+	vLightCameraOrthographicMax = XMLoadFloat3(&XMFLOAT3(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX));;
+	XMVECTOR vTempTranslatedCornerPoint;
+	// This next section of code calculates the min and max values for the orthographic projection.
+
+	XMVECTOR Det;
+	XMMATRIX ViewMatInv = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
+
+	for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
+	{
+		// Transform the frustum from camera view space to world space.
+		vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
+		// Transform the point from world space to Light Camera Space.
+		vTempTranslatedCornerPoint = XMVector4Transform ( vFrustumPoints[icpIndex], LightView );
+		// Find the closest point.
+		vLightCameraOrthographicMin = XMVectorMin ( vTempTranslatedCornerPoint, vLightCameraOrthographicMin );
+		vLightCameraOrthographicMax = XMVectorMax ( vTempTranslatedCornerPoint, vLightCameraOrthographicMax );
+	}
+
+	XMMATRIX LightProjection = XMMatrixOrthographicOffCenterRH( 
+		XMVectorGetX( vLightCameraOrthographicMin )
+		,  XMVectorGetX( vLightCameraOrthographicMax )
+		, XMVectorGetY(vLightCameraOrthographicMin), XMVectorGetY(vLightCameraOrthographicMax), _Near, _Far);
+	//XMMATRIX Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, _ShadowMapSize /_ShadowMapSize, _SunShadowNear, _SunShadowFar );
+
+	XMStoreFloat4x4(&_SunShadowMat, LightView);
+	XMStoreFloat4x4(&_SunShadowProjectionMat, LightProjection);
 
 	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
 	{

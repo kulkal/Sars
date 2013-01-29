@@ -23,7 +23,7 @@ class SkeletalMeshComponent;
 class AnimationClip;
 class LightComponent;
 class DirectionalLightComponent;
-
+class StaticMeshComponent;
 
 class Engine
 {
@@ -99,6 +99,7 @@ public:
 	bool _VisualizeWorldNormal;
 	bool _VisualizeDepth;
 
+	StaticMeshComponent* _StaticMeshComponent;
 	std::vector<StaticMesh*> _StaticMeshArray;
 	std::vector<SkeletalMesh*> _SkeletalMeshArray;
 	std::vector<AnimationClip*> _AnimClipArray;

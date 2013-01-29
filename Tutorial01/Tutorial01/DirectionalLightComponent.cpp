@@ -6,6 +6,7 @@ DirectionalLightComponent::DirectionalLightComponent(XMFLOAT4 LightColor, XMFLOA
 	:LightComponent(LightColor)
 	,_LightDirection(LightDir)
 {
+	XMStoreFloat3(&_LightDirection, XMVector3Normalize(XMLoadFloat3(&LightDir)));
 }
 
 
