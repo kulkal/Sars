@@ -385,6 +385,7 @@
     <ClCompile Include="AssertDebug.cpp" />
     <ClCompile Include="BaseComponent.cpp" />
     <ClCompile Include="BaseObject.cpp" />
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DirectionalLightComponent.cpp" />
     <ClCompile Include="DrawingPolicy.cpp" />
     <ClCompile Include="Engine.cpp" />
@@ -410,6 +411,7 @@
     <ClCompile Include="TextureDepth2D.cpp" />
     <ClCompile Include="Tutorial01.cpp" />
     <ClCompile Include="Util.cpp" />
+    <ClCompile Include="View.cpp" />
     <ClCompile Include="xnacollision.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -420,6 +422,7 @@
     <ClInclude Include="AssertDebug.h" />
     <ClInclude Include="BaseComponent.h" />
     <ClInclude Include="BaseObject.h" />
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="DirectionalLightComponent.h" />
     <ClInclude Include="DrawingPolicy.h" />
     <ClInclude Include="Engine.h" />
@@ -446,6 +449,7 @@
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="TextureDepth2D.h" />
     <ClInclude Include="Util.h" />
+    <ClInclude Include="View.h" />
     <ClInclude Include="xnacollision.h" />
     <ResourceCompile Include="Tutorial01.rc" />
   </ItemGroup>

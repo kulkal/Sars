@@ -85,6 +85,8 @@
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="StateManager.cpp" />
     <ClCompile Include="xnacollision.cpp" />
+    <ClCompile Include="View.cpp" />
+    <ClCompile Include="Camera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -124,6 +126,8 @@
     <ClInclude Include="Shader.h" />
     <ClInclude Include="StateManager.h" />
     <ClInclude Include="xnacollision.h" />
+    <ClInclude Include="View.h" />
+    <ClInclude Include="Camera.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
