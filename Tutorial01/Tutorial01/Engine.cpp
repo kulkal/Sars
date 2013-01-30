@@ -1117,8 +1117,8 @@ void Engine::RenderShadowMap()
 	XMVECTOR Det;
 	XMMATRIX ViewMatInv = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
 
-	XMVECTOR At = Center;//= XMLoadFloat3(&XMFLOAT3(0.f, 0, 0.f));
-	XMVECTOR Eye =  At - XMLoadFloat3(&_SunLight->_LightDirection) * 200.f;
+	XMVECTOR Eye =  XMLoadFloat3(&XMFLOAT3(0.f, 0.f, 0.f));//At - XMLoadFloat3(&_SunLight->_LightDirection) * 200.f;
+	XMVECTOR At = -XMLoadFloat3(&_SunLight->_LightDirection);//Center;//= XMLoadFloat3(&XMFLOAT3(0.f, 0, 0.f));
 
 	XMVECTOR Up = XMLoadFloat3(&XMFLOAT3(1.f, 0.f, 0.f));
 	
@@ -1138,7 +1138,7 @@ void Engine::RenderShadowMap()
 	FLOAT fFrustumIntervalBegin, fFrustumIntervalEnd;
 
 	fFrustumIntervalBegin = 0;
-	fFrustumIntervalEnd = 550;
+	fFrustumIntervalEnd = 350;
 
 	XMVECTOR vFrustumPoints[8];
 	CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, XMLoadFloat4x4(&_ProjectionMat), vFrustumPoints); 
@@ -1160,42 +1160,45 @@ void Engine::RenderShadowMap()
 		vLightCameraOrthographicMax = XMVectorMax ( vTempTranslatedCornerPoint, vLightCameraOrthographicMax );
 	}
 	
-	XMVECTOR vWorldUnitsPerTexel = XMLoadFloat3(&XMFLOAT3(0, 0, 0)); 
-	{
-		 XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6];
-        vDiagonal = XMVector3Length( vDiagonal );
-            
-        // The bound is the length of the diagonal of the frustum interval.
-        FLOAT fCascadeBound = XMVectorGetX( vDiagonal );
-            
-        // The offset calculated will pad the ortho projection so that it is always the same size 
-        // and big enough to cover the entire cascade interval.
-        XMVECTOR vBoarderOffset = ( vDiagonal - 
-                                    ( vLightCameraOrthographicMax - vLightCameraOrthographicMin ) ) 
-                                    * 0.5f;
-        // Set the Z and W components to zero.
-		static const XMVECTORF32 g_vMultiplySetzwToZero = { 1.0f, 1.0f, 0.0f, 0.0f };
-        vBoarderOffset *= g_vMultiplySetzwToZero;
-            
-        // Add the offsets to the projection.
-        vLightCameraOrthographicMax += vBoarderOffset;
-        vLightCameraOrthographicMin -= vBoarderOffset;
+	//XMVECTOR vWorldUnitsPerTexel = XMLoadFloat3(&XMFLOAT3(0, 0, 0)); 
+	//if(false)
+	//{
+	//	 XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6];
+ //       vDiagonal = XMVector3Length( vDiagonal );
+ //           
+ //       // The bound is the length of the diagonal of the frustum interval.
+ //       FLOAT fCascadeBound = XMVectorGetX( vDiagonal );
+ //           
+ //       // The offset calculated will pad the ortho projection so that it is always the same size 
+ //       // and big enough to cover the entire cascade interval.
+ //       XMVECTOR vBoarderOffset = ( vDiagonal - 
+ //                                   ( vLightCameraOrthographicMax - vLightCameraOrthographicMin ) ) 
+ //                                   * 0.5f;
+ //       // Set the Z and W components to zero.
+	//	static const XMVECTORF32 g_vMultiplySetzwToZero = { 1.0f, 1.0f, 0.0f, 0.0f };
+ //       vBoarderOffset *= g_vMultiplySetzwToZero;
+ //           
+ //       // Add the offsets to the projection.
+ //       vLightCameraOrthographicMax += vBoarderOffset;
+ //       vLightCameraOrthographicMin -= vBoarderOffset;
 
-        // The world units per texel are used to snap the shadow the orthographic projection
-        // to texel sized increments.  This keeps the edges of the shadows from shimmering.
-        FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)_ShadowMapSize;
-        vWorldUnitsPerTexel = XMVectorSet( fWorldUnitsPerTexel, fWorldUnitsPerTexel, 0.0f, 0.0f ); 
-	}
+ //       // The world units per texel are used to snap the shadow the orthographic projection
+ //       // to texel sized increments.  This keeps the edges of the shadows from shimmering.
+ //       FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)_ShadowMapSize;
+ //       vWorldUnitsPerTexel = XMVectorSet( fWorldUnitsPerTexel, fWorldUnitsPerTexel, 0.0f, 0.0f ); 
+	//}
 
-	{
-		vLightCameraOrthographicMin /= vWorldUnitsPerTexel;
-		vLightCameraOrthographicMin = XMVectorFloor( vLightCameraOrthographicMin );
-		vLightCameraOrthographicMin *= vWorldUnitsPerTexel;
-            
-		vLightCameraOrthographicMax /= vWorldUnitsPerTexel;
-		vLightCameraOrthographicMax = XMVectorFloor( vLightCameraOrthographicMax );
-		vLightCameraOrthographicMax *= vWorldUnitsPerTexel;
-	}
+	//{
+	//	vLightCameraOrthographicMin /= vWorldUnitsPerTexel;
+	//	vLightCameraOrthographicMin = XMVectorFloor( vLightCameraOrthographicMin );
+	//	vLightCameraOrthographicMin *= vWorldUnitsPerTexel;
+ //           
+	//	vLightCameraOrthographicMax /= vWorldUnitsPerTexel;
+	//	vLightCameraOrthographicMax = XMVectorFloor( vLightCameraOrthographicMax );
+	//	vLightCameraOrthographicMax *= vWorldUnitsPerTexel;
+	//}
+
+
 	float ShadowNear = 0.0f;
     float ShadowFar = 10000.0f;
 
