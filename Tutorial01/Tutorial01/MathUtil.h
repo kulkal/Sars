@@ -26,3 +26,4 @@ namespace Math
 			return b;
 	}
 }
+

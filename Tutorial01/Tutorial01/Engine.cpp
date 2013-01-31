@@ -450,7 +450,7 @@ void Engine::InitDevice()
 	GStateManager = new StateManager;
 	GStateManager->Init();
 
-	_SunLight = new DirectionalLightComponent(XMFLOAT4(0.2f, 0.f, 0.f, 1.F), XMFLOAT3(1.f, -1.f, -1.f) );
+	_SunLight = new DirectionalLightComponent(XMFLOAT4(0.2f, 0.f, 0.f, 1.F), XMFLOAT3(-1.0f, -1.f, -1.f) );
 	_LightCompArray.push_back(_SunLight);
 
 	PointLightComponent* PointLight1 = new PointLightComponent(XMFLOAT4( 0.f, 1.f, 0.f, 1.0f), XMFLOAT3(  0.f, 0, 100.f  ), 200.f);
@@ -749,8 +749,8 @@ void CreateFrustumPointsFromCascadeInterval( float fCascadeIntervalBegin,
 
 	XNA::Frustum vViewFrust;
 	ComputeFrustumFromProjection( &vViewFrust, &vProjection );
-	vViewFrust.Near = fCascadeIntervalBegin;
-	vViewFrust.Far = fCascadeIntervalEnd;
+	vViewFrust.Near = -fCascadeIntervalBegin;
+	vViewFrust.Far = -fCascadeIntervalEnd;
 
 	static const XMVECTORU32 vGrabY = {0x00000000,0xFFFFFFFF,0x00000000,0x00000000};
 	static const XMVECTORU32 vGrabX = {0xFFFFFFFF,0x00000000,0x00000000,0x00000000};
@@ -1109,106 +1109,87 @@ void Engine::RenderShadowMap()
 	_SunShadowNear = 10.f;
 	_SunShadowFar = 2000.f;
 
-	XMVECTOR Min = XMLoadFloat3(&_StaticMeshComponent->_AABBMin);
-	XMVECTOR Max = XMLoadFloat3(&_StaticMeshComponent->_AABBMax);
-	XMVECTOR Center = (Min + Max)*0.5f;
-	XMVECTOR Extents = (Max - Min) * 0.5f;
+	//XMVECTOR Min = XMLoadFloat3(&_StaticMeshComponent->_AABBMin);
+	//XMVECTOR Max = XMLoadFloat3(&_StaticMeshComponent->_AABBMax);
+	//XMVECTOR Center = (Min + Max)*0.5f;
+	//XMVECTOR Extents = (Max - Min) * 0.5f;
 
 	XMVECTOR Det;
 	XMMATRIX ViewMatInv = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
 
-	XMVECTOR Eye =  XMLoadFloat3(&XMFLOAT3(0.f, 0.f, 0.f));//At - XMLoadFloat3(&_SunLight->_LightDirection) * 200.f;
-	XMVECTOR At = -XMLoadFloat3(&_SunLight->_LightDirection);//Center;//= XMLoadFloat3(&XMFLOAT3(0.f, 0, 0.f));
-
-	XMVECTOR Up = XMLoadFloat3(&XMFLOAT3(1.f, 0.f, 0.f));
+	XMVECTOR Eye =  XMLoadFloat3(&XMFLOAT3(0.f, 0.f, 0.f));
+	XMVECTOR LightDir = XMLoadFloat3(&_SunLight->_LightDirection);
+	XMVECTOR Up = XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
 	
-	XMMATRIX LightView = XMMatrixLookAtRH( Eye, At, Up );
-	XMMATRIX LightViewInv = XMMatrixInverse(&Det, LightView);
-
-	
-	XMVECTOR vSceneAABBPointsLightSpace[8];
-    // This function simply converts the center and extents of an AABB into 8 points
-    CreateAABBPoints( vSceneAABBPointsLightSpace, Center, Extents );
-    // Transform the scene AABB to Light space.
-    for( int index =0; index < 8; ++index ) 
-    {
-        vSceneAABBPointsLightSpace[index] = XMVector4Transform( vSceneAABBPointsLightSpace[index], LightView ); 
-    }
-
-	FLOAT fFrustumIntervalBegin, fFrustumIntervalEnd;
-
-	fFrustumIntervalBegin = 0;
-	fFrustumIntervalEnd = 350;
-
+	XMVECTOR Center = XMVectorSet(0.f, 0.f, 0.f, 0.f);;
 	XMVECTOR vFrustumPoints[8];
+
+	float fFrustumIntervalBegin, fFrustumIntervalEnd;
+
+	fFrustumIntervalBegin = 10;
+	fFrustumIntervalEnd = 650;
 	CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, XMLoadFloat4x4(&_ProjectionMat), vFrustumPoints); 
+	for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
+	{
+		// world space
+        vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
+		Center += vFrustumPoints[icpIndex];
+	}
+
+	Center /= 8;
+
+//	XMMATRIX LightRotation = XMMatrixLookAtRH(XMLoadFloat3(&XMFLOAT3(0.f, 0.f, 0.f)), LightDir, Up); 
+	//XMMATRIX LightRotationInv = XMMatrixInverse(&Det, LightRotation);
+	XMMATRIX LightView = XMMatrixLookAtRH( Center - LightDir, Center, Up );
+//	XMMATRIX LightViewInv = XMMatrixInverse(&Det, LightView);
+
+
+
+
 	XMVECTOR vLightCameraOrthographicMin;  // light space frustrum aabb 
 	XMVECTOR vLightCameraOrthographicMax;
 	vLightCameraOrthographicMin = XMLoadFloat3(&XMFLOAT3(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX));;
 	vLightCameraOrthographicMax = XMLoadFloat3(&XMFLOAT3(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX));;
 	XMVECTOR vTempTranslatedCornerPoint;
-	// This next section of code calculates the min and max values for the orthographic projection.
 
 	for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
 	{
-		// Transform the frustum from camera view space to world space.
-		vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
-		// Transform the point from world space to Light Camera Space.
+		// world space
+        //vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
+		// light space
 		vTempTranslatedCornerPoint = XMVector4Transform ( vFrustumPoints[icpIndex], LightView );
-		// Find the closest point.
 		vLightCameraOrthographicMin = XMVectorMin ( vTempTranslatedCornerPoint, vLightCameraOrthographicMin );
 		vLightCameraOrthographicMax = XMVectorMax ( vTempTranslatedCornerPoint, vLightCameraOrthographicMax );
 	}
+
+	XMVECTOR BoxSize = (vLightCameraOrthographicMax - vLightCameraOrthographicMin);
+
+	/*XMVECTOR LightPosition = (vLightCameraOrthographicMin + vLightCameraOrthographicMax)/2;
+	XMVectorSetZ(LightPosition, XMVectorGetX(vLightCameraOrthographicMin));
+	XMVector4Transform(LightPosition, LightRotationInv);*/
+
+	//XMMATRIX LightView = XMMatrixLookAtRH( LightPosition, LightPosition + LightDir, Up );
 	
-	//XMVECTOR vWorldUnitsPerTexel = XMLoadFloat3(&XMFLOAT3(0, 0, 0)); 
-	//if(false)
-	//{
-	//	 XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6];
- //       vDiagonal = XMVector3Length( vDiagonal );
- //           
- //       // The bound is the length of the diagonal of the frustum interval.
- //       FLOAT fCascadeBound = XMVectorGetX( vDiagonal );
- //           
- //       // The offset calculated will pad the ortho projection so that it is always the same size 
- //       // and big enough to cover the entire cascade interval.
- //       XMVECTOR vBoarderOffset = ( vDiagonal - 
- //                                   ( vLightCameraOrthographicMax - vLightCameraOrthographicMin ) ) 
- //                                   * 0.5f;
- //       // Set the Z and W components to zero.
-	//	static const XMVECTORF32 g_vMultiplySetzwToZero = { 1.0f, 1.0f, 0.0f, 0.0f };
- //       vBoarderOffset *= g_vMultiplySetzwToZero;
- //           
- //       // Add the offsets to the projection.
- //       vLightCameraOrthographicMax += vBoarderOffset;
- //       vLightCameraOrthographicMin -= vBoarderOffset;
-
- //       // The world units per texel are used to snap the shadow the orthographic projection
- //       // to texel sized increments.  This keeps the edges of the shadows from shimmering.
- //       FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)_ShadowMapSize;
- //       vWorldUnitsPerTexel = XMVectorSet( fWorldUnitsPerTexel, fWorldUnitsPerTexel, 0.0f, 0.0f ); 
-	//}
-
-	//{
-	//	vLightCameraOrthographicMin /= vWorldUnitsPerTexel;
-	//	vLightCameraOrthographicMin = XMVectorFloor( vLightCameraOrthographicMin );
-	//	vLightCameraOrthographicMin *= vWorldUnitsPerTexel;
- //           
-	//	vLightCameraOrthographicMax /= vWorldUnitsPerTexel;
-	//	vLightCameraOrthographicMax = XMVectorFloor( vLightCameraOrthographicMax );
-	//	vLightCameraOrthographicMax *= vWorldUnitsPerTexel;
-	//}
-
-
 	float ShadowNear = 0.0f;
     float ShadowFar = 10000.0f;
 
-	ComputeNearAndFar( ShadowNear, ShadowFar, vLightCameraOrthographicMin, 
-                vLightCameraOrthographicMax, vSceneAABBPointsLightSpace );
 
 	XMMATRIX LightProjection = XMMatrixOrthographicOffCenterRH( 
 		XMVectorGetX( vLightCameraOrthographicMin )
 		,  XMVectorGetX( vLightCameraOrthographicMax )
-		, XMVectorGetY(vLightCameraOrthographicMin), XMVectorGetY(vLightCameraOrthographicMax), ShadowNear, ShadowFar);
+		, XMVectorGetY(vLightCameraOrthographicMin)
+		, XMVectorGetY(vLightCameraOrthographicMax)
+		, -XMVectorGetZ( vLightCameraOrthographicMax )
+		, -XMVectorGetZ( vLightCameraOrthographicMin )
+		);
+
+	/*XMMATRIX LightProjection = XMMatrixOrthographicOffCenterRH( 
+		-XMVectorGetX( BoxSize )
+		,XMVectorGetX( BoxSize )
+		,-XMVectorGetY(BoxSize)
+		,XMVectorGetY(BoxSize)
+		,-XMVectorGetZ( BoxSize )
+		,XMVectorGetZ( BoxSize ));*/
 	//XMMATRIX Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, _ShadowMapSize /_ShadowMapSize, _SunShadowNear, _SunShadowFar );
 
 	XMStoreFloat4x4(&_SunShadowMat, LightView);
@@ -1262,11 +1243,6 @@ void Engine::RenderDeferredShadow()
 	XMVECTOR Det;
 	XMMATRIX InvViewMatrix = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
 	cbShadow.ShadowMatrix = XMMatrixTranspose(InvViewMatrix * XMLoadFloat4x4(&_SunShadowMat) * XMLoadFloat4x4(&_SunShadowProjectionMat));
-	//cbShadow.ShadowProjection = XMLoadFloat4x4(&_SunShadowProjectionMat);
-
-	//cbShadow.ShadowProjectionParams.x = _SunShadowFar/(_SunShadowFar - _SunShadowNear);
-	//cbShadow.ShadowProjectionParams.y = _SunShadowNear/(_SunShadowNear - _SunShadowFar);
-	//cbShadow.ShadowProjectionParams.z = _SunShadowFar;
 
 	_ImmediateContext->UpdateSubresource( _DeferredShadowPSCB, 0, NULL, &cbShadow, 0, 0 );
 	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredShadowPSCB );

@@ -4,7 +4,7 @@ Texture2D<float4> texShadowMap : register( t1 );
 SamplerState samLinear : register( s0 );
 SamplerComparisonState samShadow : register( s1 );
 
-#define SHADOW_EPSYLON 0.001
+#define SHADOW_EPSYLON 0.0000001
 cbuffer ConstantBuffer : register( b0 )
 {
 	matrix Projection;
