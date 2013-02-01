@@ -48,8 +48,8 @@ public:
 	UINT					_ShadowMapSize;
 
 
-	UINT _Width;
-	UINT _Height;
+	float _Width;
+	float _Height;
 
 	SimpleDrawingPolicy* _SimpleDrawer;
 	GBufferDrawingPolicy* _GBufferDrawer;
@@ -62,8 +62,6 @@ public:
 
 	XMFLOAT4X4 _SunShadowMat;
 	XMFLOAT4X4 _SunShadowProjectionMat;
-	float		_SunShadowNear;
-	float		_SunShadowFar;
 
 	// debug line draw
 	LineBatcher* _LineBatcher;
@@ -130,7 +128,7 @@ public:
 
 	HRESULT CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut );
 	ID3D11PixelShader* CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines = NULL);
-	void DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Height, UINT TopLeftX = 0, UINT TopLeftY = 0);
+	void DrawFullScreenQuad11( ID3D11PixelShader* pPS, float Width, float Height, float TopLeftX = 0, float TopLeftY = 0);
 
 	Engine(void);
 	virtual ~Engine(void);

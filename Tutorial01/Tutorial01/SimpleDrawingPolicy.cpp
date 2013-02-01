@@ -71,8 +71,8 @@ void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMFLOAT4X4& ViewMat
 	World = XMMatrixIdentity();
 	ConstantBufferStruct cb;
 	cb.mWorld = XMMatrixTranspose( World );
-	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
-	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
+	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &ViewMat ));
+	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&ProjectionMat));
 	cb.vLightDir[0] = vLightDirs[0];
 	cb.vLightDir[1] = vLightDirs[1];
 	cb.vLightColor[0] = vLightColors[0];
@@ -106,8 +106,8 @@ void SimpleDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderDa
 	World = XMMatrixIdentity();
 	ConstantBufferStruct cb;
 	cb.mWorld = XMMatrixTranspose( World );
-	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
-	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
+	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &ViewMat ));
+	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&ProjectionMat));
 	cb.vLightDir[0] = vLightDirs[0];
 	cb.vLightDir[1] = vLightDirs[1];
 	cb.vLightColor[0] = vLightColors[0];

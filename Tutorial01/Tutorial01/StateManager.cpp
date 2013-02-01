@@ -12,19 +12,19 @@ StateManager::StateManager(void)
 
 StateManager::~StateManager(void)
 {
-	for(int i=0;i<_BlendStateArray.size();i++)
+	for(UINT i=0;i<_BlendStateArray.size();i++)
 	{
 		BlendStateData& BS = _BlendStateArray[i];
 		BS.BS->Release();
 	}
 
-	for(int i=0;i<_DepthStencilStateArray.size();i++)
+	for(UINT i=0;i<_DepthStencilStateArray.size();i++)
 	{
 		DepthStencilStateData& DSS = _DepthStencilStateArray[i];
 		DSS.DSS->Release();
 	}
 
-	for(int i=0;i<_SamplerStateArray.size();i++)
+	for(UINT i=0;i<_SamplerStateArray.size();i++)
 	{
 		SamplerStateData& SS = _SamplerStateArray[i];
 		SS.SS->Release();

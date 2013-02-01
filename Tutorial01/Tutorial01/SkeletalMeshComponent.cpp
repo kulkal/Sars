@@ -131,6 +131,7 @@ void SkeletalMeshComponent::AddSkeletalMesh(SkeletalMesh* InSkeletalMesh)
 
 void SkeletalMeshComponent::Tick( float DeltaSeconds )
 {
+	DeltaSeconds;
 	if(_CurrentAnim)
 	{
 		_CurrentAnim->Tick();

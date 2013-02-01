@@ -159,8 +159,8 @@ void Engine::InitDevice()
 	HRESULT hr;
 	RECT rc;
 	GetClientRect( _hWnd, &rc );
-	_Width = rc.right - rc.left;
-	_Height = rc.bottom - rc.top;
+	_Width = (float)(rc.right - rc.left);
+	_Height = (float)(rc.bottom - rc.top);
 
 	UINT createDeviceFlags = 0;
 #ifdef _DEBUG
@@ -186,8 +186,8 @@ void Engine::InitDevice()
 	DXGI_SWAP_CHAIN_DESC sd;
 	ZeroMemory( &sd, sizeof( sd ) );
 	sd.BufferCount = 1;
-	sd.BufferDesc.Width = _Width;
-	sd.BufferDesc.Height = _Height;
+	sd.BufferDesc.Width = (UINT)_Width;
+	sd.BufferDesc.Height = (UINT)_Height;
 	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	sd.BufferDesc.RefreshRate.Numerator = 60;
 	sd.BufferDesc.RefreshRate.Denominator = 1;
@@ -218,23 +218,25 @@ void Engine::InitDevice()
 
 	_FrameBufferTexture = new Texture2D(BackBuffer, true);
 
+	UINT FrameBufferWidth = (UINT)_Width;
+	UINT FrameBufferHeight = (UINT)_Height;
 	// scene color
-	CD3D11_TEXTURE2D_DESC DescSceneColorTex(DXGI_FORMAT_R16G16B16A16_FLOAT, _Width, _Height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_TEXTURE2D_DESC DescSceneColorTex(DXGI_FORMAT_R16G16B16A16_FLOAT, FrameBufferWidth, FrameBufferHeight, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 	CD3D11_SHADER_RESOURCE_VIEW_DESC DescSceneColorSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DescSceneColorTex.Format, 0,  DescSceneColorTex.MipLevels);
 	_SceneColorTexture = new Texture2D(DescSceneColorTex, DescSceneColorSRV, true);
 
 	// lit
-	CD3D11_TEXTURE2D_DESC DescLitTex(DXGI_FORMAT_R16G16B16A16_FLOAT, _Width, _Height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_TEXTURE2D_DESC DescLitTex(DXGI_FORMAT_R16G16B16A16_FLOAT, FrameBufferWidth, FrameBufferHeight, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 	CD3D11_SHADER_RESOURCE_VIEW_DESC DescLitSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DescSceneColorTex.Format, 0, DescLitTex.MipLevels);
 	_LitTexture = new Texture2D(DescLitTex, DescLitSRV, true);
 
 	// world normal
-	CD3D11_TEXTURE2D_DESC DescWordNormalTex(DXGI_FORMAT_R16G16B16A16_FLOAT, _Width, _Height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_TEXTURE2D_DESC DescWordNormalTex(DXGI_FORMAT_R16G16B16A16_FLOAT, FrameBufferWidth, FrameBufferHeight, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 	CD3D11_SHADER_RESOURCE_VIEW_DESC DescWorldNormalSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DescWordNormalTex.Format);
 	_WorldNormalTexture = new Texture2D(DescWordNormalTex, DescWorldNormalSRV, true);
 
 	// depth stencil texture
-	CD3D11_TEXTURE2D_DESC DescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, _Width, _Height, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_TEXTURE2D_DESC DescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, FrameBufferWidth, FrameBufferHeight, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
 	CD3D11_DEPTH_STENCIL_VIEW_DESC  DescDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT, 0, 0, 0,0) ;
 	CD3D11_SHADER_RESOURCE_VIEW_DESC DescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
 	_DepthTexture = new TextureDepth2D(DescDepthTex, DescDSV, DescDepthSRV);
@@ -245,7 +247,7 @@ void Engine::InitDevice()
 	_ShadowDepthTexture = new TextureDepth2D(ShadowDescDepthTex, ShadowDescDSV, ShadowDescDepthSRV);
 
 	// shadow result
-	CD3D11_TEXTURE2D_DESC DescShadowTex(DXGI_FORMAT_R8G8B8A8_UNORM, _Width, _Height, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_TEXTURE2D_DESC DescShadowTex(DXGI_FORMAT_R8G8B8A8_UNORM, FrameBufferWidth, FrameBufferHeight, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 	CD3D11_SHADER_RESOURCE_VIEW_DESC DescShadowSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DescShadowTex.Format, 0, DescShadowTex.MipLevels);
 	_DeferredShadowTexture = new Texture2D(DescShadowTex, DescShadowSRV, true);
 	
@@ -434,7 +436,7 @@ void Engine::InitDevice()
 	FbxImporterObj2.ImportStaticMesh(_StaticMeshArray);
 
 	_StaticMeshComponent = new StaticMeshComponent;
-	for(int i=0;i<_StaticMeshArray.size();i++)
+	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
 	{
 		_StaticMeshComponent->AddStaticMesh(_StaticMeshArray[i]);
 	}
@@ -489,7 +491,7 @@ ID3D11PixelShader* Engine::CreatePixelShaderSimple( char* szFileName, D3D10_SHAD
 	return PS;
 }
 
-void Engine::DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Height, UINT TopLeftX, UINT TopLeftY)
+void Engine::DrawFullScreenQuad11( ID3D11PixelShader* pPS, float Width, float Height, float TopLeftX, float TopLeftY)
 {
 	// Save the old viewport
 	D3D11_VIEWPORT vpOld[D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX];
@@ -502,8 +504,8 @@ void Engine::DrawFullScreenQuad11( ID3D11PixelShader* pPS, UINT Width, UINT Heig
 	vp.Height = (float)Height;
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = TopLeftX;
-	vp.TopLeftY = TopLeftY;
+	vp.TopLeftX = (float)TopLeftX;
+	vp.TopLeftY = (float)TopLeftY;
 	_ImmediateContext->RSSetViewports( 1, &vp );
 
 	UINT strides = sizeof( SCREEN_VERTEX );
@@ -647,7 +649,7 @@ void Engine::EndRendering()
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
 		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
 
-		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, _Width*0.75, 0);
+		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, _Width*0.75f, 0);
 	}
 
 	_VisualizeWorldNormal = true;
@@ -661,7 +663,7 @@ void Engine::EndRendering()
 	{
 		ID3D11ShaderResourceView* aSRVVis[1] = {_DeferredShadowTexture->GetSRV(), };
 		_ImmediateContext->PSSetShaderResources( 0, 1, aSRVVis );
-		DrawFullScreenQuad11(_VisNormalPS, _Width/2, _Height/2, _Width*0.5, _Height*0.5);
+		DrawFullScreenQuad11(_VisNormalPS, _Width/2, _Height/2, _Width*0.5f, _Height*0.5f);
 	}
 
 	bool _VisualizeShadowMap = true;
@@ -679,7 +681,7 @@ void Engine::EndRendering()
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
 		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
 
-		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, 0, _Height*0.75);
+		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, 0.f, _Height*0.75f);
 	}
 	
 	_SwapChain->Present( 0, 0 );
@@ -1104,22 +1106,13 @@ void Engine::RenderShadowMap()
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
 	_ImmediateContext->RSSetViewports( 1, &vp );
-    // Initialize the view matrix
 
-	_SunShadowNear = 10.f;
-	_SunShadowFar = 2000.f;
-
-	//XMVECTOR Min = XMLoadFloat3(&_StaticMeshComponent->_AABBMin);
-	//XMVECTOR Max = XMLoadFloat3(&_StaticMeshComponent->_AABBMax);
-	//XMVECTOR Center = (Min + Max)*0.5f;
-	//XMVECTOR Extents = (Max - Min) * 0.5f;
 
 	XMVECTOR Det;
 	XMMATRIX ViewMatInv = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
 
-	XMVECTOR Eye =  XMLoadFloat3(&XMFLOAT3(0.f, 0.f, 0.f));
 	XMVECTOR LightDir = XMLoadFloat3(&_SunLight->_LightDirection);
-	XMVECTOR Up = XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
+	XMVECTOR Up = XMVectorSet(0.f, 1.f, 0.f, 1.f);//XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
 	
 	XMVECTOR Center = XMVectorSet(0.f, 0.f, 0.f, 0.f);;
 	XMVECTOR vFrustumPoints[8];
@@ -1128,7 +1121,8 @@ void Engine::RenderShadowMap()
 
 	fFrustumIntervalBegin = 10;
 	fFrustumIntervalEnd = 650;
-	CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, XMLoadFloat4x4(&_ProjectionMat), vFrustumPoints); 
+	XMMATRIX ProjectionMat = XMLoadFloat4x4(&_ProjectionMat);
+	CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, ProjectionMat, vFrustumPoints); 
 	for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
 	{
 		// world space
@@ -1138,18 +1132,15 @@ void Engine::RenderShadowMap()
 
 	Center /= 8;
 
-//	XMMATRIX LightRotation = XMMatrixLookAtRH(XMLoadFloat3(&XMFLOAT3(0.f, 0.f, 0.f)), LightDir, Up); 
-	//XMMATRIX LightRotationInv = XMMatrixInverse(&Det, LightRotation);
 	XMMATRIX LightView = XMMatrixLookAtRH( Center - LightDir, Center, Up );
-//	XMMATRIX LightViewInv = XMMatrixInverse(&Det, LightView);
-
-
 
 
 	XMVECTOR vLightCameraOrthographicMin;  // light space frustrum aabb 
 	XMVECTOR vLightCameraOrthographicMax;
-	vLightCameraOrthographicMin = XMLoadFloat3(&XMFLOAT3(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX));;
-	vLightCameraOrthographicMax = XMLoadFloat3(&XMFLOAT3(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX));;
+	vLightCameraOrthographicMin = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);//XMLoadFloat3(&XMFLOAT3(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX));;
+	vLightCameraOrthographicMax = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);//XMLoadFloat3(&XMFLOAT3(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX));;
+
+	XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);
 	XMVECTOR vTempTranslatedCornerPoint;
 
 	for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
@@ -1161,18 +1152,6 @@ void Engine::RenderShadowMap()
 		vLightCameraOrthographicMin = XMVectorMin ( vTempTranslatedCornerPoint, vLightCameraOrthographicMin );
 		vLightCameraOrthographicMax = XMVectorMax ( vTempTranslatedCornerPoint, vLightCameraOrthographicMax );
 	}
-
-	XMVECTOR BoxSize = (vLightCameraOrthographicMax - vLightCameraOrthographicMin);
-
-	/*XMVECTOR LightPosition = (vLightCameraOrthographicMin + vLightCameraOrthographicMax)/2;
-	XMVectorSetZ(LightPosition, XMVectorGetX(vLightCameraOrthographicMin));
-	XMVector4Transform(LightPosition, LightRotationInv);*/
-
-	//XMMATRIX LightView = XMMatrixLookAtRH( LightPosition, LightPosition + LightDir, Up );
-	
-	float ShadowNear = 0.0f;
-    float ShadowFar = 10000.0f;
-
 
 	XMMATRIX LightProjection = XMMatrixOrthographicOffCenterRH( 
 		XMVectorGetX( vLightCameraOrthographicMin )

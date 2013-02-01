@@ -582,11 +582,6 @@ void FbxFileImporter::ImportAnimClip(std::vector<AnimationClip*>& outAnimclipArr
 		{
 			mStart = lCurrentTakeInfo->mLocalTimeSpan.GetStart();
 			mStop = lCurrentTakeInfo->mLocalTimeSpan.GetStop();
-
-			long EndTime = mStop.GetMilliSeconds();
-			long StartTime = mStart.GetMilliSeconds();
-			//long FrameTime = mFrameTime.GetMilliSeconds();
-			cout_debug("start : %d, end : %d\n", StartTime, EndTime);
 		}
 		else
 		{

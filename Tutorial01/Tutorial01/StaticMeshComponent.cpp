@@ -18,7 +18,7 @@ void StaticMeshComponent::AddStaticMesh( StaticMesh* Mesh )
 	_StaticMeshArray.push_back(Mesh);
 
 
-	for(int i=0;i<Mesh->_PositionArray.size();i++)
+	for(UINT i=0;i<Mesh->_PositionArray.size();i++)
 	{
 		XMFLOAT3& Pos = Mesh->_PositionArray[i];
 		_AABBMax.x = Math::Max<float>(_AABBMax.x, Pos.x);
