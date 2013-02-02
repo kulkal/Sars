@@ -24,6 +24,8 @@ class AnimationClip;
 class LightComponent;
 class DirectionalLightComponent;
 class StaticMeshComponent;
+class Camera;
+class Input;
 
 class Engine
 {
@@ -110,6 +112,9 @@ public:
 
 	DirectionalLightComponent* _SunLight;
 
+	Camera*		_CurrentCamera;
+
+	Input*		_Input;
 public:
 	void Tick();
 	void InitDevice();

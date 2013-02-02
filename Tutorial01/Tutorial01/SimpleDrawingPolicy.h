@@ -16,8 +16,8 @@ public:
 public:
 
 
-	virtual void DrawStaticMesh(StaticMesh* pMesh, XMFLOAT4X4& ViewMat, XMFLOAT4X4& ProjectionMat);
-	virtual void DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData, XMFLOAT4X4& ViewMat, XMFLOAT4X4& ProjectionMat);
+	virtual void DrawStaticMesh(StaticMesh* pMesh, XMMATRIX& ViewMat, XMMATRIX& ProjectionMat);
+	virtual void DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData, XMMATRIX& ViewMat, XMMATRIX& ProjectionMat);
 
 	SimpleDrawingPolicy(void);
 	virtual ~SimpleDrawingPolicy(void);

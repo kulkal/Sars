@@ -64,15 +64,15 @@ SimpleDrawingPolicy::~SimpleDrawingPolicy(void)
 	if(RS) RS->Release();
 }
 
-void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMFLOAT4X4& ViewMat, XMFLOAT4X4& ProjectionMat )
+void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMMATRIX& ViewMat, XMMATRIX& ProjectionMat )
 {
 	XMMATRIX World;
 
 	World = XMMatrixIdentity();
 	ConstantBufferStruct cb;
 	cb.mWorld = XMMatrixTranspose( World );
-	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &ViewMat ));
-	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&ProjectionMat));
+	cb.mView = XMMatrixTranspose(  ViewMat );
+	cb.mProjection = XMMatrixTranspose( ProjectionMat);
 	cb.vLightDir[0] = vLightDirs[0];
 	cb.vLightDir[1] = vLightDirs[1];
 	cb.vLightColor[0] = vLightColors[0];
@@ -99,15 +99,15 @@ void SimpleDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMFLOAT4X4& ViewMat
 	GEngine->_ImmediateContext->DrawIndexed( pMesh->_NumTriangle*3, 0, 0 );        // 36 vertices needed for 12 triangles in a triangle list
 }
 
-void SimpleDrawingPolicy::DrawSkeletalMeshData(SkeletalMeshRenderData* pRenderData, XMFLOAT4X4& ViewMat, XMFLOAT4X4& ProjectionMat) 
+void SimpleDrawingPolicy::DrawSkeletalMeshData( SkeletalMeshRenderData* pRenderData, XMMATRIX& ViewMat, XMMATRIX& ProjectionMat )
 {
 	XMMATRIX World;
 
 	World = XMMatrixIdentity();
 	ConstantBufferStruct cb;
 	cb.mWorld = XMMatrixTranspose( World );
-	cb.mView = XMMatrixTranspose( XMLoadFloat4x4( &ViewMat ));
-	cb.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&ProjectionMat));
+	cb.mView = XMMatrixTranspose(  ViewMat );
+	cb.mProjection = XMMatrixTranspose( ProjectionMat);
 	cb.vLightDir[0] = vLightDirs[0];
 	cb.vLightDir[1] = vLightDirs[1];
 	cb.vLightColor[0] = vLightColors[0];

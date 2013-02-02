@@ -14,6 +14,8 @@
 #include "StaticMeshComponent.h"
 #include "xnacollision.h"
 #include "MathUtil.h"
+#include "FpsCamera.h"
+#include "Input.h"
 
 struct SCREEN_VERTEX
 {
@@ -68,6 +70,8 @@ Engine::Engine(void)
 	,_ShadowDepthTexture(NULL)
 	,_DeferredShadowTexture(NULL)
 	,_StaticMeshComponent(NULL)
+	,_CurrentCamera(NULL)
+	,_Input(NULL)
 	
 {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -152,6 +156,14 @@ Engine::~Engine(void)
 	if( _TextureRV ) _TextureRV->Release();
 
 	if(GStateManager) delete GStateManager;
+
+	if(_CurrentCamera) delete _CurrentCamera;
+	
+	if(_Input)
+	{
+		_Input->Release();
+		delete _Input;
+	}
 }
 
 void Engine::InitDevice()
@@ -441,8 +453,8 @@ void Engine::InitDevice()
 		_StaticMeshComponent->AddStaticMesh(_StaticMeshArray[i]);
 	}
 
-	cout_debug("staticmesh aabb min: %f %f %f\n", _StaticMeshComponent->_AABBMin.x, _StaticMeshComponent->_AABBMin.y, _StaticMeshComponent->_AABBMin.z);
-	cout_debug("staticmesh aabb max: %f %f %f\n", _StaticMeshComponent->_AABBMax.x, _StaticMeshComponent->_AABBMax.y, _StaticMeshComponent->_AABBMax.z);
+	//cout_debug("staticmesh aabb min: %f %f %f\n", _StaticMeshComponent->_AABBMin.x, _StaticMeshComponent->_AABBMin.y, _StaticMeshComponent->_AABBMin.z);
+	//cout_debug("staticmesh aabb max: %f %f %f\n", _StaticMeshComponent->_AABBMax.x, _StaticMeshComponent->_AABBMax.y, _StaticMeshComponent->_AABBMax.z);
 
 	// Load the Texture
 	hr = D3DX11CreateShaderResourceViewFromFile( GEngine->_Device, L"seafloor.dds", NULL, NULL, &_TextureRV, NULL );
@@ -460,6 +472,11 @@ void Engine::InitDevice()
 
 	PointLightComponent* PointLight2 = new PointLightComponent(XMFLOAT4(  0.f, 0.f, 1.f, 1.0f), XMFLOAT3( 100.f, 50.f, 0.f ), 200.f);
 	_LightCompArray.push_back(PointLight2);
+
+	_Input = new Input;
+	_Input->Create(_hWnd, (long)_Width, (long)_Height, 0, 0);
+
+	_CurrentCamera = new FpsCamera(XMFLOAT3(0.f, 250.f, 250.f), 0.f, -XM_PI/4);
 
 }
 
@@ -555,6 +572,8 @@ HRESULT Engine::CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pD
 
 void Engine::Tick()
 {
+	if(_Input) _Input->Update();
+
 	LARGE_INTEGER CurrentTime;
 
 	QueryPerformanceCounter(&CurrentTime);
@@ -563,6 +582,12 @@ void Engine::Tick()
 	//cout_debug("delta seconds: %f\n", _DeltaSeconds);
 
 	if(_GSkeletalMeshComponent) _GSkeletalMeshComponent->Tick(_DeltaSeconds);
+
+	if(_CurrentCamera) 
+	{
+		_CurrentCamera->Tick(_DeltaSeconds);
+	}
+
 	_PrevTime = CurrentTime;
 }
 
@@ -583,18 +608,26 @@ void Engine::Render()
 
 	_ImmediateContext->PSSetShaderResources( 0, 1, &_TextureRV );
 
+	XMMATRIX ViewMatrix;
+	XMMATRIX ProjectionMatrix;
+
+	if(_CurrentCamera) _CurrentCamera->CalcViewInfo(ViewMatrix, ProjectionMatrix, _Width, _Height);
+	XMStoreFloat4x4(&_ViewMat, ViewMatrix);
+	XMStoreFloat4x4(&_ProjectionMat, ProjectionMatrix);
+
+
 	// draw scene into g-buffer
 	for(unsigned int i=0;i<_StaticMeshComponent->_StaticMeshArray.size();i++)
 	{
 		StaticMesh* Mesh = _StaticMeshComponent->_StaticMeshArray[i];
-		_GBufferDrawer->DrawStaticMesh(Mesh, _ViewMat, _ProjectionMat);
+		_GBufferDrawer->DrawStaticMesh(Mesh, ViewMatrix, ProjectionMatrix);
 	}
 
 	if(_GSkeletalMeshComponent)
 	{
 		for(unsigned int i=0;i<_GSkeletalMeshComponent->_RenderDataArray.size();i++)
 		{
-			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], _ViewMat, _ProjectionMat);
+			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], ViewMatrix, ProjectionMatrix);
 		}
 	}
 
@@ -778,309 +811,6 @@ void CreateFrustumPointsFromCascadeInterval( float fCascadeIntervalBegin,
 
 }
 
-void ComputeNearAndFar( FLOAT& fNearPlane, 
-                                        FLOAT& fFarPlane, 
-                                        FXMVECTOR vLightCameraOrthographicMin, 
-                                        FXMVECTOR vLightCameraOrthographicMax, 
-                                        XMVECTOR* pvPointsInCameraView ) 
-{
-
-    // Initialize the near and far planes
-    fNearPlane = FLT_MAX;
-    fFarPlane = -FLT_MAX;
-    
-    Triangle triangleList[16];
-    INT iTriangleCnt = 1;
-
-    triangleList[0].pt[0] = pvPointsInCameraView[0];
-    triangleList[0].pt[1] = pvPointsInCameraView[1];
-    triangleList[0].pt[2] = pvPointsInCameraView[2];
-    triangleList[0].culled = false;
-
-    // These are the indices used to tesselate an AABB into a list of triangles.
-    static const INT iAABBTriIndexes[] = 
-    {
-        0,1,2,  1,2,3,
-        4,5,6,  5,6,7,
-        0,2,4,  2,4,6,
-        1,3,5,  3,5,7,
-        0,1,4,  1,4,5,
-        2,3,6,  3,6,7 
-    };
-
-    INT iPointPassesCollision[3];
-
-    // At a high level: 
-    // 1. Iterate over all 12 triangles of the AABB.  
-    // 2. Clip the triangles against each plane. Create new triangles as needed.
-    // 3. Find the min and max z values as the near and far plane.
-    
-    //This is easier because the triangles are in camera spacing making the collisions tests simple comparisions.
-    
-    float fLightCameraOrthographicMinX = XMVectorGetX( vLightCameraOrthographicMin );
-    float fLightCameraOrthographicMaxX = XMVectorGetX( vLightCameraOrthographicMax ); 
-    float fLightCameraOrthographicMinY = XMVectorGetY( vLightCameraOrthographicMin );
-    float fLightCameraOrthographicMaxY = XMVectorGetY( vLightCameraOrthographicMax );
-    
-    for( INT AABBTriIter = 0; AABBTriIter < 12; ++AABBTriIter ) 
-    {
-
-        triangleList[0].pt[0] = pvPointsInCameraView[ iAABBTriIndexes[ AABBTriIter*3 + 0 ] ];
-        triangleList[0].pt[1] = pvPointsInCameraView[ iAABBTriIndexes[ AABBTriIter*3 + 1 ] ];
-        triangleList[0].pt[2] = pvPointsInCameraView[ iAABBTriIndexes[ AABBTriIter*3 + 2 ] ];
-        iTriangleCnt = 1;
-        triangleList[0].culled = FALSE;
-
-        // Clip each invidual triangle against the 4 frustums.  When ever a triangle is clipped into new triangles, 
-        //add them to the list.
-        for( INT frustumPlaneIter = 0; frustumPlaneIter < 4; ++frustumPlaneIter ) 
-        {
-
-            FLOAT fEdge;
-            INT iComponent;
-            
-            if( frustumPlaneIter == 0 ) 
-            {
-                fEdge = fLightCameraOrthographicMinX; // todo make float temp
-                iComponent = 0;
-            } 
-            else if( frustumPlaneIter == 1 ) 
-            {
-                fEdge = fLightCameraOrthographicMaxX;
-                iComponent = 0;
-            } 
-            else if( frustumPlaneIter == 2 ) 
-            {
-                fEdge = fLightCameraOrthographicMinY;
-                iComponent = 1;
-            } 
-            else 
-            {
-                fEdge = fLightCameraOrthographicMaxY;
-                iComponent = 1;
-            }
-
-            for( INT triIter=0; triIter < iTriangleCnt; ++triIter ) 
-            {
-                // We don't delete triangles, so we skip those that have been culled.
-                if( !triangleList[triIter].culled ) 
-                {
-                    INT iInsideVertCount = 0;
-                    XMVECTOR tempOrder;
-                    // Test against the correct frustum plane.
-                    // This could be written more compactly, but it would be harder to understand.
-                    
-                    if( frustumPlaneIter == 0 ) 
-                    {
-                        for( INT triPtIter=0; triPtIter < 3; ++triPtIter ) 
-                        {
-                            if( XMVectorGetX( triangleList[triIter].pt[triPtIter] ) >
-                                XMVectorGetX( vLightCameraOrthographicMin ) ) 
-                            { 
-                                iPointPassesCollision[triPtIter] = 1;
-                            }
-                            else 
-                            {
-                                iPointPassesCollision[triPtIter] = 0;
-                            }
-                            iInsideVertCount += iPointPassesCollision[triPtIter];
-                        }
-                    }
-                    else if( frustumPlaneIter == 1 ) 
-                    {
-                        for( INT triPtIter=0; triPtIter < 3; ++triPtIter ) 
-                        {
-                            if( XMVectorGetX( triangleList[triIter].pt[triPtIter] ) < 
-                                XMVectorGetX( vLightCameraOrthographicMax ) )
-                            {
-                                iPointPassesCollision[triPtIter] = 1;
-                            }
-                            else
-                            { 
-                                iPointPassesCollision[triPtIter] = 0;
-                            }
-                            iInsideVertCount += iPointPassesCollision[triPtIter];
-                        }
-                    }
-                    else if( frustumPlaneIter == 2 ) 
-                    {
-                        for( INT triPtIter=0; triPtIter < 3; ++triPtIter ) 
-                        {
-                            if( XMVectorGetY( triangleList[triIter].pt[triPtIter] ) > 
-                                XMVectorGetY( vLightCameraOrthographicMin ) ) 
-                            {
-                                iPointPassesCollision[triPtIter] = 1;
-                            }
-                            else 
-                            {
-                                iPointPassesCollision[triPtIter] = 0;
-                            }
-                            iInsideVertCount += iPointPassesCollision[triPtIter];
-                        }
-                    }
-                    else 
-                    {
-                        for( INT triPtIter=0; triPtIter < 3; ++triPtIter ) 
-                        {
-                            if( XMVectorGetY( triangleList[triIter].pt[triPtIter] ) < 
-                                XMVectorGetY( vLightCameraOrthographicMax ) ) 
-                            {
-                                iPointPassesCollision[triPtIter] = 1;
-                            }
-                            else 
-                            {
-                                iPointPassesCollision[triPtIter] = 0;
-                            }
-                            iInsideVertCount += iPointPassesCollision[triPtIter];
-                        }
-                    }
-
-                    // Move the points that pass the frustum test to the begining of the array.
-                    if( iPointPassesCollision[1] && !iPointPassesCollision[0] ) 
-                    {
-                        tempOrder =  triangleList[triIter].pt[0];   
-                        triangleList[triIter].pt[0] = triangleList[triIter].pt[1];
-                        triangleList[triIter].pt[1] = tempOrder;
-                        iPointPassesCollision[0] = TRUE;            
-                        iPointPassesCollision[1] = FALSE;            
-                    }
-                    if( iPointPassesCollision[2] && !iPointPassesCollision[1] ) 
-                    {
-                        tempOrder =  triangleList[triIter].pt[1];   
-                        triangleList[triIter].pt[1] = triangleList[triIter].pt[2];
-                        triangleList[triIter].pt[2] = tempOrder;
-                        iPointPassesCollision[1] = TRUE;            
-                        iPointPassesCollision[2] = FALSE;                        
-                    }
-                    if( iPointPassesCollision[1] && !iPointPassesCollision[0] ) 
-                    {
-                        tempOrder =  triangleList[triIter].pt[0];   
-                        triangleList[triIter].pt[0] = triangleList[triIter].pt[1];
-                        triangleList[triIter].pt[1] = tempOrder;
-                        iPointPassesCollision[0] = TRUE;            
-                        iPointPassesCollision[1] = FALSE;            
-                    }
-                    
-                    if( iInsideVertCount == 0 ) 
-                    { // All points failed. We're done,  
-                        triangleList[triIter].culled = true;
-                    }
-                    else if( iInsideVertCount == 1 ) 
-                    {// One point passed. Clip the triangle against the Frustum plane
-                        triangleList[triIter].culled = false;
-                        
-                        // 
-                        XMVECTOR vVert0ToVert1 = triangleList[triIter].pt[1] - triangleList[triIter].pt[0];
-                        XMVECTOR vVert0ToVert2 = triangleList[triIter].pt[2] - triangleList[triIter].pt[0];
-                        
-                        // Find the collision ratio.
-                        FLOAT fHitPointTimeRatio = fEdge - XMVectorGetByIndex( triangleList[triIter].pt[0], iComponent ) ;
-                        // Calculate the distance along the vector as ratio of the hit ratio to the component.
-                        FLOAT fDistanceAlongVector01 = fHitPointTimeRatio / XMVectorGetByIndex( vVert0ToVert1, iComponent );
-                        FLOAT fDistanceAlongVector02 = fHitPointTimeRatio / XMVectorGetByIndex( vVert0ToVert2, iComponent );
-                        // Add the point plus a percentage of the vector.
-                        vVert0ToVert1 *= fDistanceAlongVector01;
-                        vVert0ToVert1 += triangleList[triIter].pt[0];
-                        vVert0ToVert2 *= fDistanceAlongVector02;
-                        vVert0ToVert2 += triangleList[triIter].pt[0];
-
-                        triangleList[triIter].pt[1] = vVert0ToVert2;
-                        triangleList[triIter].pt[2] = vVert0ToVert1;
-
-                    }
-                    else if( iInsideVertCount == 2 ) 
-                    { // 2 in  // tesselate into 2 triangles
-                        
-
-                        // Copy the triangle\(if it exists) after the current triangle out of
-                        // the way so we can override it with the new triangle we're inserting.
-                        triangleList[iTriangleCnt] = triangleList[triIter+1];
-
-                        triangleList[triIter].culled = false;
-                        triangleList[triIter+1].culled = false;
-                        
-                        // Get the vector from the outside point into the 2 inside points.
-                        XMVECTOR vVert2ToVert0 = triangleList[triIter].pt[0] - triangleList[triIter].pt[2];
-                        XMVECTOR vVert2ToVert1 = triangleList[triIter].pt[1] - triangleList[triIter].pt[2];
-                        
-                        // Get the hit point ratio.
-                        FLOAT fHitPointTime_2_0 =  fEdge - XMVectorGetByIndex( triangleList[triIter].pt[2], iComponent );
-                        FLOAT fDistanceAlongVector_2_0 = fHitPointTime_2_0 / XMVectorGetByIndex( vVert2ToVert0, iComponent );
-                        // Calcaulte the new vert by adding the percentage of the vector plus point 2.
-                        vVert2ToVert0 *= fDistanceAlongVector_2_0;
-                        vVert2ToVert0 += triangleList[triIter].pt[2];
-                        
-                        // Add a new triangle.
-                        triangleList[triIter+1].pt[0] = triangleList[triIter].pt[0];
-                        triangleList[triIter+1].pt[1] = triangleList[triIter].pt[1];
-                        triangleList[triIter+1].pt[2] = vVert2ToVert0;
-                        
-                        //Get the hit point ratio.
-                        FLOAT fHitPointTime_2_1 =  fEdge - XMVectorGetByIndex( triangleList[triIter].pt[2], iComponent ) ;
-                        FLOAT fDistanceAlongVector_2_1 = fHitPointTime_2_1 / XMVectorGetByIndex( vVert2ToVert1, iComponent );
-                        vVert2ToVert1 *= fDistanceAlongVector_2_1;
-                        vVert2ToVert1 += triangleList[triIter].pt[2];
-                        triangleList[triIter].pt[0] = triangleList[triIter+1].pt[1];
-                        triangleList[triIter].pt[1] = triangleList[triIter+1].pt[2];
-                        triangleList[triIter].pt[2] = vVert2ToVert1;
-                        // Cncrement triangle count and skip the triangle we just inserted.
-                        ++iTriangleCnt;
-                        ++triIter;
-
-                    
-                    }
-                    else 
-                    { // all in
-                        triangleList[triIter].culled = false;
-
-                    }
-                }// end if !culled loop            
-            }
-        }
-        for( INT index=0; index < iTriangleCnt; ++index ) 
-        {
-            if( !triangleList[index].culled ) 
-            {
-                // Set the near and far plan and the min and max z values respectivly.
-                for( int vertind = 0; vertind < 3; ++ vertind ) 
-                {
-                    float fTriangleCoordZ = XMVectorGetZ( triangleList[index].pt[vertind] );
-                    if( fNearPlane > fTriangleCoordZ ) 
-                    {
-                        fNearPlane = fTriangleCoordZ;
-                    }
-                    if( fFarPlane  <fTriangleCoordZ ) 
-                    {
-                        fFarPlane = fTriangleCoordZ;
-                    }
-                }
-            }
-        }
-    }    
-
-}
-
-void CreateAABBPoints( XMVECTOR* vAABBPoints, FXMVECTOR vCenter, FXMVECTOR vExtents )
-{
-    //This map enables us to use a for loop and do vector math.
-    static const XMVECTORF32 vExtentsMap[] = 
-    { 
-        {1.0f, 1.0f, -1.0f, 1.0f}, 
-        {-1.0f, 1.0f, -1.0f, 1.0f}, 
-        {1.0f, -1.0f, -1.0f, 1.0f}, 
-        {-1.0f, -1.0f, -1.0f, 1.0f}, 
-        {1.0f, 1.0f, 1.0f, 1.0f}, 
-        {-1.0f, 1.0f, 1.0f, 1.0f}, 
-        {1.0f, -1.0f, 1.0f, 1.0f}, 
-        {-1.0f, -1.0f, 1.0f, 1.0f} 
-    };
-    
-    for( INT index = 0; index < 8; ++index ) 
-    {
-        vAABBPoints[index] = XMVectorMultiplyAdd(vExtentsMap[index], vExtents, vCenter ); 
-    }
-}
-
 
 void Engine::RenderShadowMap()
 {
@@ -1176,14 +906,14 @@ void Engine::RenderShadowMap()
 
 	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
 	{
-		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], _SunShadowMat, _SunShadowProjectionMat);
+		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], LightView, LightProjection);
 	}
 
 	if(_GSkeletalMeshComponent)
 	{
 		for(unsigned int i=0;i<_GSkeletalMeshComponent->_RenderDataArray.size();i++)
 		{
-			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], _SunShadowMat, _SunShadowProjectionMat);
+			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], LightView, LightProjection);
 		}
 	}
 

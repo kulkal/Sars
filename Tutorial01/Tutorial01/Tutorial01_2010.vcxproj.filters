@@ -87,6 +87,8 @@
     <ClCompile Include="xnacollision.cpp" />
     <ClCompile Include="View.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="FpsCamera.cpp" />
+    <ClCompile Include="Input.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -128,6 +130,8 @@
     <ClInclude Include="xnacollision.h" />
     <ClInclude Include="View.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="FpsCamera.h" />
+    <ClInclude Include="Input.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
