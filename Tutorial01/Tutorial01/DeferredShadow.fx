@@ -4,7 +4,7 @@ Texture2D<float4> texShadowMap : register( t1 );
 SamplerState samLinear : register( s0 );
 SamplerComparisonState samShadow : register( s1 );
 
-#define SHADOW_EPSYLON 0.0000001
+#define SHADOW_EPSYLON 0.005
 cbuffer ConstantBuffer : register( b0 )
 {
 	matrix Projection;
@@ -61,8 +61,9 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	float DepthCompareVal = ShadowPos.z - SHADOW_EPSYLON;
 	//float ShadowDeviceDepth = texShadowMap.Sample( samLinear, ShadowTex.xy ).x;
 
-	float x, y;
 	float ShadowVal = 0;
+
+	float x, y;
 	for (y = -1.5; y <= 1.5; y += 1.0)
 		for (x = -1.5; x <= 1.5; x += 1.0)
 			 ShadowVal += texShadowMap.SampleCmpLevelZero( samShadow, ShadowTex.xy + float2(x/ShadowTexSize,y/ShadowTexSize), DepthCompareVal );
@@ -71,5 +72,5 @@ float4 PS( QuadVS_Output input ) : SV_Target
 
 	ShadowVal /= 16;
 
-	return 1-float4(ShadowVal, ShadowVal, ShadowVal, ShadowVal);
+	return float4(ShadowVal, ShadowVal, ShadowVal, ShadowVal);
 }

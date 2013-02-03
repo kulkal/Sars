@@ -8,7 +8,6 @@ class SimpleDrawingPolicy :
 	public DrawingPolicy
 {
 	ID3D11Buffer*           ConstantBuffer;
-	ID3D11RasterizerState*	 RS;
 
 public:
 	XMFLOAT4 vLightDirs[2];

@@ -79,7 +79,7 @@ Engine::Engine(void)
 	QueryPerformanceCounter(&_PrevTime);
 	_Near = 10.f;
 	_Far = 1000.f;
-	_ShadowMapSize = 512;
+	_ShadowMapSize = 1024;
 	//_CrtSetBreakAlloc(2486860);
 }
 
@@ -615,7 +615,7 @@ void Engine::Render()
 	XMStoreFloat4x4(&_ViewMat, ViewMatrix);
 	XMStoreFloat4x4(&_ProjectionMat, ProjectionMatrix);
 
-
+	SET_RASTERIZER_STATE(RS_NORMAL);
 	// draw scene into g-buffer
 	for(unsigned int i=0;i<_StaticMeshComponent->_StaticMeshArray.size();i++)
 	{
@@ -691,7 +691,7 @@ void Engine::EndRendering()
 		DrawFullScreenQuad11(_VisNormalPS, _Width/4, _Height/4);
 	}
 
-	bool _VisualizeShadow = false;
+	bool _VisualizeShadow = true;
 	if(_VisualizeShadow)
 	{
 		ID3D11ShaderResourceView* aSRVVis[1] = {_DeferredShadowTexture->GetSRV(), };
@@ -850,7 +850,7 @@ void Engine::RenderShadowMap()
 	float fFrustumIntervalBegin, fFrustumIntervalEnd;
 
 	fFrustumIntervalBegin = 10;
-	fFrustumIntervalEnd = 650;
+	fFrustumIntervalEnd = 250;
 	XMMATRIX ProjectionMat = XMLoadFloat4x4(&_ProjectionMat);
 	CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, ProjectionMat, vFrustumPoints); 
 	for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
@@ -904,6 +904,8 @@ void Engine::RenderShadowMap()
 	XMStoreFloat4x4(&_SunShadowMat, LightView);
 	XMStoreFloat4x4(&_SunShadowProjectionMat, LightProjection);
 
+	SET_RASTERIZER_STATE(RS_SHADOWMAP);
+
 	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
 	{
 		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], LightView, LightProjection);
@@ -916,6 +918,8 @@ void Engine::RenderShadowMap()
 			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], LightView, LightProjection);
 		}
 	}
+
+	SET_RASTERIZER_STATE(RS_NORMAL);
 
 	_ImmediateContext->RSSetViewports( nViewPorts, vpOld );
 }

@@ -21,6 +21,12 @@ enum ESamplerState
 	SIZE_SAMPLERSTATE,
 };
 
+enum ERasterState
+{
+	RS_NORMAL, RS_SHADOWMAP, 
+	SIZE_RASTERSTATE,
+};
+
 class StateManager
 {
 	// Depth Stencil States
@@ -60,16 +66,20 @@ class StateManager
 	};
 	std::vector<SamplerStateData> _SamplerStateArray;
 
+	std::vector<ID3D11RasterizerState *> _RasterStateArra;
 public:
 	void Init();
 	void InitBlendStates();
 	void InitDepthStencilStates();
 	void InitSamplerStates();
+	void InitRasterStates();
 
 	void SetBlendState(EBlendState eBS);
 	void SetDepthStencilState(EDepthStencilState eDSS);
 
 	void SetPSSampler(int StartSlot, ESamplerState eSS);
+
+	void SetRasterizerState(ERasterState eRS);
 public:
 
 	StateManager(void);
@@ -81,3 +91,4 @@ extern StateManager* GStateManager;
 #define SET_BLEND_STATE( eBS) GStateManager->SetBlendState(eBS);
 #define SET_DEPTHSTENCIL_STATE( eDSS) GStateManager->SetDepthStencilState(eDSS);
 #define SET_PS_SAMPLER(Slot, eSS) GStateManager->SetPSSampler(Slot, eSS);
+#define SET_RASTERIZER_STATE(eRS) GStateManager->SetRasterizerState(eRS);

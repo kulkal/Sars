@@ -10,7 +10,6 @@ struct ConstantBufferStruct
 
 GBufferDrawingPolicy::GBufferDrawingPolicy(void)
 	:ConstantBuffer(NULL)
-	,RS(NULL)
 {
 	FileName = "GBufferShader.fx";
 
@@ -27,37 +26,12 @@ GBufferDrawingPolicy::GBufferDrawingPolicy(void)
 		assert(false);
 
 	SetD3DResourceDebugName("GBufferDrawingPolicyConstantBuffer", ConstantBuffer);
-
-
-	D3D11_RASTERIZER_DESC drd =
-	{
-		D3D11_FILL_SOLID, //D3D11_FILL_MODE FillMode;
-		D3D11_CULL_FRONT,//D3D11_CULL_MODE CullMode;
-		FALSE, //BOOL FrontCounterClockwise;
-		0, //INT DepthBias;
-		0.0f,//FLOAT DepthBiasClamp;
-		0.0f,//FLOAT SlopeScaledDepthBias;
-		TRUE,//BOOL DepthClipEnable;
-		FALSE,//BOOL ScissorEnable;
-		FALSE,//BOOL MultisampleEnable;
-		FALSE//BOOL AntialiasedLineEnable;        
-	};
-
-	hr = GEngine->_Device->CreateRasterizerState(&drd, &RS);
-	if ( FAILED( hr ) )
-		assert(false);
-
-	SetD3DResourceDebugName("GBufferDrawingPolicyRS", RS);
-
-
-	GEngine->_ImmediateContext->RSSetState(RS);
 }
 
 
 GBufferDrawingPolicy::~GBufferDrawingPolicy(void)
 {
 	if(ConstantBuffer) ConstantBuffer->Release();
-	if(RS) RS->Release();
 }
 
 void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMMATRIX& ViewMat, XMMATRIX& ProjectionMat )

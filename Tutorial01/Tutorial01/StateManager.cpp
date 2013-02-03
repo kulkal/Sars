@@ -29,6 +29,11 @@ StateManager::~StateManager(void)
 		SamplerStateData& SS = _SamplerStateArray[i];
 		SS.SS->Release();
 	}
+
+	for(UINT i=0;i<_RasterStateArra.size();i++)
+	{
+		_RasterStateArra[i]->Release();
+	}
 }
 
 void StateManager::Init()
@@ -36,6 +41,7 @@ void StateManager::Init()
 	InitBlendStates();
 	InitDepthStencilStates();
 	InitSamplerStates();
+	InitRasterStates();
 }
 
 void StateManager::SetBlendState(EBlendState eBS)
@@ -72,13 +78,21 @@ void StateManager::InitBlendStates()
 	DescBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	GEngine->_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_LIGHTING].BS);
 
-	DescBlend.RenderTarget[0].BlendEnable = true;
+	/*DescBlend.RenderTarget[0].BlendEnable = true;
 	DescBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
 	DescBlend.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
 	DescBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_REV_SUBTRACT   ;
 	DescBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
 	DescBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 	DescBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_REV_SUBTRACT   ;
+*/
+	DescBlend.RenderTarget[0].BlendEnable = true;
+	DescBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_DEST_COLOR ;
+	DescBlend.RenderTarget[0].DestBlend =  D3D11_BLEND_SRC_COLOR;
+	DescBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD   ;
+	DescBlend.RenderTarget[0].SrcBlendAlpha =  D3D11_BLEND_DEST_ALPHA;
+	DescBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_SRC_ALPHA ;
+	DescBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD   ;
 	GEngine->_Device->CreateBlendState(&DescBlend, &_BlendStateArray[BS_SHADOW].BS);
 }
 
@@ -150,10 +164,61 @@ void StateManager::InitSamplerStates()
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
 	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
 	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
-	sampDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	sampDesc.BorderColor[0] = 1.f;
+	sampDesc.BorderColor[1] = 1.f;
+	sampDesc.BorderColor[2] = 0.f;
+	sampDesc.BorderColor[3] = 0.f;
 	hr = GEngine->_Device->CreateSamplerState( &sampDesc, &_SamplerStateArray[SS_SHADOW].SS );
 	if( FAILED( hr ) )
 		assert(false);
+}
+
+void StateManager::InitRasterStates()
+{
+	HRESULT hr;
+	
+	_RasterStateArra.resize(SIZE_RASTERSTATE);
+
+	D3D11_RASTERIZER_DESC drd =
+	{
+		D3D11_FILL_SOLID, //D3D11_FILL_MODE FillMode;
+		D3D11_CULL_FRONT,//D3D11_CULL_MODE CullMode;
+		FALSE, //BOOL FrontCounterClockwise;
+		0, //INT DepthBias;
+		0.0f,//FLOAT DepthBiasClamp;
+		0.0f,//FLOAT SlopeScaledDepthBias;
+		TRUE,//BOOL DepthClipEnable;
+		FALSE,//BOOL ScissorEnable;
+		FALSE,//BOOL MultisampleEnable;
+		FALSE//BOOL AntialiasedLineEnable;        
+	};
+
+	hr = GEngine->_Device->CreateRasterizerState(&drd, &_RasterStateArra[RS_NORMAL]);
+	if ( FAILED( hr ) )
+		assert(false);
+
+	D3D11_RASTERIZER_DESC drdShadow =
+	{
+		D3D11_FILL_SOLID, //D3D11_FILL_MODE FillMode;
+		D3D11_CULL_FRONT,//D3D11_CULL_MODE CullMode;
+		FALSE, //BOOL FrontCounterClockwise;
+		0, //INT DepthBias;
+		0.0f,//FLOAT DepthBiasClamp;
+		1.f,//FLOAT SlopeScaledDepthBias;
+		TRUE,//BOOL DepthClipEnable;
+		FALSE,//BOOL ScissorEnable;
+		FALSE,//BOOL MultisampleEnable;
+		FALSE//BOOL AntialiasedLineEnable;        
+	};
+	hr = GEngine->_Device->CreateRasterizerState(&drdShadow, &_RasterStateArra[RS_SHADOWMAP]);
+	if ( FAILED( hr ) )
+		assert(false);
+}
+
+void StateManager::SetRasterizerState( ERasterState eRS )
+{
+	GEngine->_ImmediateContext->RSSetState(_RasterStateArra[eRS]);
 }
