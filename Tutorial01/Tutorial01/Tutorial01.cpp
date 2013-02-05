@@ -154,7 +154,7 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
 
     // Create window
     g_hInst = hInstance;
-    RECT rc = { 0, 0, 640, 480 };
+    RECT rc = { 0, 0, 1280, 720 };
     AdjustWindowRect( &rc, WS_OVERLAPPEDWINDOW, FALSE );
     g_hWnd = CreateWindow( L"TutorialWindowClass", L"Direct3D 11 Tutorial 1: Direct3D 11 Basics", WS_OVERLAPPEDWINDOW,
                            CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, hInstance,
@@ -214,12 +214,12 @@ HRESULT InitDevice()
 	XMVECTOR Up = XMLoadFloat4(&UpVal);
 	
 
-	g_View = XMMatrixLookAtRH( Eye, At, Up );
-	g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, GEngine->_Width / (FLOAT)GEngine->_Height, GEngine->_Near, GEngine->_Far );
-	g_World = XMMatrixIdentity();
+	//g_View = XMMatrixLookAtRH( Eye, At, Up );
+	//g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, GEngine->_Width / (FLOAT)GEngine->_Height, GEngine->_Near, GEngine->_Far );
+	//g_World = XMMatrixIdentity();
 
-	XMStoreFloat4x4(&GEngine->_ViewMat, g_View);
-	XMStoreFloat4x4(&GEngine->_ProjectionMat, g_Projection);
+	/*XMStoreFloat4x4(&GEngine->_ViewMat, g_View);
+	XMStoreFloat4x4(&GEngine->_ProjectionMat, g_Projection);*/
 
 
 	

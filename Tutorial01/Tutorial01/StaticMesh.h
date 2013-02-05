@@ -30,7 +30,7 @@ public:
 	std::vector<XMFLOAT3> _PositionArray;
 	std::vector<XMFLOAT3> _NormalArray;
 	std::vector<XMFLOAT2> _TexCoordArray;
-	std::vector<WORD> _IndiceArray;
+	std::vector<DWORD> _IndiceArray;
 
 	int _NumTexCoord;
 	int _NumTriangle;
@@ -45,6 +45,11 @@ public:
 	public:
 		int _TriangleCount;
 		int _IndexOffset;
+		SubMesh()
+		{
+			_TriangleCount = 0;
+			_IndexOffset = 0;
+		}
 	};
 
 	std::vector<SubMesh*> _SubMeshArray;

@@ -59,8 +59,8 @@ public:
 
 	XMFLOAT4X4 _ViewMat;
 	XMFLOAT4X4 _ProjectionMat;
-	float		_Near;
-	float		_Far;
+	//float		_Near;
+	//float		_Far;
 
 	XMFLOAT4X4 _SunShadowMat;
 	XMFLOAT4X4 _SunShadowProjectionMat;

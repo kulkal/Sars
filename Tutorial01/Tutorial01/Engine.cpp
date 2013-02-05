@@ -77,8 +77,8 @@ Engine::Engine(void)
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	QueryPerformanceFrequency(&_Freq);
 	QueryPerformanceCounter(&_PrevTime);
-	_Near = 10.f;
-	_Far = 1000.f;
+	//_Near = 10.f;
+	//_Far = 2000.f;
 	_ShadowMapSize = 1024;
 	//_CrtSetBreakAlloc(2486860);
 }
@@ -445,6 +445,7 @@ void Engine::InitDevice()
 	//_GSkeletalMeshComponent->PlayAnim(_AnimClipArray[1], 0, 0.2f);
 
 	FbxFileImporter FbxImporterObj2("sponza\\sponza.fbx");
+	//FbxFileImporter FbxImporterObj2("other.fbx");
 	FbxImporterObj2.ImportStaticMesh(_StaticMeshArray);
 
 	_StaticMeshComponent = new StaticMeshComponent;
@@ -464,7 +465,7 @@ void Engine::InitDevice()
 	GStateManager = new StateManager;
 	GStateManager->Init();
 
-	_SunLight = new DirectionalLightComponent(XMFLOAT4(0.2f, 0.f, 0.f, 1.F), XMFLOAT3(-1.0f, -1.f, -1.f) );
+	_SunLight = new DirectionalLightComponent(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.F), XMFLOAT3(-1.0f, -4.f, -1.f) );
 	_LightCompArray.push_back(_SunLight);
 
 	PointLightComponent* PointLight1 = new PointLightComponent(XMFLOAT4( 0.f, 1.f, 0.f, 1.0f), XMFLOAT3(  0.f, 0, 100.f  ), 200.f);
@@ -649,7 +650,7 @@ void Engine::Render()
 	for(unsigned int i=0;i<_LightCompArray.size();i++)
 	{
 		LightComponent* Light = _LightCompArray[i];
-		Light->RenderLightDeferred();
+		Light->RenderLightDeferred(_CurrentCamera);
 	}
 
 	// combine pass
@@ -674,11 +675,13 @@ void Engine::EndRendering()
 	_VisualizeDepth = true;
 	if(_VisualizeDepth)
 	{
+		float Near = _CurrentCamera->GetNear();
+		float Far = _CurrentCamera->GetFar();
 		VisDepthPSCBStruct cbVisDepth;
 		cbVisDepth.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
 		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-		cbVisDepth.ProjectionParams.x = _Far/(_Far - _Near);
-		cbVisDepth.ProjectionParams.y = _Near/(_Near - _Far);
+		cbVisDepth.ProjectionParams.x = Far/(Far - Near);
+		cbVisDepth.ProjectionParams.y = Near/(Near - Far);
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
 		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
 
@@ -696,20 +699,22 @@ void Engine::EndRendering()
 	{
 		ID3D11ShaderResourceView* aSRVVis[1] = {_DeferredShadowTexture->GetSRV(), };
 		_ImmediateContext->PSSetShaderResources( 0, 1, aSRVVis );
-		DrawFullScreenQuad11(_VisNormalPS, _Width/2, _Height/2, _Width*0.5f, _Height*0.5f);
+		DrawFullScreenQuad11(_VisNormalPS, _Width/4, _Height/4, _Width*0.75f, _Height*0.75f);
 	}
 
 	bool _VisualizeShadowMap = true;
 	if(_VisualizeShadowMap)
 	{
+		float Near = _CurrentCamera->GetNear();
+		float Far = _CurrentCamera->GetFar();
 		ID3D11ShaderResourceView* aSRVVis[2] = {NULL, _ShadowDepthTexture->GetSRV()};
 		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
 
 		VisDepthPSCBStruct cbVisDepth;
 		cbVisDepth.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
 		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-		cbVisDepth.ProjectionParams.x = _Far/(_Far - _Near);
-		cbVisDepth.ProjectionParams.y = _Near/(_Near - _Far);
+		cbVisDepth.ProjectionParams.x = Far/(Far - Near);
+		cbVisDepth.ProjectionParams.y = Near/(Near - Far);
 
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
 		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
@@ -850,7 +855,7 @@ void Engine::RenderShadowMap()
 	float fFrustumIntervalBegin, fFrustumIntervalEnd;
 
 	fFrustumIntervalBegin = 10;
-	fFrustumIntervalEnd = 250;
+	fFrustumIntervalEnd = 250.f;
 	XMMATRIX ProjectionMat = XMLoadFloat4x4(&_ProjectionMat);
 	CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, ProjectionMat, vFrustumPoints); 
 	for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
@@ -888,7 +893,7 @@ void Engine::RenderShadowMap()
 		,  XMVectorGetX( vLightCameraOrthographicMax )
 		, XMVectorGetY(vLightCameraOrthographicMin)
 		, XMVectorGetY(vLightCameraOrthographicMax)
-		, -XMVectorGetZ( vLightCameraOrthographicMax )
+		,-2000.f// -XMVectorGetZ( vLightCameraOrthographicMax )
 		, -XMVectorGetZ( vLightCameraOrthographicMin )
 		);
 
@@ -945,10 +950,12 @@ void Engine::RenderDeferredShadow()
 	
 	DeferredShadowPSCBStruct cbShadow;
 
+	float Near = _CurrentCamera->GetNear();
+	float Far = _CurrentCamera->GetFar();
 	cbShadow.Projection = XMMatrixTranspose( XMLoadFloat4x4(&_ProjectionMat));
-	cbShadow.ProjectionParams.x = _Far/(_Far - _Near);
-	cbShadow.ProjectionParams.y = _Near/(_Near - _Far);
-	cbShadow.ProjectionParams.z = _Far;
+	cbShadow.ProjectionParams.x = Far/(Far - Near);
+	cbShadow.ProjectionParams.y = Near/(Near - Far);
+	cbShadow.ProjectionParams.z = Far;
 	cbShadow.ViewportParams.x = (float)_Width;
 	cbShadow.ViewportParams.y = (float)_Height;
 	cbShadow.ViewportParams.z = (float)_ShadowMapSize;

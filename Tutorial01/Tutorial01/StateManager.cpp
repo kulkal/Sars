@@ -169,8 +169,8 @@ void StateManager::InitSamplerStates()
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	sampDesc.BorderColor[0] = 1.f;
 	sampDesc.BorderColor[1] = 1.f;
-	sampDesc.BorderColor[2] = 0.f;
-	sampDesc.BorderColor[3] = 0.f;
+	sampDesc.BorderColor[2] = 1.f;
+	sampDesc.BorderColor[3] = 1.f;
 	hr = GEngine->_Device->CreateSamplerState( &sampDesc, &_SamplerStateArray[SS_SHADOW].SS );
 	if( FAILED( hr ) )
 		assert(false);

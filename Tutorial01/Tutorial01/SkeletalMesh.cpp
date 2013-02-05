@@ -297,13 +297,13 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 
 			if (mAllByControlPoint)
 			{
-				_IndiceArray[lIndexOffset + lVerticeIndex] = static_cast<WORD>(lControlPointIndex);
+				_IndiceArray[lIndexOffset + lVerticeIndex] = static_cast<DWORD>(lControlPointIndex);
 
 			}
 			// Populate the array with vertex attribute, if by polygon vertex.
 			else
 			{
-				_IndiceArray[lIndexOffset + lVerticeIndex] = static_cast<WORD>(lVertexCount);
+				_IndiceArray[lIndexOffset + lVerticeIndex] = static_cast<DWORD>(lVertexCount);
 
 
 				lCurrentVertex = lControlPoints[lControlPointIndex];
@@ -645,7 +645,7 @@ bool SkeletalMesh::ImportFromFbxMesh( FbxMesh* Mesh, FbxFileImporter* Importer )
 	
 
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof( WORD ) * PolygonCount * TRIANGLE_VERTEX_COUNT;        // 36 vertices needed for 12 triangles in a triangle list
+	bd.ByteWidth = sizeof( DWORD ) * PolygonCount * TRIANGLE_VERTEX_COUNT;        // 36 vertices needed for 12 triangles in a triangle list
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 	InitData.pSysMem = &_IndiceArray[0];

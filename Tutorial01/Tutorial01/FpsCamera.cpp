@@ -4,7 +4,8 @@
 
 #define SMALLFLOAT 0.00000000001f
 FpsCamera::FpsCamera(XMFLOAT3 Pos, float Yaw, float Pitch)
-	:_Pos(Pos)
+	:Camera(10.f, 2000.f)
+	,_Pos(Pos)
 	,_Yaw(Yaw)
 	,_Pitch(Pitch)
 {

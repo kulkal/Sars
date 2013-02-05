@@ -1,5 +1,6 @@
 #include "DirectionalLightComponent.h"
 #include "Engine.h"
+#include "Camera.h"
 
 
 DirectionalLightComponent::DirectionalLightComponent(XMFLOAT4 LightColor, XMFLOAT3 LightDir)
@@ -14,7 +15,7 @@ DirectionalLightComponent::~DirectionalLightComponent(void)
 {
 }
 
-void DirectionalLightComponent::RenderLightDeferred()
+void DirectionalLightComponent::RenderLightDeferred(Camera* Camera)
 {
 	DeferredDirPSCBStruct cb;
 	XMVECTOR LightDirParam = XMVector3Normalize(XMVector3TransformNormal(XMLoadFloat3(&_LightDirection), (XMLoadFloat4x4(&GEngine->_ViewMat) ) ) );

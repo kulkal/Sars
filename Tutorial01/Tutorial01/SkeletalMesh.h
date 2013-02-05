@@ -46,7 +46,7 @@ public:
 	std::vector<XMFLOAT3> _PositionArray;
 	std::vector<XMFLOAT3> _NormalArray;
 	std::vector<XMFLOAT2> _TexCoordArray;
-	std::vector<WORD> _IndiceArray;
+	std::vector<DWORD> _IndiceArray;
 
 	std::vector<SkinInfo> _SkinInfoArray;
 

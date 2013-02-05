@@ -1,5 +1,7 @@
 #include "PointLightComponent.h"
 #include "Engine.h"
+#include "Camera.h"
+
 
 PointLightComponent::PointLightComponent(XMFLOAT4 LightColor, XMFLOAT3 LightPos, float LightRange)
 	:LightComponent(LightColor)
@@ -13,7 +15,7 @@ PointLightComponent::~PointLightComponent(void)
 {
 }
 
-void PointLightComponent::RenderLightDeferred()
+void PointLightComponent::RenderLightDeferred(Camera* Camera)
 {
 	DeferredPointPSCBStruct cbPoint;
 	XMVECTOR LightParam = XMVector3TransformCoord(XMLoadFloat3(&_LightPos), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
@@ -24,9 +26,11 @@ void PointLightComponent::RenderLightDeferred()
 	cbPoint.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
 	cbPoint.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
 
-	cbPoint.ProjectionParams.x = GEngine->_Far/(GEngine->_Far - GEngine->_Near);
-	cbPoint.ProjectionParams.y = GEngine->_Near/(GEngine->_Near - GEngine->_Far);
-	cbPoint.ProjectionParams.z = GEngine->_Far;
+	float Near = Camera->GetNear();
+	float Far = Camera->GetFar();
+	cbPoint.ProjectionParams.x =Far/(Far - Near);
+	cbPoint.ProjectionParams.y =Near/(Near - Far);
+	cbPoint.ProjectionParams.z =Far;
 	cbPoint.ViewportParams.x = (float)GEngine->_Width;
 	cbPoint.ViewportParams.y = (float)GEngine->_Height;
 	GEngine->_ImmediateContext->UpdateSubresource( GEngine->_DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
