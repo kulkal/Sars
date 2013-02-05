@@ -27,6 +27,17 @@ class StaticMeshComponent;
 class Camera;
 class Input;
 
+struct ShadowCascadeInfo
+{
+	float				_ViewNear;
+	float				_ViewFar;
+	TextureDepth2D*		_ShadowDepthTexture;
+	XMFLOAT4X4			_ShadowProjectionMat;
+	float				_TextureSize;
+	ShadowCascadeInfo(float ViewNear, float ViewFar, float TextureSize);
+	~ShadowCascadeInfo();
+};
+
 class Engine
 {
 public:
@@ -49,11 +60,7 @@ public:
 	TextureDepth2D*			_ShadowDepthTexture;
 	UINT					_ShadowMapSize;
 
-	struct ShadowInfo
-	{
-		TextureDepth2D*		_ShadowDepthTexture;
-		XMFLOAT4X4			_ShadowProjectionMat;
-	};
+	std::vector<ShadowCascadeInfo*> _CascadeArray;
 
 
 	float _Width;

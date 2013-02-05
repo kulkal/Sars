@@ -479,6 +479,11 @@ void Engine::InitDevice()
 
 	_CurrentCamera = new FpsCamera(XMFLOAT3(0.f, 250.f, 250.f), 0.f, -XM_PI/4);
 
+	_CascadeArray.resize(3);
+	_CascadeArray[0] = new ShadowCascadeInfo(10, 50, 1024);
+	_CascadeArray[1] = new ShadowCascadeInfo(50, 250, 512);
+	_CascadeArray[2] = new ShadowCascadeInfo(250, 2500, 256);
+
 }
 
 ID3D11PixelShader* Engine::CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines)
@@ -877,8 +882,8 @@ void Engine::RenderShadowMap()
 
 	float fFrustumIntervalBegin, fFrustumIntervalEnd;
 
-	fFrustumIntervalBegin = 10;
-	fFrustumIntervalEnd = 250.f;
+	fFrustumIntervalBegin = 500;
+	fFrustumIntervalEnd = 2500.f;
 	XMMATRIX ProjectionMat = XMLoadFloat4x4(&_ProjectionMat);
 	CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, ProjectionMat, vFrustumPoints); 
 	for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
@@ -1021,3 +1026,19 @@ float Engine::_GetTimeSeconds()
 	return (float)(CurrentTime.QuadPart)/(float)_Freq.QuadPart;
 }
 
+
+ShadowCascadeInfo::ShadowCascadeInfo( float ViewNear, float ViewFar, float TextureSize )
+	:_ViewNear(ViewFar)
+	,_ViewFar(ViewFar)
+	,_TextureSize(TextureSize)
+{
+	CD3D11_TEXTURE2D_DESC ShadowDescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, TextureSize, TextureSize, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_DEPTH_STENCIL_VIEW_DESC  ShadowDescDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT, 0, 0, 0,0) ;
+	CD3D11_SHADER_RESOURCE_VIEW_DESC ShadowDescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
+	_ShadowDepthTexture = new TextureDepth2D(ShadowDescDepthTex, ShadowDescDSV, ShadowDescDepthSRV);
+}
+
+ShadowCascadeInfo::~ShadowCascadeInfo()
+{
+	if(_ShadowDepthTexture) delete _ShadowDepthTexture;
+}
