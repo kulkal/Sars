@@ -444,7 +444,7 @@ void Engine::InitDevice()
 
 	//_GSkeletalMeshComponent->PlayAnim(_AnimClipArray[1], 0, 0.2f);
 
-	FbxFileImporter FbxImporterObj2("other.fbx");
+	FbxFileImporter FbxImporterObj2("sponza\\sponza.fbx");
 	FbxImporterObj2.ImportStaticMesh(_StaticMeshArray);
 
 	_StaticMeshComponent = new StaticMeshComponent;
