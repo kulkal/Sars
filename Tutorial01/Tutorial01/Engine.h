@@ -49,6 +49,12 @@ public:
 	TextureDepth2D*			_ShadowDepthTexture;
 	UINT					_ShadowMapSize;
 
+	struct ShadowInfo
+	{
+		TextureDepth2D*		_ShadowDepthTexture;
+		XMFLOAT4X4			_ShadowProjectionMat;
+	};
+
 
 	float _Width;
 	float _Height;
@@ -59,8 +65,6 @@ public:
 
 	XMFLOAT4X4 _ViewMat;
 	XMFLOAT4X4 _ProjectionMat;
-	//float		_Near;
-	//float		_Far;
 
 	XMFLOAT4X4 _SunShadowMat;
 	XMFLOAT4X4 _SunShadowProjectionMat;
