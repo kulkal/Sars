@@ -29,9 +29,11 @@ class Input;
 
 struct ShadowCascadeInfo
 {
+	bool				_bEnabled;
 	float				_ViewNear;
 	float				_ViewFar;
 	TextureDepth2D*		_ShadowDepthTexture;
+	XMFLOAT4X4			_ShadowViewMat;
 	XMFLOAT4X4			_ShadowProjectionMat;
 	float				_TextureSize;
 	ShadowCascadeInfo(float ViewNear, float ViewFar, float TextureSize);
@@ -57,8 +59,8 @@ public:
 
 	Texture2D*				_WorldNormalTexture;
 	TextureDepth2D*			_DepthTexture;
-	TextureDepth2D*			_ShadowDepthTexture;
-	UINT					_ShadowMapSize;
+	//TextureDepth2D*			_ShadowDepthTexture;
+	//UINT					_ShadowMapSize;
 
 	std::vector<ShadowCascadeInfo*> _CascadeArray;
 
@@ -73,8 +75,8 @@ public:
 	XMFLOAT4X4 _ViewMat;
 	XMFLOAT4X4 _ProjectionMat;
 
-	XMFLOAT4X4 _SunShadowMat;
-	XMFLOAT4X4 _SunShadowProjectionMat;
+	//XMFLOAT4X4 _SunShadowMat;
+	//XMFLOAT4X4 _SunShadowProjectionMat;
 
 	// debug line draw
 	LineBatcher* _LineBatcher;

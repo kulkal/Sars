@@ -62,7 +62,7 @@ float4 PS( QuadVS_Output input ) : SV_Target
 	//float ShadowDeviceDepth = texShadowMap.Sample( samLinear, ShadowTex.xy ).x;
 
 	float ShadowVal = 0;
-
+	
 	float x, y;
 	for (y = -1.5; y <= 1.5; y += 1.0)
 		for (x = -1.5; x <= 1.5; x += 1.0)

@@ -329,7 +329,7 @@ int Input::Update()
 
 #ifdef CHECK_FOCUS
 	// 게임에 Focus가 가 있지 않다면 DirectInput을 처리하지 않는다.
-	if (m_hWnd != GetForegroundWindow()) return 0;
+	//if (m_hWnd != GetForegroundWindow()) return 0;
 #endif // CHECK_FOCUS
 
 	HRESULT			hr;

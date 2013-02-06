@@ -67,7 +67,7 @@ Engine::Engine(void)
 	,_LitTexture(NULL)
 	,_CombineLitPS(NULL)
 	,_TextureRV(NULL)
-	,_ShadowDepthTexture(NULL)
+	//,_ShadowDepthTexture(NULL)
 	,_DeferredShadowTexture(NULL)
 	,_StaticMeshComponent(NULL)
 	,_CurrentCamera(NULL)
@@ -79,7 +79,7 @@ Engine::Engine(void)
 	QueryPerformanceCounter(&_PrevTime);
 	//_Near = 10.f;
 	//_Far = 2000.f;
-	_ShadowMapSize = 1024;
+	//_ShadowMapSize = 1024;
 	//_CrtSetBreakAlloc(2486860);
 }
 
@@ -116,7 +116,7 @@ Engine::~Engine(void)
 	if(_FrameBufferTexture) delete _FrameBufferTexture;
 	if(_SceneColorTexture) delete _SceneColorTexture;
 	if(_LitTexture) delete _LitTexture;
-	if(_ShadowDepthTexture) delete _ShadowDepthTexture;
+//	if(_ShadowDepthTexture) delete _ShadowDepthTexture;
 	if(_DeferredShadowTexture) delete _DeferredShadowTexture;
 
 
@@ -163,6 +163,12 @@ Engine::~Engine(void)
 	{
 		_Input->Release();
 		delete _Input;
+	}
+
+	for(unsigned int i=0;i<_CascadeArray.size();i++)
+	{
+		ShadowCascadeInfo* ShadowInfo = _CascadeArray[i];
+		delete ShadowInfo;
 	}
 }
 
@@ -253,10 +259,10 @@ void Engine::InitDevice()
 	CD3D11_SHADER_RESOURCE_VIEW_DESC DescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
 	_DepthTexture = new TextureDepth2D(DescDepthTex, DescDSV, DescDepthSRV);
 
-	CD3D11_TEXTURE2D_DESC ShadowDescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, _ShadowMapSize, _ShadowMapSize, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
+	/*CD3D11_TEXTURE2D_DESC ShadowDescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, _ShadowMapSize, _ShadowMapSize, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
 	CD3D11_DEPTH_STENCIL_VIEW_DESC  ShadowDescDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT, 0, 0, 0,0) ;
 	CD3D11_SHADER_RESOURCE_VIEW_DESC ShadowDescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
-	_ShadowDepthTexture = new TextureDepth2D(ShadowDescDepthTex, ShadowDescDSV, ShadowDescDepthSRV);
+	_ShadowDepthTexture = new TextureDepth2D(ShadowDescDepthTex, ShadowDescDSV, ShadowDescDepthSRV);*/
 
 	// shadow result
 	CD3D11_TEXTURE2D_DESC DescShadowTex(DXGI_FORMAT_R8G8B8A8_UNORM, FrameBufferWidth, FrameBufferHeight, 1, 1, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
@@ -442,6 +448,7 @@ void Engine::InitDevice()
 
 	GEngine->Tick();
 
+	
 	//_GSkeletalMeshComponent->PlayAnim(_AnimClipArray[1], 0, 0.2f);
 
 	FbxFileImporter FbxImporterObj2("sponza\\sponza.fbx");
@@ -479,10 +486,13 @@ void Engine::InitDevice()
 
 	_CurrentCamera = new FpsCamera(XMFLOAT3(0.f, 250.f, 250.f), 0.f, -XM_PI/4);
 
-	_CascadeArray.resize(3);
+	_CascadeArray.resize(4);
 	_CascadeArray[0] = new ShadowCascadeInfo(10, 50, 1024);
-	_CascadeArray[1] = new ShadowCascadeInfo(50, 250, 512);
-	_CascadeArray[2] = new ShadowCascadeInfo(250, 2500, 256);
+	_CascadeArray[1] = new ShadowCascadeInfo(50, 250, 1024);
+	_CascadeArray[2] = new ShadowCascadeInfo(250, 750, 1024);
+	_CascadeArray[3] = new ShadowCascadeInfo(750, 2250, 1024);
+
+	//_CascadeArray[2] = new ShadowCascadeInfo(250, 2500, 256);
 
 }
 
@@ -579,6 +589,24 @@ HRESULT Engine::CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pD
 void Engine::Tick()
 {
 	if(_Input) _Input->Update();
+
+	if(_CascadeArray.size() > 0)
+	{
+		if(_CascadeArray[1] != NULL && _Input->IsKeyDn(DIK_1) )
+		{
+			_CascadeArray[1]->_bEnabled = !_CascadeArray[1]->_bEnabled;
+		}
+
+		if(_CascadeArray[2] != NULL  &&_Input->IsKeyDn(DIK_2) )
+		{
+			_CascadeArray[2]->_bEnabled = !_CascadeArray[2]->_bEnabled;
+		}
+
+		if(_CascadeArray[0]  != NULL && _Input->IsKeyDn(DIK_0) )
+		{
+			_CascadeArray[0]->_bEnabled = !_CascadeArray[0]->_bEnabled;
+		}
+	}
 
 	LARGE_INTEGER CurrentTime;
 
@@ -712,7 +740,7 @@ void Engine::EndRendering()
 	{
 		float Near = _CurrentCamera->GetNear();
 		float Far = _CurrentCamera->GetFar();
-		ID3D11ShaderResourceView* aSRVVis[2] = {NULL, _ShadowDepthTexture->GetSRV()};
+		ID3D11ShaderResourceView* aSRVVis[2] = {NULL, _CascadeArray[0]->_ShadowDepthTexture->GetSRV()};
 		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
 
 		VisDepthPSCBStruct cbVisDepth;
@@ -845,140 +873,146 @@ void CreateAABBPoints( XMVECTOR* vAABBPoints, FXMVECTOR vCenter, FXMVECTOR vExte
 
 void Engine::RenderShadowMap()
 {
-	ID3D11ShaderResourceView* aSRS[3] = {NULL, NULL, NULL};
-	_ImmediateContext->PSSetShaderResources( 0, 3, aSRS );
+	for(unsigned int i=0;i<_CascadeArray.size();i++)
+	{
+		ShadowCascadeInfo* ShadowInfo = _CascadeArray[i];
 
-	ID3D11RenderTargetView* aRTV[ 1] = { NULL };
-	_ImmediateContext->OMSetRenderTargets( 1, aRTV, _ShadowDepthTexture->GetDepthStencilView() );
-	_ImmediateContext->ClearDepthStencilView( _ShadowDepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
+		ID3D11ShaderResourceView* aSRS[3] = {NULL, NULL, NULL};
+		_ImmediateContext->PSSetShaderResources( 0, 3, aSRS );
 
-	SET_DEPTHSTENCIL_STATE(DS_GBUFFER_PASS);
+		ID3D11RenderTargetView* aRTV[ 1] = { NULL };
+		_ImmediateContext->OMSetRenderTargets( 1, aRTV, ShadowInfo->_ShadowDepthTexture->GetDepthStencilView() );
+		_ImmediateContext->ClearDepthStencilView( ShadowInfo->_ShadowDepthTexture->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 
-	D3D11_VIEWPORT vpOld[D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX];
-	UINT nViewPorts = 1;
-	_ImmediateContext->RSGetViewports( &nViewPorts, vpOld );
+		SET_DEPTHSTENCIL_STATE(DS_GBUFFER_PASS);
 
-	// Setup the viewport to match the backbuffer
-	D3D11_VIEWPORT vp;
-	vp.Width = (float)_ShadowMapSize;
-	vp.Height = (float)_ShadowMapSize;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	_ImmediateContext->RSSetViewports( 1, &vp );
+		D3D11_VIEWPORT vpOld[D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX];
+		UINT nViewPorts = 1;
+		_ImmediateContext->RSGetViewports( &nViewPorts, vpOld );
+
+		// Setup the viewport to match the backbuffer
+		D3D11_VIEWPORT vp;
+		vp.Width = (float)ShadowInfo->_TextureSize;
+		vp.Height = (float)ShadowInfo->_TextureSize;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		vp.TopLeftX = 0;
+		vp.TopLeftY = 0;
+		_ImmediateContext->RSSetViewports( 1, &vp );
 
 	
 
 
-	XMVECTOR Det;
-	XMMATRIX ViewMatInv = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
+		XMVECTOR Det;
+		XMMATRIX ViewMatInv = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
 
-	XMVECTOR LightDir = XMLoadFloat3(&_SunLight->_LightDirection);
-	XMVECTOR Up = XMVectorSet(0.f, 1.f, 0.f, 1.f);//XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
+		XMVECTOR LightDir = XMLoadFloat3(&_SunLight->_LightDirection);
+		XMVECTOR Up = XMVectorSet(0.f, 1.f, 0.f, 1.f);//XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
 	
-	XMVECTOR Center = XMVectorSet(0.f, 0.f, 0.f, 0.f);;
-	XMVECTOR vFrustumPoints[8];
+		XMVECTOR Center = XMVectorSet(0.f, 0.f, 0.f, 0.f);;
+		XMVECTOR vFrustumPoints[8];
 
-	float fFrustumIntervalBegin, fFrustumIntervalEnd;
+		float fFrustumIntervalBegin, fFrustumIntervalEnd;
 
-	fFrustumIntervalBegin = 500;
-	fFrustumIntervalEnd = 2500.f;
-	XMMATRIX ProjectionMat = XMLoadFloat4x4(&_ProjectionMat);
-	CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, ProjectionMat, vFrustumPoints); 
-	for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
-	{
-		// world space
-        vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
-		Center += vFrustumPoints[icpIndex];
-	}
-
-	Center /= 8;
-
-	XMMATRIX LightView = XMMatrixLookAtRH( Center - LightDir, Center, Up );
-
-	//{
-		XMVECTOR m_vSceneAABBMin = XMLoadFloat3(&_StaticMeshComponent->_AABBMin);
-		XMVECTOR m_vSceneAABBMax = XMLoadFloat3(&_StaticMeshComponent->_AABBMax);
-
-		XMVECTOR vSceneCenter = m_vSceneAABBMin + m_vSceneAABBMax;
-		vSceneCenter *= 0.5f;
-		XMVECTOR vSceneExtents = m_vSceneAABBMax - m_vSceneAABBMin;
-		vSceneExtents *= 0.5f;    
-		XMVECTOR vSceneAABBPointsLightSpace[8];
-		// This function simply converts the center and extents of an AABB into 8 points
-		CreateAABBPoints( vSceneAABBPointsLightSpace, vSceneCenter, vSceneExtents );
-		// Transform the scene AABB to Light space.
-		for( int index =0; index < 8; ++index ) 
+		fFrustumIntervalBegin = ShadowInfo->_ViewNear;
+		fFrustumIntervalEnd = ShadowInfo->_ViewFar;
+		XMMATRIX ProjectionMat = XMLoadFloat4x4(&_ProjectionMat);
+		CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, ProjectionMat, vFrustumPoints); 
+		for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
 		{
-			vSceneAABBPointsLightSpace[index] = XMVector4Transform( vSceneAABBPointsLightSpace[index], LightView ); 
+			// world space
+			vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
+			Center += vFrustumPoints[icpIndex];
 		}
 
-		XMVECTOR vLightSpaceSceneAABBminValue = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);  // world space scene aabb 
-		XMVECTOR vLightSpaceSceneAABBmaxValue = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);       
-		// We calculate the min and max vectors of the scene in light space. The min and max "Z" values of the  
-		// light space AABB can be used for the near and far plane. This is easier than intersecting the scene with the AABB
-		// and in some cases provides similar results.
-		for(int index=0; index< 8; ++index) 
+		Center /= 8;
+
+		XMMATRIX LightView = XMMatrixLookAtRH( Center - LightDir, Center, Up );
+
+		//{
+			XMVECTOR m_vSceneAABBMin = XMLoadFloat3(&_StaticMeshComponent->_AABBMin);
+			XMVECTOR m_vSceneAABBMax = XMLoadFloat3(&_StaticMeshComponent->_AABBMax);
+
+			XMVECTOR vSceneCenter = m_vSceneAABBMin + m_vSceneAABBMax;
+			vSceneCenter *= 0.5f;
+			XMVECTOR vSceneExtents = m_vSceneAABBMax - m_vSceneAABBMin;
+			vSceneExtents *= 0.5f;    
+			XMVECTOR vSceneAABBPointsLightSpace[8];
+			// This function simply converts the center and extents of an AABB into 8 points
+			CreateAABBPoints( vSceneAABBPointsLightSpace, vSceneCenter, vSceneExtents );
+			// Transform the scene AABB to Light space.
+			for( int index =0; index < 8; ++index ) 
+			{
+				vSceneAABBPointsLightSpace[index] = XMVector4Transform( vSceneAABBPointsLightSpace[index], LightView ); 
+			}
+
+			XMVECTOR vLightSpaceSceneAABBminValue = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);  // world space scene aabb 
+			XMVECTOR vLightSpaceSceneAABBmaxValue = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);       
+			// We calculate the min and max vectors of the scene in light space. The min and max "Z" values of the  
+			// light space AABB can be used for the near and far plane. This is easier than intersecting the scene with the AABB
+			// and in some cases provides similar results.
+			for(int index=0; index< 8; ++index) 
+			{
+				vLightSpaceSceneAABBminValue = XMVectorMin( vSceneAABBPointsLightSpace[index], vLightSpaceSceneAABBminValue );
+				vLightSpaceSceneAABBmaxValue = XMVectorMax( vSceneAABBPointsLightSpace[index], vLightSpaceSceneAABBmaxValue );
+			}
+		//}
+
+
+		XMVECTOR vLightCameraOrthographicMin;  // light space frustrum aabb 
+		XMVECTOR vLightCameraOrthographicMax;
+		vLightCameraOrthographicMin = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);//XMLoadFloat3(&XMFLOAT3(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX));;
+		vLightCameraOrthographicMax = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);//XMLoadFloat3(&XMFLOAT3(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX));;
+
+		XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);
+		XMVECTOR vTempTranslatedCornerPoint;
+
+		for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
 		{
-			vLightSpaceSceneAABBminValue = XMVectorMin( vSceneAABBPointsLightSpace[index], vLightSpaceSceneAABBminValue );
-			vLightSpaceSceneAABBmaxValue = XMVectorMax( vSceneAABBPointsLightSpace[index], vLightSpaceSceneAABBmaxValue );
+			// world space
+			//vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
+			// light space
+			vTempTranslatedCornerPoint = XMVector4Transform ( vFrustumPoints[icpIndex], LightView );
+			vLightCameraOrthographicMin = XMVectorMin ( vTempTranslatedCornerPoint, vLightCameraOrthographicMin );
+			vLightCameraOrthographicMax = XMVectorMax ( vTempTranslatedCornerPoint, vLightCameraOrthographicMax );
 		}
-	//}
 
+		XMMATRIX LightProjection = XMMatrixOrthographicOffCenterRH( 
+			XMVectorGetX( vLightCameraOrthographicMin )
+			,  XMVectorGetX( vLightCameraOrthographicMax )
+			, XMVectorGetY(vLightCameraOrthographicMin)
+			, XMVectorGetY(vLightCameraOrthographicMax)
+			, XMVectorGetZ( vLightSpaceSceneAABBminValue )*4// -XMVectorGetZ( vLightCameraOrthographicMax )
+			, -XMVectorGetZ( vLightCameraOrthographicMin )
+			);
 
-	XMVECTOR vLightCameraOrthographicMin;  // light space frustrum aabb 
-	XMVECTOR vLightCameraOrthographicMax;
-	vLightCameraOrthographicMin = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);//XMLoadFloat3(&XMFLOAT3(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX));;
-	vLightCameraOrthographicMax = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);//XMLoadFloat3(&XMFLOAT3(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX));;
+		XMStoreFloat4x4(&ShadowInfo->_ShadowViewMat, LightView);
+		XMStoreFloat4x4(&ShadowInfo->_ShadowProjectionMat, LightProjection);
 
-	XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);
-	XMVECTOR vTempTranslatedCornerPoint;
+		SET_RASTERIZER_STATE(RS_SHADOWMAP);
 
-	for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
-	{
-		// world space
-        //vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
-		// light space
-		vTempTranslatedCornerPoint = XMVector4Transform ( vFrustumPoints[icpIndex], LightView );
-		vLightCameraOrthographicMin = XMVectorMin ( vTempTranslatedCornerPoint, vLightCameraOrthographicMin );
-		vLightCameraOrthographicMax = XMVectorMax ( vTempTranslatedCornerPoint, vLightCameraOrthographicMax );
-	}
-
-	XMMATRIX LightProjection = XMMatrixOrthographicOffCenterRH( 
-		XMVectorGetX( vLightCameraOrthographicMin )
-		,  XMVectorGetX( vLightCameraOrthographicMax )
-		, XMVectorGetY(vLightCameraOrthographicMin)
-		, XMVectorGetY(vLightCameraOrthographicMax)
-		, XMVectorGetZ( vLightSpaceSceneAABBminValue )// -XMVectorGetZ( vLightCameraOrthographicMax )
-		, -XMVectorGetZ( vLightCameraOrthographicMin )
-		);
-
-	XMStoreFloat4x4(&_SunShadowMat, LightView);
-	XMStoreFloat4x4(&_SunShadowProjectionMat, LightProjection);
-
-	SET_RASTERIZER_STATE(RS_SHADOWMAP);
-
-	for(unsigned int i=0;i<_StaticMeshArray.size();i++)
-	{
-		_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], LightView, LightProjection);
-	}
-
-	if(_GSkeletalMeshComponent)
-	{
-		for(unsigned int i=0;i<_GSkeletalMeshComponent->_RenderDataArray.size();i++)
+		for(unsigned int i=0;i<_StaticMeshArray.size();i++)
 		{
-			_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], LightView, LightProjection);
+			_GBufferDrawer->DrawStaticMesh(_StaticMeshArray[i], LightView, LightProjection);
 		}
+
+		if(_GSkeletalMeshComponent)
+		{
+			for(unsigned int i=0;i<_GSkeletalMeshComponent->_RenderDataArray.size();i++)
+			{
+				_GBufferDrawer->DrawSkeletalMeshData(_GSkeletalMeshComponent->_RenderDataArray[i], LightView, LightProjection);
+			}
+		}
+
+		SET_RASTERIZER_STATE(RS_NORMAL);
+
+		_ImmediateContext->RSSetViewports( nViewPorts, vpOld );
 	}
-
-	SET_RASTERIZER_STATE(RS_NORMAL);
-
-	_ImmediateContext->RSSetViewports( nViewPorts, vpOld );
 }
 
 void Engine::RenderDeferredShadow()
 {
+
 	ID3D11RenderTargetView* aRTViewsLit[ 1] = { _DeferredShadowTexture->GetRTV() };
 	_ImmediateContext->OMSetRenderTargets( 1, aRTViewsLit, NULL);     
 
@@ -986,35 +1020,38 @@ void Engine::RenderDeferredShadow()
 	float ShadowClearColor[4] = { 1.f, 1.f, 1.f, 1.f }; //red,green,blue,alpha
 	_ImmediateContext->ClearRenderTargetView( _DeferredShadowTexture->GetRTV() , ShadowClearColor );
 
-	ID3D11ShaderResourceView* aSRVVis[2] = {_DepthTexture->GetSRV(), _ShadowDepthTexture->GetSRV()};
-	_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
-
 	SET_DEPTHSTENCIL_STATE(DS_LIGHTING_PASS);
-	SET_BLEND_STATE(BS_SHADOW); // litbuffer.a -= shadow mask
+	SET_BLEND_STATE(BS_SHADOW);
 	SET_PS_SAMPLER(0, SS_LINEAR);
 	SET_PS_SAMPLER(1, SS_SHADOW);
-	//SET_BLEND_STATE(BS_LIGHTING); 
 
+	for(unsigned int i=0;i<_CascadeArray.size();i++)
+	{
+		ShadowCascadeInfo* ShadowInfo = _CascadeArray[i];
+		if(ShadowInfo->_bEnabled == false) return;
+		ID3D11ShaderResourceView* aSRVVis[2] = {_DepthTexture->GetSRV(), ShadowInfo->_ShadowDepthTexture->GetSRV()};
+		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
 	
-	DeferredShadowPSCBStruct cbShadow;
+		DeferredShadowPSCBStruct cbShadow;
 
-	float Near = _CurrentCamera->GetNear();
-	float Far = _CurrentCamera->GetFar();
-	cbShadow.Projection = XMMatrixTranspose( XMLoadFloat4x4(&_ProjectionMat));
-	cbShadow.ProjectionParams.x = Far/(Far - Near);
-	cbShadow.ProjectionParams.y = Near/(Near - Far);
-	cbShadow.ProjectionParams.z = Far;
-	cbShadow.ViewportParams.x = (float)_Width;
-	cbShadow.ViewportParams.y = (float)_Height;
-	cbShadow.ViewportParams.z = (float)_ShadowMapSize;
+		float Near = _CurrentCamera->GetNear();
+		float Far = _CurrentCamera->GetFar();
+		cbShadow.Projection = XMMatrixTranspose( XMLoadFloat4x4(&_ProjectionMat));
+		cbShadow.ProjectionParams.x = Far/(Far - Near);
+		cbShadow.ProjectionParams.y = Near/(Near - Far);
+		cbShadow.ProjectionParams.z = Far;
+		cbShadow.ViewportParams.x = (float)_Width;
+		cbShadow.ViewportParams.y = (float)_Height;
+		cbShadow.ViewportParams.z = (float)ShadowInfo->_TextureSize;
 
-	XMVECTOR Det;
-	XMMATRIX InvViewMatrix = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
-	cbShadow.ShadowMatrix = XMMatrixTranspose(InvViewMatrix * XMLoadFloat4x4(&_SunShadowMat) * XMLoadFloat4x4(&_SunShadowProjectionMat));
+		XMVECTOR Det;
+		XMMATRIX InvViewMatrix = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
+		cbShadow.ShadowMatrix = XMMatrixTranspose(InvViewMatrix * XMLoadFloat4x4(&ShadowInfo->_ShadowViewMat) * XMLoadFloat4x4(&ShadowInfo->_ShadowProjectionMat));
 
-	_ImmediateContext->UpdateSubresource( _DeferredShadowPSCB, 0, NULL, &cbShadow, 0, 0 );
-	_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredShadowPSCB );
-	DrawFullScreenQuad11(_DeferredShadowPS, _Width, _Height);
+		_ImmediateContext->UpdateSubresource( _DeferredShadowPSCB, 0, NULL, &cbShadow, 0, 0 );
+		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredShadowPSCB );
+		DrawFullScreenQuad11(_DeferredShadowPS, _Width, _Height);
+	}
 
 	SET_PS_SAMPLER(0, SS_LINEAR);
 }
@@ -1028,7 +1065,7 @@ float Engine::_GetTimeSeconds()
 
 
 ShadowCascadeInfo::ShadowCascadeInfo( float ViewNear, float ViewFar, float TextureSize )
-	:_ViewNear(ViewFar)
+	:_ViewNear(ViewNear)
 	,_ViewFar(ViewFar)
 	,_TextureSize(TextureSize)
 {
@@ -1036,6 +1073,7 @@ ShadowCascadeInfo::ShadowCascadeInfo( float ViewNear, float ViewFar, float Textu
 	CD3D11_DEPTH_STENCIL_VIEW_DESC  ShadowDescDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT, 0, 0, 0,0) ;
 	CD3D11_SHADER_RESOURCE_VIEW_DESC ShadowDescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
 	_ShadowDepthTexture = new TextureDepth2D(ShadowDescDepthTex, ShadowDescDSV, ShadowDescDepthSRV);
+	_bEnabled = true;
 }
 
 ShadowCascadeInfo::~ShadowCascadeInfo()
