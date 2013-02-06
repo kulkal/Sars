@@ -486,11 +486,11 @@ void Engine::InitDevice()
 
 	_CurrentCamera = new FpsCamera(XMFLOAT3(0.f, 250.f, 250.f), 0.f, -XM_PI/4);
 
-	_CascadeArray.resize(4);
-	_CascadeArray[0] = new ShadowCascadeInfo(10, 50, 1024);
-	_CascadeArray[1] = new ShadowCascadeInfo(50, 250, 1024);
-	_CascadeArray[2] = new ShadowCascadeInfo(250, 750, 1024);
-	_CascadeArray[3] = new ShadowCascadeInfo(750, 2250, 1024);
+	_CascadeArray.resize(3);
+	_CascadeArray[0] = new ShadowCascadeInfo(10, 250, 1024);
+	_CascadeArray[1] = new ShadowCascadeInfo(250, 850, 1024);
+	_CascadeArray[2] = new ShadowCascadeInfo(850, 1550, 1024);
+	//_CascadeArray[3] = new ShadowCascadeInfo(1050, 3250, 1024);
 
 	//_CascadeArray[2] = new ShadowCascadeInfo(250, 2500, 256);
 
