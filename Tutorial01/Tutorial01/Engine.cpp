@@ -981,6 +981,37 @@ void Engine::RenderShadowMap()
 			vLightCameraOrthographicMin = XMVectorMin ( vTempTranslatedCornerPoint, vLightCameraOrthographicMin );
 			vLightCameraOrthographicMax = XMVectorMax ( vTempTranslatedCornerPoint, vLightCameraOrthographicMax );
 		}
+///////////////////////////////////////
+		XMVECTOR vWorldUnitsPerTexel;
+		 XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6];
+        vDiagonal = XMVector3Length( vDiagonal );
+            
+        // The bound is the length of the diagonal of the frustum interval.
+        FLOAT fCascadeBound = XMVectorGetX( vDiagonal );
+            
+        // The offset calculated will pad the ortho projection so that it is always the same size 
+        // and big enough to cover the entire cascade interval.
+        XMVECTOR vBoarderOffset = ( vDiagonal - 
+                                    ( vLightCameraOrthographicMax - vLightCameraOrthographicMin ) ) 
+                                    * 0.5f;
+        // Set the Z and W components to zero.
+       vBoarderOffset *= XMVectorSet(1.f, 1.f, 0.f, 0.f);;
+		
+        // Add the offsets to the projection.
+        vLightCameraOrthographicMax += vBoarderOffset;
+        vLightCameraOrthographicMin -= vBoarderOffset;
+		FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)ShadowInfo->_TextureSize;
+            vWorldUnitsPerTexel = XMVectorSet( fWorldUnitsPerTexel, fWorldUnitsPerTexel, 0.0f, 0.0f ); 
+
+
+		vLightCameraOrthographicMin /= vWorldUnitsPerTexel;
+        vLightCameraOrthographicMin = XMVectorFloor( vLightCameraOrthographicMin );
+        vLightCameraOrthographicMin *= vWorldUnitsPerTexel;
+            
+        vLightCameraOrthographicMax /= vWorldUnitsPerTexel;
+        vLightCameraOrthographicMax = XMVectorFloor( vLightCameraOrthographicMax );
+        vLightCameraOrthographicMax *= vWorldUnitsPerTexel;
+////////////////////////////////////
 
 		XMMATRIX LightProjection = XMMatrixOrthographicOffCenterRH( 
 			XMVectorGetX( vLightCameraOrthographicMin )
