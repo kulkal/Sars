@@ -938,13 +938,18 @@ void Engine::RenderShadowMap()
 			XMVECTOR vSceneExtents = m_vSceneAABBMax - m_vSceneAABBMin;
 			vSceneExtents *= 0.5f;    
 			XMVECTOR vSceneAABBPointsLightSpace[8];
+
+			XMVECTOR CenterLightSpace = XMVector4Transform( vSceneCenter, LightView ); 
+
 			// This function simply converts the center and extents of an AABB into 8 points
 			CreateAABBPoints( vSceneAABBPointsLightSpace, vSceneCenter, vSceneExtents );
 			// Transform the scene AABB to Light space.
 			for( int index =0; index < 8; ++index ) 
 			{
 				vSceneAABBPointsLightSpace[index] = XMVector4Transform( vSceneAABBPointsLightSpace[index], LightView ); 
+				//vSceneAABBPointsLightSpace[index] -= CenterLightSpace;
 			}
+
 
 			XMVECTOR vLightSpaceSceneAABBminValue = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);  // world space scene aabb 
 			XMVECTOR vLightSpaceSceneAABBmaxValue = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);       
@@ -964,7 +969,7 @@ void Engine::RenderShadowMap()
 		vLightCameraOrthographicMin = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);//XMLoadFloat3(&XMFLOAT3(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX));;
 		vLightCameraOrthographicMax = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);//XMLoadFloat3(&XMFLOAT3(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX));;
 
-		XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);
+		//XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);
 		XMVECTOR vTempTranslatedCornerPoint;
 
 		for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
@@ -982,8 +987,8 @@ void Engine::RenderShadowMap()
 			,  XMVectorGetX( vLightCameraOrthographicMax )
 			, XMVectorGetY(vLightCameraOrthographicMin)
 			, XMVectorGetY(vLightCameraOrthographicMax)
-			, XMVectorGetZ( vLightSpaceSceneAABBminValue )*4// -XMVectorGetZ( vLightCameraOrthographicMax )
-			, -XMVectorGetZ( vLightCameraOrthographicMin )
+			, -XMVectorGetZ( vLightSpaceSceneAABBmaxValue )
+			, -XMVectorGetZ( vLightSpaceSceneAABBminValue )
 			);
 
 		XMStoreFloat4x4(&ShadowInfo->_ShadowViewMat, LightView);
