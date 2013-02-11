@@ -63,14 +63,14 @@ float4 PS( QuadVS_Output input ) : SV_Target
 
 	float ShadowVal = 0;
 	
-	float x, y;
-	for (y = -1.5; y <= 1.5; y += 1.0)
-		for (x = -1.5; x <= 1.5; x += 1.0)
-			 ShadowVal += texShadowMap.SampleCmpLevelZero( samShadow, ShadowTex.xy + float2(x/ShadowTexSize,y/ShadowTexSize), DepthCompareVal );
+	//float x, y;
+	//for (y = -1.5; y <= 1.5; y += 1.0)
+	//	for (x = -1.5; x <= 1.5; x += 1.0)
+	//		 ShadowVal += texShadowMap.SampleCmpLevelZero( samShadow, ShadowTex.xy + float2(x/ShadowTexSize,y/ShadowTexSize), DepthCompareVal );
 	
-	//ShadowVal += texShadowMap.SampleCmpLevelZero( samShadow, ShadowTex.xy , DepthCompareVal );
+	ShadowVal += texShadowMap.SampleCmpLevelZero( samShadow, ShadowTex.xy , DepthCompareVal );
 
-	ShadowVal /= 16;
+	//ShadowVal /= 16;
 
 	return float4(ShadowVal, ShadowVal, ShadowVal, ShadowVal);
 }

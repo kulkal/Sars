@@ -487,9 +487,9 @@ void Engine::InitDevice()
 	_CurrentCamera = new FpsCamera(XMFLOAT3(0.f, 250.f, 250.f), 0.f, -XM_PI/4);
 
 	_CascadeArray.resize(3);
-	_CascadeArray[0] = new ShadowCascadeInfo(10, 250, 1024);
-	_CascadeArray[1] = new ShadowCascadeInfo(250, 850, 1024);
-	_CascadeArray[2] = new ShadowCascadeInfo(850, 1550, 1024);
+	_CascadeArray[0] = new ShadowCascadeInfo(0, 150, 1024);
+	_CascadeArray[1] = new ShadowCascadeInfo(150, 350, 1024);
+	_CascadeArray[2] = new ShadowCascadeInfo(350, 1200, 1024);
 	//_CascadeArray[3] = new ShadowCascadeInfo(1050, 3250, 1024);
 
 	//_CascadeArray[2] = new ShadowCascadeInfo(250, 2500, 256);
@@ -740,8 +740,7 @@ void Engine::EndRendering()
 	{
 		float Near = _CurrentCamera->GetNear();
 		float Far = _CurrentCamera->GetFar();
-		ID3D11ShaderResourceView* aSRVVis[2] = {NULL, _CascadeArray[0]->_ShadowDepthTexture->GetSRV()};
-		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
+		
 
 		VisDepthPSCBStruct cbVisDepth;
 		cbVisDepth.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
@@ -752,7 +751,17 @@ void Engine::EndRendering()
 		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
 		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
 
+		ID3D11ShaderResourceView* aSRVVis[2] = {NULL, _CascadeArray[0]->_ShadowDepthTexture->GetSRV()};
+		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
 		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, 0.f, _Height*0.75f);
+
+		ID3D11ShaderResourceView* aSRVVis2[2] = {NULL, _CascadeArray[1]->_ShadowDepthTexture->GetSRV()};
+		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis2 );
+		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, 0.f, _Height*0.5f);
+
+		ID3D11ShaderResourceView* aSRVVis3[2] = {NULL, _CascadeArray[2]->_ShadowDepthTexture->GetSRV()};
+		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis3 );
+		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, _Width*0.25f, _Height*0.75f);
 	}
 	
 	_SwapChain->Present( 0, 0 );
@@ -947,7 +956,6 @@ void Engine::RenderShadowMap()
 			for( int index =0; index < 8; ++index ) 
 			{
 				vSceneAABBPointsLightSpace[index] = XMVector4Transform( vSceneAABBPointsLightSpace[index], LightView ); 
-				//vSceneAABBPointsLightSpace[index] -= CenterLightSpace;
 			}
 
 
@@ -982,7 +990,6 @@ void Engine::RenderShadowMap()
 			vLightCameraOrthographicMax = XMVectorMax ( vTempTranslatedCornerPoint, vLightCameraOrthographicMax );
 		}
 ///////////////////////////////////////
-		XMVECTOR vWorldUnitsPerTexel;
 		 XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6];
         vDiagonal = XMVector3Length( vDiagonal );
             
@@ -1000,6 +1007,8 @@ void Engine::RenderShadowMap()
         // Add the offsets to the projection.
         vLightCameraOrthographicMax += vBoarderOffset;
         vLightCameraOrthographicMin -= vBoarderOffset;
+		
+		XMVECTOR vWorldUnitsPerTexel;
 		FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)ShadowInfo->_TextureSize;
             vWorldUnitsPerTexel = XMVectorSet( fWorldUnitsPerTexel, fWorldUnitsPerTexel, 0.0f, 0.0f ); 
 
@@ -1064,7 +1073,7 @@ void Engine::RenderDeferredShadow()
 	for(unsigned int i=0;i<_CascadeArray.size();i++)
 	{
 		ShadowCascadeInfo* ShadowInfo = _CascadeArray[i];
-		if(ShadowInfo->_bEnabled == false) return;
+		if(ShadowInfo->_bEnabled == false) continue;
 		ID3D11ShaderResourceView* aSRVVis[2] = {_DepthTexture->GetSRV(), ShadowInfo->_ShadowDepthTexture->GetSRV()};
 		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
 	
