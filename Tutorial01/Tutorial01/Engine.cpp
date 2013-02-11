@@ -923,7 +923,7 @@ void Engine::RenderShadowMap()
 
 		float fFrustumIntervalBegin, fFrustumIntervalEnd;
 
-		fFrustumIntervalBegin = ShadowInfo->_ViewNear;
+		fFrustumIntervalBegin = 0.f;//ShadowInfo->_ViewNear;
 		fFrustumIntervalEnd = ShadowInfo->_ViewFar;
 		XMMATRIX ProjectionMat = XMLoadFloat4x4(&_ProjectionMat);
 		CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, ProjectionMat, vFrustumPoints); 
