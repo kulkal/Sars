@@ -487,9 +487,9 @@ void Engine::InitDevice()
 	_CurrentCamera = new FpsCamera(XMFLOAT3(0.f, 250.f, 250.f), 0.f, -XM_PI/4);
 
 	_CascadeArray.resize(3);
-	_CascadeArray[0] = new ShadowCascadeInfo(0, 150, 1024);
-	_CascadeArray[1] = new ShadowCascadeInfo(150, 350, 1024);
-	_CascadeArray[2] = new ShadowCascadeInfo(350, 1200, 1024);
+	_CascadeArray[0] = new ShadowCascadeInfo(0, 80, 1024);
+	_CascadeArray[1] = new ShadowCascadeInfo(80, 250, 1024);
+	_CascadeArray[2] = new ShadowCascadeInfo(250, 800, 1024);
 	//_CascadeArray[3] = new ShadowCascadeInfo(1050, 3250, 1024);
 
 	//_CascadeArray[2] = new ShadowCascadeInfo(250, 2500, 256);
@@ -916,14 +916,16 @@ void Engine::RenderShadowMap()
 		XMMATRIX ViewMatInv = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
 
 		XMVECTOR LightDir = XMLoadFloat3(&_SunLight->_LightDirection);
-		XMVECTOR Up = XMVectorSet(0.f, 1.f, 0.f, 1.f);//XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
+//		XMVECTOR Up = XMVectorSet(0.f, 0.f, 1.f, 1.f);//XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
+		XMVECTOR Up = XMVectorSet(ViewMatInv._31, ViewMatInv._32, ViewMatInv._33, 1.f);//XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
+
 	
 		XMVECTOR Center = XMVectorSet(0.f, 0.f, 0.f, 0.f);;
 		XMVECTOR vFrustumPoints[8];
 
 		float fFrustumIntervalBegin, fFrustumIntervalEnd;
 
-		fFrustumIntervalBegin = 0.f;//ShadowInfo->_ViewNear;
+		fFrustumIntervalBegin = ShadowInfo->_ViewNear;
 		fFrustumIntervalEnd = ShadowInfo->_ViewFar;
 		XMMATRIX ProjectionMat = XMLoadFloat4x4(&_ProjectionMat);
 		CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, ProjectionMat, vFrustumPoints); 
@@ -931,10 +933,10 @@ void Engine::RenderShadowMap()
 		{
 			// world space
 			vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
-			Center += vFrustumPoints[icpIndex];
+			//Center += vFrustumPoints[icpIndex];
 		}
 
-		Center /= 8;
+		//Center /= 8;
 
 		XMMATRIX LightView = XMMatrixLookAtRH( Center - LightDir, Center, Up );
 
