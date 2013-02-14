@@ -882,6 +882,13 @@ void CreateAABBPoints( XMVECTOR* vAABBPoints, FXMVECTOR vCenter, FXMVECTOR vExte
 
 void Engine::RenderShadowMap()
 {
+	XMVECTOR Det;
+	XMMATRIX ViewMatInv = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
+
+	XMVECTOR LightDir = XMLoadFloat3(&_SunLight->_LightDirection);
+	XMVECTOR Up = XMVectorSet(ViewMatInv._31, ViewMatInv._32, ViewMatInv._33, 1.f);//XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
+	XMVECTOR Center = XMVectorSet(0.f, 0.f, 0.f, 0.f);
+
 	for(unsigned int i=0;i<_CascadeArray.size();i++)
 	{
 		ShadowCascadeInfo* ShadowInfo = _CascadeArray[i];
@@ -908,70 +915,45 @@ void Engine::RenderShadowMap()
 		vp.TopLeftX = 0;
 		vp.TopLeftY = 0;
 		_ImmediateContext->RSSetViewports( 1, &vp );
-
-	
-
-
-		XMVECTOR Det;
-		XMMATRIX ViewMatInv = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
-
-		XMVECTOR LightDir = XMLoadFloat3(&_SunLight->_LightDirection);
-//		XMVECTOR Up = XMVectorSet(0.f, 0.f, 1.f, 1.f);//XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
-		XMVECTOR Up = XMVectorSet(ViewMatInv._31, ViewMatInv._32, ViewMatInv._33, 1.f);//XMLoadFloat3(&XMFLOAT3(0.f, 1.f, 0.f));
-
-	
-		XMVECTOR Center = XMVectorSet(0.f, 0.f, 0.f, 0.f);;
+		
 		XMVECTOR vFrustumPoints[8];
-
 		float fFrustumIntervalBegin, fFrustumIntervalEnd;
-
 		fFrustumIntervalBegin = ShadowInfo->_ViewNear;
 		fFrustumIntervalEnd = ShadowInfo->_ViewFar;
 		XMMATRIX ProjectionMat = XMLoadFloat4x4(&_ProjectionMat);
 		CreateFrustumPointsFromCascadeInterval( fFrustumIntervalBegin, fFrustumIntervalEnd, ProjectionMat, vFrustumPoints); 
-		for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
-		{
-			// world space
-			vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
-			//Center += vFrustumPoints[icpIndex];
-		}
-
-		//Center /= 8;
 
 		XMMATRIX LightView = XMMatrixLookAtRH( Center - LightDir, Center, Up );
 
-		//{
-			XMVECTOR m_vSceneAABBMin = XMLoadFloat3(&_StaticMeshComponent->_AABBMin);
-			XMVECTOR m_vSceneAABBMax = XMLoadFloat3(&_StaticMeshComponent->_AABBMax);
+		XMVECTOR m_vSceneAABBMin = XMLoadFloat3(&_StaticMeshComponent->_AABBMin);
+		XMVECTOR m_vSceneAABBMax = XMLoadFloat3(&_StaticMeshComponent->_AABBMax);
 
-			XMVECTOR vSceneCenter = m_vSceneAABBMin + m_vSceneAABBMax;
-			vSceneCenter *= 0.5f;
-			XMVECTOR vSceneExtents = m_vSceneAABBMax - m_vSceneAABBMin;
-			vSceneExtents *= 0.5f;    
-			XMVECTOR vSceneAABBPointsLightSpace[8];
-
-			XMVECTOR CenterLightSpace = XMVector4Transform( vSceneCenter, LightView ); 
-
-			// This function simply converts the center and extents of an AABB into 8 points
-			CreateAABBPoints( vSceneAABBPointsLightSpace, vSceneCenter, vSceneExtents );
-			// Transform the scene AABB to Light space.
-			for( int index =0; index < 8; ++index ) 
-			{
-				vSceneAABBPointsLightSpace[index] = XMVector4Transform( vSceneAABBPointsLightSpace[index], LightView ); 
-			}
+		XMVECTOR vSceneCenter = m_vSceneAABBMin + m_vSceneAABBMax;
+		vSceneCenter *= 0.5f;
+		XMVECTOR vSceneExtents = m_vSceneAABBMax - m_vSceneAABBMin;
+		vSceneExtents *= 0.5f;    
+		XMVECTOR vSceneAABBPointsLightSpace[8];
 
 
-			XMVECTOR vLightSpaceSceneAABBminValue = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);  // world space scene aabb 
-			XMVECTOR vLightSpaceSceneAABBmaxValue = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);       
-			// We calculate the min and max vectors of the scene in light space. The min and max "Z" values of the  
-			// light space AABB can be used for the near and far plane. This is easier than intersecting the scene with the AABB
-			// and in some cases provides similar results.
-			for(int index=0; index< 8; ++index) 
-			{
-				vLightSpaceSceneAABBminValue = XMVectorMin( vSceneAABBPointsLightSpace[index], vLightSpaceSceneAABBminValue );
-				vLightSpaceSceneAABBmaxValue = XMVectorMax( vSceneAABBPointsLightSpace[index], vLightSpaceSceneAABBmaxValue );
-			}
-		//}
+		// This function simply converts the center and extents of an AABB into 8 points
+		CreateAABBPoints( vSceneAABBPointsLightSpace, vSceneCenter, vSceneExtents );
+		// Transform the scene AABB to Light space.
+		for( int index =0; index < 8; ++index ) 
+		{
+			vSceneAABBPointsLightSpace[index] = XMVector4Transform( vSceneAABBPointsLightSpace[index], LightView ); 
+		}
+
+
+		XMVECTOR vLightSpaceSceneAABBminValue = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);  // world space scene aabb 
+		XMVECTOR vLightSpaceSceneAABBmaxValue = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);       
+		// We calculate the min and max vectors of the scene in light space. The min and max "Z" values of the  
+		// light space AABB can be used for the near and far plane. This is easier than intersecting the scene with the AABB
+		// and in some cases provides similar results.
+		for(int index=0; index< 8; ++index) 
+		{
+			vLightSpaceSceneAABBminValue = XMVectorMin( vSceneAABBPointsLightSpace[index], vLightSpaceSceneAABBminValue );
+			vLightSpaceSceneAABBmaxValue = XMVectorMax( vSceneAABBPointsLightSpace[index], vLightSpaceSceneAABBmaxValue );
+		}
 
 
 		XMVECTOR vLightCameraOrthographicMin;  // light space frustrum aabb 
@@ -1116,7 +1098,7 @@ ShadowCascadeInfo::ShadowCascadeInfo( float ViewNear, float ViewFar, float Textu
 	,_ViewFar(ViewFar)
 	,_TextureSize(TextureSize)
 {
-	CD3D11_TEXTURE2D_DESC ShadowDescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, TextureSize, TextureSize, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
+	CD3D11_TEXTURE2D_DESC ShadowDescDepthTex(DXGI_FORMAT_R24G8_TYPELESS, (UINT)TextureSize, (UINT)TextureSize, 1, 1, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
 	CD3D11_DEPTH_STENCIL_VIEW_DESC  ShadowDescDSV(D3D11_DSV_DIMENSION_TEXTURE2D, DXGI_FORMAT_D24_UNORM_S8_UINT, 0, 0, 0,0) ;
 	CD3D11_SHADER_RESOURCE_VIEW_DESC ShadowDescDepthSRV(D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R24_UNORM_X8_TYPELESS);
 	_ShadowDepthTexture = new TextureDepth2D(ShadowDescDepthTex, ShadowDescDSV, ShadowDescDepthSRV);

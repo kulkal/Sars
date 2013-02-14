@@ -8,7 +8,7 @@ class LightComponent :
 protected:
 	XMFLOAT4 _LightColor;
 public:
-	virtual void RenderLightDeferred(Camera* Camera){}
+	virtual void RenderLightDeferred(Camera* Camera){Camera;}
 
 	LightComponent(XMFLOAT4 LightColor);
 	virtual ~LightComponent(void);
