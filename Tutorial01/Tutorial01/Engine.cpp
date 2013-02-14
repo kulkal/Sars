@@ -934,7 +934,6 @@ void Engine::RenderShadowMap()
 		vSceneExtents *= 0.5f;    
 		XMVECTOR vSceneAABBPointsLightSpace[8];
 
-
 		// This function simply converts the center and extents of an AABB into 8 points
 		CreateAABBPoints( vSceneAABBPointsLightSpace, vSceneCenter, vSceneExtents );
 		// Transform the scene AABB to Light space.
@@ -942,7 +941,6 @@ void Engine::RenderShadowMap()
 		{
 			vSceneAABBPointsLightSpace[index] = XMVector4Transform( vSceneAABBPointsLightSpace[index], LightView ); 
 		}
-
 
 		XMVECTOR vLightSpaceSceneAABBminValue = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);  // world space scene aabb 
 		XMVECTOR vLightSpaceSceneAABBmaxValue = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);       
@@ -955,19 +953,17 @@ void Engine::RenderShadowMap()
 			vLightSpaceSceneAABBmaxValue = XMVectorMax( vSceneAABBPointsLightSpace[index], vLightSpaceSceneAABBmaxValue );
 		}
 
-
-		XMVECTOR vLightCameraOrthographicMin;  // light space frustrum aabb 
+		XMVECTOR vLightCameraOrthographicMin; 
 		XMVECTOR vLightCameraOrthographicMax;
-		vLightCameraOrthographicMin = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);//XMLoadFloat3(&XMFLOAT3(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX));;
-		vLightCameraOrthographicMax = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);//XMLoadFloat3(&XMFLOAT3(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX));;
+		vLightCameraOrthographicMin = XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);
+		vLightCameraOrthographicMax = XMVectorSet(-FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX, -FLOAT_MAX);
 
-		//XMVectorSet(FLOAT_MAX, FLOAT_MAX, FLOAT_MAX, FLOAT_MAX);
 		XMVECTOR vTempTranslatedCornerPoint;
 
 		for( int icpIndex=0; icpIndex < 8; ++icpIndex ) 
 		{
 			// world space
-			//vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
+			vFrustumPoints[icpIndex] = XMVector4Transform ( vFrustumPoints[icpIndex], ViewMatInv );
 			// light space
 			vTempTranslatedCornerPoint = XMVector4Transform ( vFrustumPoints[icpIndex], LightView );
 			vLightCameraOrthographicMin = XMVectorMin ( vTempTranslatedCornerPoint, vLightCameraOrthographicMin );
@@ -1004,7 +1000,6 @@ void Engine::RenderShadowMap()
         vLightCameraOrthographicMax /= vWorldUnitsPerTexel;
         vLightCameraOrthographicMax = XMVectorFloor( vLightCameraOrthographicMax );
         vLightCameraOrthographicMax *= vWorldUnitsPerTexel;
-////////////////////////////////////
 
 		XMMATRIX LightProjection = XMMatrixOrthographicOffCenterRH( 
 			XMVectorGetX( vLightCameraOrthographicMin )
