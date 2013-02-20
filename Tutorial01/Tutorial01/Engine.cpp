@@ -969,8 +969,8 @@ void Engine::RenderShadowMap()
 			vLightCameraOrthographicMin = XMVectorMin ( vTempTranslatedCornerPoint, vLightCameraOrthographicMin );
 			vLightCameraOrthographicMax = XMVectorMax ( vTempTranslatedCornerPoint, vLightCameraOrthographicMax );
 		}
-///////////////////////////////////////
-		 XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6];
+
+		XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6];
         vDiagonal = XMVector3Length( vDiagonal );
             
         // The bound is the length of the diagonal of the frustum interval.

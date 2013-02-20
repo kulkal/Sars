@@ -36,7 +36,6 @@ PS_INPUT VS(  VS_INPUT input )
     output.Pos = mul( output.Pos, Projection );
 
     output.Norm = mul( input.Norm, ModelView ).xyz;
-
 #endif
 #if TEXCOORD
 	output.Tex = input.Tex;
