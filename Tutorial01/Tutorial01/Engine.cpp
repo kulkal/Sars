@@ -16,19 +16,14 @@
 #include "MathUtil.h"
 #include "FpsCamera.h"
 #include "Input.h"
+#include "DeferredShadowPixelShader.h"
+#include "DeferredPointLightPixelShader.h"
+#include "DeferredDirLightPixelShader.h"
 
 struct SCREEN_VERTEX
 {
 	XMFLOAT4 pos;
 	XMFLOAT2 tex;
-};
-
-struct DeferredShadowPSCBStruct
-{
-	XMMATRIX Projection;
-	XMFLOAT4 ProjectionParams;
-	XMFLOAT4 ViewportParams;
-	XMMATRIX ShadowMatrix;
 };
 
 struct VisDepthPSCBStruct
@@ -51,12 +46,6 @@ Engine::Engine(void)
 	,_TimeSeconds(0.f)
 	,_VisualizeWorldNormal(false)
 	,_VisualizeDepth(false)
-	,_DeferredDirPS(NULL)
-	,_DeferredDirPSCB(NULL)
-	,_DeferredPointPS(NULL)
-	,_DeferredPointPSCB(NULL)
-	,_DeferredShadowPS(NULL)
-	,_DeferredShadowPSCB(NULL)
 	,_VisNormalPS(NULL)
 	,_VisDpethPS(NULL)
 	,_VisDpethPSCB(NULL)
@@ -72,6 +61,9 @@ Engine::Engine(void)
 	,_StaticMeshComponent(NULL)
 	,_CurrentCamera(NULL)
 	,_Input(NULL)
+	,_DeferredDirPS(NULL)
+	,_DeferredPointPS(NULL)
+	,_DeferredShadowPS(NULL)
 	
 {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -98,12 +90,10 @@ Engine::~Engine(void)
 	if(g_pQuadVS) g_pQuadVS->Release();
 	if(g_pScreenQuadVB) g_pScreenQuadVB->Release();
 	if(g_pQuadLayout) g_pQuadLayout->Release();
-	if(_DeferredDirPS) _DeferredDirPS->Release();
-	if(_DeferredDirPSCB) _DeferredDirPSCB->Release();
-	if(_DeferredPointPS) _DeferredPointPS->Release();
-	if(_DeferredPointPSCB) _DeferredPointPSCB->Release();
-	if(_DeferredShadowPS) _DeferredShadowPS->Release();
-	if(_DeferredShadowPSCB) _DeferredShadowPSCB->Release();
+	
+	if(_DeferredShadowPS) delete _DeferredShadowPS;
+	if(_DeferredPointPS) delete _DeferredPointPS;
+	if(_DeferredDirPS) delete _DeferredDirPS;
 
 
 	if(_SimpleDrawer) delete _SimpleDrawer;
@@ -372,50 +362,12 @@ void Engine::InitDevice()
 
 	SetD3DResourceDebugName("_VisDpethPSCB", _VisDpethPSCB);
 
-	////////////////////////////////////////////
-	// directional light
-	_DeferredDirPS = CreatePixelShaderSimple("DeferredDirectional.fx");
-
-	ZeroMemory( &bdc, sizeof(bdc) );
-	bdc.Usage = D3D11_USAGE_DEFAULT;
-	bdc.ByteWidth = sizeof(DeferredDirPSCBStruct);
-	bdc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bdc.CPUAccessFlags = 0;
-	hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &_DeferredDirPSCB );
-	if( FAILED( hr ) )
-		assert(false);
-
-	SetD3DResourceDebugName("_DeferredDirPSCB", _DeferredDirPSCB);
-
-	// point light
-	_DeferredPointPS = CreatePixelShaderSimple("DeferredPoint.fx");
-
-	ZeroMemory( &bdc, sizeof(bdc) );
-	bdc.Usage = D3D11_USAGE_DEFAULT;
-	bdc.ByteWidth = sizeof(DeferredPointPSCBStruct);
-	bdc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bdc.CPUAccessFlags = 0;
-	hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &_DeferredPointPSCB );
-	if( FAILED( hr ) )
-		assert(false);
-
-	SetD3DResourceDebugName("_DeferredPointPSCB", _DeferredPointPSCB);
 	
 	_CombineLitPS = CreatePixelShaderSimple("ComblineShader.fx");
 
-	// deferred shadow
-	ZeroMemory( &bdc, sizeof(bdc) );
-	bdc.Usage = D3D11_USAGE_DEFAULT;
-	bdc.ByteWidth = sizeof(DeferredShadowPSCBStruct);
-	bdc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bdc.CPUAccessFlags = 0;
-	hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &_DeferredShadowPSCB );
-	if( FAILED( hr ) )
-		assert(false);
-
-	SetD3DResourceDebugName("_DeferredSahdowtPSCB", _DeferredShadowPSCB);
-	
-	_DeferredShadowPS = CreatePixelShaderSimple("DeferredShadow.fx");
+	_DeferredDirPS  = new DeferredDirLightPixelShader("DeferredDirectional.fx", "PS");
+	_DeferredPointPS = new DeferredPointLightPixelShader("DeferredPoint.fx", "PS");
+	_DeferredShadowPS = new DeferredShadowPixelShader("DeferredShadow.fx", "PS");
 
 	/////////////
 	_SimpleDrawer = new SimpleDrawingPolicy;
@@ -496,7 +448,7 @@ void Engine::InitDevice()
 
 }
 
-ID3D11PixelShader* Engine::CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines)
+ID3D11PixelShader* Engine::CreatePixelShaderSimple( char* szFileName, char* szFuncName, D3D10_SHADER_MACRO* pDefines)
 {
 	ID3D11PixelShader* PS;
 	HRESULT hr;
@@ -506,7 +458,7 @@ ID3D11PixelShader* Engine::CreatePixelShaderSimple( char* szFileName, D3D10_SHAD
 	mbstowcs_s(&RetSize, WFileName, 1024, szFileName, nLen);
 
 	ID3DBlob* pPSBlob = NULL;
-	hr = CompileShaderFromFile(WFileName, pDefines, "PS", "ps_4_0", &pPSBlob );
+	hr = CompileShaderFromFile(WFileName, pDefines,szFuncName, "ps_4_0", &pPSBlob );
 	if( FAILED( hr ) )
 	{
 		MessageBox( NULL,
@@ -1056,25 +1008,9 @@ void Engine::RenderDeferredShadow()
 		ID3D11ShaderResourceView* aSRVVis[2] = {_DepthTexture->GetSRV(), ShadowInfo->_ShadowDepthTexture->GetSRV()};
 		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
 	
-		DeferredShadowPSCBStruct cbShadow;
-
-		float Near = _CurrentCamera->GetNear();
-		float Far = _CurrentCamera->GetFar();
-		cbShadow.Projection = XMMatrixTranspose( XMLoadFloat4x4(&_ProjectionMat));
-		cbShadow.ProjectionParams.x = Far/(Far - Near);
-		cbShadow.ProjectionParams.y = Near/(Near - Far);
-		cbShadow.ProjectionParams.z = Far;
-		cbShadow.ViewportParams.x = (float)_Width;
-		cbShadow.ViewportParams.y = (float)_Height;
-		cbShadow.ViewportParams.z = (float)ShadowInfo->_TextureSize;
-
-		XMVECTOR Det;
-		XMMATRIX InvViewMatrix = XMMatrixInverse(&Det, XMLoadFloat4x4(&_ViewMat));
-		cbShadow.ShadowMatrix = XMMatrixTranspose(InvViewMatrix * XMLoadFloat4x4(&ShadowInfo->_ShadowViewMat) * XMLoadFloat4x4(&ShadowInfo->_ShadowProjectionMat));
-
-		_ImmediateContext->UpdateSubresource( _DeferredShadowPSCB, 0, NULL, &cbShadow, 0, 0 );
-		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_DeferredShadowPSCB );
-		DrawFullScreenQuad11(_DeferredShadowPS, _Width, _Height);
+	
+		_DeferredShadowPS->SetShaderParameter(ShadowInfo);
+		DrawFullScreenQuad11(_DeferredShadowPS->GetPixelShader(), _Width, _Height);
 	}
 
 	SET_PS_SAMPLER(0, SS_LINEAR);

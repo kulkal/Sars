@@ -40,15 +40,6 @@
 //--------------------------------------------------------------------------------------
 HINSTANCE               g_hInst = NULL;
 HWND                    g_hWnd = NULL;
-//
-XMMATRIX                g_View;
-
-
-ID3D11ShaderResourceView*           g_pTextureRV = NULL;
-
-XMMATRIX                g_Projection;
-XMMATRIX                g_World;
-XMMATRIX                g_World2;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -57,6 +48,7 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow );
 HRESULT InitDevice();
 void CleanupDevice();
 LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
+
 void Render();
 
 
@@ -204,28 +196,6 @@ HRESULT InitDevice()
 {
 	GEngine->InitDevice();
 	
-	XMFLOAT4 EyeVal = XMFLOAT4( 250, 250, 250.f, 0.0f );
-	XMFLOAT4 AtVal = XMFLOAT4( 0.0f, 0.0f, 0.0f, 0.0f );
-	XMFLOAT4 UpVal = XMFLOAT4( 0.0f, 1.0f, 0.0f, 0.0f );
-
-    // Initialize the view matrix
-	XMVECTOR Eye = XMLoadFloat4(&EyeVal);
-	XMVECTOR At = XMLoadFloat4(&AtVal);
-	XMVECTOR Up = XMLoadFloat4(&UpVal);
-	
-
-	//g_View = XMMatrixLookAtRH( Eye, At, Up );
-	//g_Projection = XMMatrixPerspectiveFovRH( XM_PIDIV2, GEngine->_Width / (FLOAT)GEngine->_Height, GEngine->_Near, GEngine->_Far );
-	//g_World = XMMatrixIdentity();
-
-	/*XMStoreFloat4x4(&GEngine->_ViewMat, g_View);
-	XMStoreFloat4x4(&GEngine->_ProjectionMat, g_Projection);*/
-
-
-	
-
-	//GEngine->InitDevice();
-
     return S_OK;
 }
 
@@ -234,69 +204,11 @@ HRESULT InitDevice()
 //--------------------------------------------------------------------------------------
 void Render()
 {
-
-
-	// Update our time
-    static float t = 0.0f;
-   
-    {
-        static DWORD dwTimeStart = 0;
-        DWORD dwTimeCur = GetTickCount();
-        if( dwTimeStart == 0 )
-            dwTimeStart = dwTimeCur;
-        t = ( dwTimeCur - dwTimeStart ) / 1000.0f;
-    }
-
-    //
-    // Animate the cube
-    //
-	g_World = XMMatrixRotationY( t );
-
-	// Setup our lighting parameters
-	XMFLOAT4 vLightDirs[2] =
-	{
-		XMFLOAT4( -0.577f, 0.577f, -0.577f, 1.0f ),
-		XMFLOAT4( 0.0f, 0.0f, -1.0f, 1.0f ),
-	};
-	XMFLOAT4 vLightColors[2] =
-	{
-		XMFLOAT4( 0.7f, 0.7f, 0.7f, 0.7f ),
-		XMFLOAT4( 0, 0.0f, 1, 1.0f )
-	};
-
-	// Rotate the second light around the origin
-	XMMATRIX mRotate = XMMatrixRotationY( -2.0f * t *0.7f);
-	XMVECTOR vLightDir = XMLoadFloat4( &vLightDirs[1] );
-	vLightDir = XMVector3Transform( vLightDir, mRotate );
-	XMStoreFloat4( &vLightDirs[1], vLightDir );
-
-
-
-	 // 2nd Cube:  Rotate around origin
-    XMMATRIX mSpin = XMMatrixRotationZ( -t );
-    XMMATRIX mOrbit = XMMatrixRotationY( -t * 2.0f );
-	XMMATRIX mTranslate = XMMatrixTranslation( -4.0f, 0.0f, 0.0f );
-	XMMATRIX mScale = XMMatrixScaling( 0.3f, 0.3f, 0.3f );
-
-	g_World2 = mScale * mSpin * mTranslate * mOrbit;
-
-    //
-    // Update variables
-    //
-   
-
-
-
-	memcpy(GEngine->_SimpleDrawer->vLightColors, vLightColors, sizeof(XMFLOAT4)*2);
-	memcpy(GEngine->_SimpleDrawer->vLightDirs, vLightDirs, sizeof(XMFLOAT4)*2);
-
 	GEngine->BeginRendering();
 
 	GEngine->Render();
 	
 	GEngine->EndRendering();
-
-	
 }
 
 

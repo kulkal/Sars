@@ -1,6 +1,7 @@
 #include "PointLightComponent.h"
 #include "Engine.h"
 #include "Camera.h"
+#include "DeferredPointLightPixelShader.h"
 
 
 PointLightComponent::PointLightComponent(XMFLOAT4 LightColor, XMFLOAT3 LightPos, float LightRange)
@@ -17,23 +18,6 @@ PointLightComponent::~PointLightComponent(void)
 
 void PointLightComponent::RenderLightDeferred(Camera* Camera)
 {
-	DeferredPointPSCBStruct cbPoint;
-	XMVECTOR LightParam = XMVector3TransformCoord(XMLoadFloat3(&_LightPos), (XMLoadFloat4x4(&GEngine->_ViewMat) ) );
-	XMStoreFloat4(&cbPoint.vLightPos, LightParam );
-
-	memcpy(&cbPoint.vLightColor, &_LightColor, sizeof(XMFLOAT4));
-	cbPoint.vLightColor.w = _LightRange;
-	cbPoint.mView = XMMatrixTranspose( XMLoadFloat4x4( &GEngine->_ViewMat ));
-	cbPoint.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-
-	float Near = Camera->GetNear();
-	float Far = Camera->GetFar();
-	cbPoint.ProjectionParams.x =Far/(Far - Near);
-	cbPoint.ProjectionParams.y =Near/(Near - Far);
-	cbPoint.ProjectionParams.z =Far;
-	cbPoint.ViewportParams.x = (float)GEngine->_Width;
-	cbPoint.ViewportParams.y = (float)GEngine->_Height;
-	GEngine->_ImmediateContext->UpdateSubresource( GEngine->_DeferredPointPSCB, 0, NULL, &cbPoint, 0, 0 );
-	GEngine->_ImmediateContext->PSSetConstantBuffers( 0, 1, &GEngine->_DeferredPointPSCB );
-	GEngine->DrawFullScreenQuad11(GEngine->_DeferredPointPS, GEngine->_Width, GEngine->_Height);
+	GEngine->_DeferredPointPS->SetShaderParameter(this);
+	GEngine->DrawFullScreenQuad11(GEngine->_DeferredPointPS->GetPixelShader(), GEngine->_Width, GEngine->_Height);
 }

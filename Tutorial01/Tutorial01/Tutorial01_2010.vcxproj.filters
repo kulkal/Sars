@@ -89,6 +89,10 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="FpsCamera.cpp" />
     <ClCompile Include="Input.cpp" />
+    <ClCompile Include="PixelShader.cpp" />
+    <ClCompile Include="DeferredShadowPixelShader.cpp" />
+    <ClCompile Include="DeferredPointLightPixelShader.cpp" />
+    <ClCompile Include="DeferredDirLightPixelShader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -132,6 +136,10 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="FpsCamera.h" />
     <ClInclude Include="Input.h" />
+    <ClInclude Include="PixelShader.h" />
+    <ClInclude Include="DeferredShadowPixelShader.h" />
+    <ClInclude Include="DeferredPointLightPixelShader.h" />
+    <ClInclude Include="DeferredDirLightPixelShader.h" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

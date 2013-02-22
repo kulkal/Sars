@@ -5,7 +5,7 @@ class Camera;
 class LightComponent :
 	public BaseComponent
 {
-protected:
+public:
 	XMFLOAT4 _LightColor;
 public:
 	virtual void RenderLightDeferred(Camera* Camera){Camera;}

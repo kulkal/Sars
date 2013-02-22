@@ -386,6 +386,9 @@
     <ClCompile Include="BaseComponent.cpp" />
     <ClCompile Include="BaseObject.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="DeferredDirLightPixelShader.cpp" />
+    <ClCompile Include="DeferredPointLightPixelShader.cpp" />
+    <ClCompile Include="DeferredShadowPixelShader.cpp" />
     <ClCompile Include="DirectionalLightComponent.cpp" />
     <ClCompile Include="DrawingPolicy.cpp" />
     <ClCompile Include="Engine.cpp" />
@@ -398,6 +401,7 @@
     <ClCompile Include="LineBatcher.cpp" />
     <ClCompile Include="MathUtil.cpp" />
     <ClCompile Include="OutputDebug.cpp" />
+    <ClCompile Include="PixelShader.cpp" />
     <ClCompile Include="PointLightComponent.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="ShaderRes.cpp" />
@@ -425,6 +429,9 @@
     <ClInclude Include="BaseComponent.h" />
     <ClInclude Include="BaseObject.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="DeferredDirLightPixelShader.h" />
+    <ClInclude Include="DeferredPointLightPixelShader.h" />
+    <ClInclude Include="DeferredShadowPixelShader.h" />
     <ClInclude Include="DirectionalLightComponent.h" />
     <ClInclude Include="DrawingPolicy.h" />
     <ClInclude Include="Engine.h" />
@@ -437,6 +444,7 @@
     <ClInclude Include="LineBatcher.h" />
     <ClInclude Include="MathUtil.h" />
     <ClInclude Include="OutputDebug.h" />
+    <ClInclude Include="PixelShader.h" />
     <ClInclude Include="PointLightComponent.h" />
     <CLInclude Include="resource.h" />
     <ClInclude Include="Shader.h" />

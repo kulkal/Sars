@@ -27,6 +27,10 @@ class StaticMeshComponent;
 class Camera;
 class Input;
 
+class DeferredShadowPixelShader;
+class DeferredPointLightPixelShader;
+class DeferredDirLightPixelShader;
+
 struct ShadowCascadeInfo
 {
 	bool				_bEnabled;
@@ -59,8 +63,6 @@ public:
 
 	Texture2D*				_WorldNormalTexture;
 	TextureDepth2D*			_DepthTexture;
-	//TextureDepth2D*			_ShadowDepthTexture;
-	//UINT					_ShadowMapSize;
 
 	std::vector<ShadowCascadeInfo*> _CascadeArray;
 
@@ -75,8 +77,6 @@ public:
 	XMFLOAT4X4 _ViewMat;
 	XMFLOAT4X4 _ProjectionMat;
 
-	//XMFLOAT4X4 _SunShadowMat;
-	//XMFLOAT4X4 _SunShadowProjectionMat;
 
 	// debug line draw
 	LineBatcher* _LineBatcher;
@@ -97,17 +97,11 @@ public:
 	ID3D11PixelShader*			_VisDpethPS;
 	ID3D11Buffer*				_VisDpethPSCB;
 
-
-	ID3D11PixelShader*			_DeferredDirPS;
-	ID3D11Buffer*				_DeferredDirPSCB;
-
-	ID3D11PixelShader*			_DeferredPointPS;
-	ID3D11Buffer*				_DeferredPointPSCB;
-	
 	ID3D11PixelShader*			_CombineLitPS;
 
-	ID3D11PixelShader*			_DeferredShadowPS;
-	ID3D11Buffer*				_DeferredShadowPSCB;
+	DeferredDirLightPixelShader*	_DeferredDirPS;
+	DeferredPointLightPixelShader*	_DeferredPointPS;
+	DeferredShadowPixelShader*		_DeferredShadowPS;
 
 	bool _VisualizeWorldNormal;
 	bool _VisualizeDepth;
@@ -145,7 +139,7 @@ public:
 	void StartRenderingLightingBuffer(bool bClear);
 
 	HRESULT CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pDefines, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut );
-	ID3D11PixelShader* CreatePixelShaderSimple( char* szFileName, D3D10_SHADER_MACRO* pDefines = NULL);
+	ID3D11PixelShader* CreatePixelShaderSimple( char* szFileName, char* szFuncName = "PS", D3D10_SHADER_MACRO* pDefines = NULL);
 	void DrawFullScreenQuad11( ID3D11PixelShader* pPS, float Width, float Height, float TopLeftX = 0, float TopLeftY = 0);
 
 	Engine(void);
