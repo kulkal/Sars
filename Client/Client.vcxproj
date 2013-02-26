@@ -27,7 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>Tutorial01</ProjectName>
+    <ProjectName>Client</ProjectName>
     <ProjectGuid>{06EDC280-1187-4614-A248-E640C095FA6B}</ProjectGuid>
     <RootNamespace>Tutorial01</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -380,7 +380,7 @@
     <None Include="VSPSInput.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Tutorial01.cpp" />
+    <ClCompile Include="Client.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\Engine.vcxproj">
@@ -389,7 +389,7 @@
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h" />
-    <ResourceCompile Include="Tutorial01.rc" />
+    <ResourceCompile Include="Client.rc" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
