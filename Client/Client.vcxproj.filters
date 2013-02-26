@@ -13,44 +13,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Tutorial01.fx">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="SimpleShader.fx">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="LineShader.fx">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="GBufferShader.fx">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="GpuSkinning.hlsl">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="VSPSInput.hlsl">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="QuadShader.fx">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="DeferredDirectional.fx">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="DeferredPoint.fx">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Common.hlsl">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="ComblineShader.fx">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="DeferredShadow.fx">
-      <Filter>Shaders</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <CLInclude Include="resource.h">
       <Filter>Resource Files</Filter>
     </CLInclude>
@@ -62,5 +24,43 @@
     <ResourceCompile Include="Client.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\ComblineShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Common.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\DeferredDirectional.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\DeferredPoint.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\DeferredShadow.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\GBufferShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\GpuSkinning.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\LineShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\QuadShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\SimpleShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Tutorial01.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\VSPSInput.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

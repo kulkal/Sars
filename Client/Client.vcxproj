@@ -366,20 +366,6 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="ComblineShader.fx" />
-    <None Include="Common.hlsl" />
-    <None Include="DeferredDirectional.fx" />
-    <None Include="DeferredPoint.fx" />
-    <None Include="DeferredShadow.fx" />
-    <None Include="GBufferShader.fx" />
-    <None Include="GpuSkinning.hlsl" />
-    <None Include="LineShader.fx" />
-    <None Include="QuadShader.fx" />
-    <None Include="SimpleShader.fx" />
-    <None Include="Tutorial01.fx" />
-    <None Include="VSPSInput.hlsl" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="Client.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -392,6 +378,18 @@
     <ResourceCompile Include="Client.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\ComblineShader.fx" />
+    <None Include="Shaders\Common.hlsl" />
+    <None Include="Shaders\DeferredDirectional.fx" />
+    <None Include="Shaders\DeferredPoint.fx" />
+    <None Include="Shaders\DeferredShadow.fx" />
+    <None Include="Shaders\GBufferShader.fx" />
+    <None Include="Shaders\GpuSkinning.hlsl" />
+    <None Include="Shaders\LineShader.fx" />
+    <None Include="Shaders\QuadShader.fx" />
+    <None Include="Shaders\SimpleShader.fx" />
+    <None Include="Shaders\Tutorial01.fx" />
+    <None Include="Shaders\VSPSInput.hlsl" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
