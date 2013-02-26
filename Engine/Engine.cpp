@@ -508,6 +508,9 @@ HRESULT Engine::CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pD
 {
 	HRESULT hr = S_OK;
 
+	WCHAR Path[MAX_PATH];
+	wsprintf(Path, L"Shaders\\%s", szFileName);
+
 	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
 #if defined( DEBUG ) || defined( _DEBUG )
 	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
@@ -518,7 +521,7 @@ HRESULT Engine::CompileShaderFromFile( WCHAR* szFileName, D3D10_SHADER_MACRO* pD
 #endif
 
 	ID3DBlob* pErrorBlob;
-	hr = D3DX11CompileFromFile( szFileName, pDefines, NULL, szEntryPoint, szShaderModel, 
+	hr = D3DX11CompileFromFile( Path, pDefines, NULL, szEntryPoint, szShaderModel, 
 		dwShaderFlags, 0, NULL, ppBlobOut, &pErrorBlob, NULL );
 	if( FAILED(hr) )
 	{

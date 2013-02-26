@@ -33,7 +33,6 @@
 #include "LineBatcher.h"
 #include "AnimationClip.h"
 #include "GBufferDrawingPolicy.h"
-//#include "vld.h"
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -50,35 +49,6 @@ void CleanupDevice();
 LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
 
 void Render();
-
-
-HRESULT CompileShaderFromFile( WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut )
-{
-    HRESULT hr = S_OK;
-
-    DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-#if defined( DEBUG ) || defined( _DEBUG )
-    // Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
-    // Setting this flag improves the shader debugging experience, but still allows 
-    // the shaders to be optimized and to run exactly the way they will run in 
-    // the release configuration of this program.
-    dwShaderFlags |= D3DCOMPILE_DEBUG;
-#endif
-
-    ID3DBlob* pErrorBlob;
-    hr = D3DX11CompileFromFile( szFileName, NULL, NULL, szEntryPoint, szShaderModel, 
-        dwShaderFlags, 0, NULL, ppBlobOut, &pErrorBlob, NULL );
-    if( FAILED(hr) )
-    {
-        if( pErrorBlob != NULL )
-            OutputDebugStringA( (char*)pErrorBlob->GetBufferPointer() );
-        if( pErrorBlob ) pErrorBlob->Release();
-        return hr;
-    }
-    if( pErrorBlob ) pErrorBlob->Release();
-
-    return S_OK;
-}
 
 //--------------------------------------------------------------------------------------
 // Entry point to the program. Initializes everything and goes into a message processing 
@@ -139,7 +109,7 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     wcex.hCursor = LoadCursor( NULL, IDC_ARROW );
     wcex.hbrBackground = ( HBRUSH )( COLOR_WINDOW + 1 );
     wcex.lpszMenuName = NULL;
-    wcex.lpszClassName = L"TutorialWindowClass";
+    wcex.lpszClassName = L"ClientWindowClass";
     wcex.hIconSm = LoadIcon( wcex.hInstance, ( LPCTSTR )IDI_TUTORIAL1 );
     if( !RegisterClassEx( &wcex ) )
         return E_FAIL;
@@ -148,7 +118,7 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     g_hInst = hInstance;
     RECT rc = { 0, 0, 1280, 720 };
     AdjustWindowRect( &rc, WS_OVERLAPPEDWINDOW, FALSE );
-    g_hWnd = CreateWindow( L"TutorialWindowClass", L"Direct3D 11 Tutorial 1: Direct3D 11 Basics", WS_OVERLAPPEDWINDOW,
+    g_hWnd = CreateWindow( L"ClientWindowClass", L"Client", WS_OVERLAPPEDWINDOW,
                            CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, hInstance,
                            NULL );
     if( !g_hWnd )
