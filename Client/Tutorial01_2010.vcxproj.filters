@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns:atg="http://atg.xbox.com" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{8e114980-c1a3-4ada-ad7c-83caadf5daeb}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="DXUT">
+      <UniqueIdentifier>{a43c5c25-0e86-4a20-b64a-883785ff74fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{901c3c98-4a18-4a6a-bac7-1d2329a3157a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Tutorial01.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="SimpleShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="LineShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="GBufferShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="GpuSkinning.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="VSPSInput.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="QuadShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="DeferredDirectional.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="DeferredPoint.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Common.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="ComblineShader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="DeferredShadow.fx">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Tutorial01.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CLInclude Include="resource.h">
+      <Filter>Resource Files</Filter>
+    </CLInclude>
+    <ResourceCompile Include="Tutorial01.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+</Project>

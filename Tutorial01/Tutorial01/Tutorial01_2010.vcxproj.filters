@@ -11,9 +11,6 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{901c3c98-4a18-4a6a-bac7-1d2329a3157a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src">
-      <UniqueIdentifier>{2d95301b-0a9d-46ec-b8a1-fe4cc8d5c55e}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="Tutorial01.fx">
