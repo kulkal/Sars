@@ -30,6 +30,9 @@ class Input;
 class DeferredShadowPixelShader;
 class DeferredPointLightPixelShader;
 class DeferredDirLightPixelShader;
+class CombineLitPixelShader;
+class VisualizeDepthPixelShader;
+class VisualizeSimplePixelShader;
 
 struct ShadowCascadeInfo
 {
@@ -89,16 +92,13 @@ public:
 	LARGE_INTEGER _Freq;
 
 	// full sqreen quad
-	ID3D11Buffer*               g_pScreenQuadVB;
-	ID3D11InputLayout*          g_pQuadLayout;
-	ID3D11VertexShader*         g_pQuadVS;
-	ID3D11PixelShader*			_VisNormalPS;
+	ID3D11Buffer*               _ScreenQuadVB;
+	ID3D11InputLayout*          _QuadLayout;
+	ID3D11VertexShader*         _QuadVS;
 
-	ID3D11PixelShader*			_VisDpethPS;
-	ID3D11Buffer*				_VisDpethPSCB;
-
-	ID3D11PixelShader*			_CombineLitPS;
-
+	VisualizeSimplePixelShader*	_VisNormalPS;
+	VisualizeDepthPixelShader*	_VisDepthPS;
+	CombineLitPixelShader*		_CombineLitPS;
 	DeferredDirLightPixelShader*	_DeferredDirPS;
 	DeferredPointLightPixelShader*	_DeferredPointPS;
 	DeferredShadowPixelShader*		_DeferredShadowPS;

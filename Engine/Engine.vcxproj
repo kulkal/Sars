@@ -81,6 +81,7 @@
     <ClCompile Include="BaseComponent.cpp" />
     <ClCompile Include="BaseObject.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CombineLitPixelShader.cpp" />
     <ClCompile Include="DeferredDirLightPixelShader.cpp" />
     <ClCompile Include="DeferredPointLightPixelShader.cpp" />
     <ClCompile Include="DeferredShadowPixelShader.cpp" />
@@ -111,7 +112,10 @@
     <ClCompile Include="Texture2D.cpp" />
     <ClCompile Include="TextureDepth2D.cpp" />
     <ClCompile Include="Util.cpp" />
+    <ClCompile Include="VertexShader.cpp" />
     <ClCompile Include="View.cpp" />
+    <ClCompile Include="VisualizeDepthPixelShader.cpp" />
+    <ClCompile Include="VisualizeSimplePixelShader.cpp" />
     <ClCompile Include="xnacollision.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -121,6 +125,7 @@
     <ClInclude Include="BaseComponent.h" />
     <ClInclude Include="BaseObject.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CombineLitPixelShader.h" />
     <ClInclude Include="DeferredDirLightPixelShader.h" />
     <ClInclude Include="DeferredPointLightPixelShader.h" />
     <ClInclude Include="DeferredShadowPixelShader.h" />
@@ -153,7 +158,10 @@
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="TextureDepth2D.h" />
     <ClInclude Include="Util.h" />
+    <ClInclude Include="VertexShader.h" />
     <ClInclude Include="View.h" />
+    <ClInclude Include="VisualizeDepthPixelShader.h" />
+    <ClInclude Include="VisualizeSimplePixelShader.h" />
     <ClInclude Include="vld.h" />
     <ClInclude Include="vldapi.h" />
     <ClInclude Include="xnacollision.h" />

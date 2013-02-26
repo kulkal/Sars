@@ -19,6 +19,9 @@
 #include "DeferredShadowPixelShader.h"
 #include "DeferredPointLightPixelShader.h"
 #include "DeferredDirLightPixelShader.h"
+#include "CombineLitPixelShader.h"
+#include "VisualizeDepthPixelShader.h"
+#include "VisualizeSimplePixelShader.h"
 
 struct SCREEN_VERTEX
 {
@@ -47,8 +50,7 @@ Engine::Engine(void)
 	,_VisualizeWorldNormal(false)
 	,_VisualizeDepth(false)
 	,_VisNormalPS(NULL)
-	,_VisDpethPS(NULL)
-	,_VisDpethPSCB(NULL)
+	,_VisDepthPS(NULL)
 	,_WorldNormalTexture(NULL)
 	,_DepthTexture(NULL)
 	,_FrameBufferTexture(NULL)
@@ -82,17 +84,16 @@ Engine::~Engine(void)
 	if( _ImmediateContext ) _ImmediateContext->Release();
 	if( _Device ) _Device->Release();
 
-	if(_VisNormalPS) _VisNormalPS->Release();
-	if(_VisDpethPS) _VisDpethPS->Release();
-	if(_VisDpethPSCB)_VisDpethPSCB->Release();
-	
-	if(g_pQuadVS) g_pQuadVS->Release();
-	if(g_pScreenQuadVB) g_pScreenQuadVB->Release();
-	if(g_pQuadLayout) g_pQuadLayout->Release();
+	if(_QuadVS) _QuadVS->Release();
+	if(_ScreenQuadVB) _ScreenQuadVB->Release();
+	if(_QuadLayout) _QuadLayout->Release();
 	
 	if(_DeferredShadowPS) delete _DeferredShadowPS;
 	if(_DeferredPointPS) delete _DeferredPointPS;
 	if(_DeferredDirPS) delete _DeferredDirPS;
+	if(_CombineLitPS) delete _CombineLitPS;
+	if(_VisDepthPS) delete _VisDepthPS;
+	if(_VisNormalPS) delete _VisNormalPS;
 
 
 	if(_SimpleDrawer) delete _SimpleDrawer;
@@ -105,11 +106,9 @@ Engine::~Engine(void)
 	if(_FrameBufferTexture) delete _FrameBufferTexture;
 	if(_SceneColorTexture) delete _SceneColorTexture;
 	if(_LitTexture) delete _LitTexture;
-//	if(_ShadowDepthTexture) delete _ShadowDepthTexture;
 	if(_DeferredShadowTexture) delete _DeferredShadowTexture;
 
 
-	if(_CombineLitPS) _CombineLitPS->Release();
 
 	
 
@@ -288,47 +287,46 @@ void Engine::InitDevice()
 	InitData.pSysMem = svQuad;
 	InitData.SysMemPitch = 0;
 	InitData.SysMemSlicePitch = 0;
-	_Device->CreateBuffer( &vbdesc, &InitData, &g_pScreenQuadVB ) ;
+	_Device->CreateBuffer( &vbdesc, &InitData, &_ScreenQuadVB ) ;
 
 	ID3DBlob* pBlob = NULL;
 	CompileShaderFromFile( L"QuadShader.fx", NULL, "QuadVS", "vs_4_0", &pBlob ) ;
-	hr = _Device->CreateVertexShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &g_pQuadVS ) ;
+	hr = _Device->CreateVertexShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &_QuadVS ) ;
 	if( FAILED( hr ) )
 		assert(false);
-	SetD3DResourceDebugName("QuadVS", g_pQuadVS);
+	SetD3DResourceDebugName("QuadVS", _QuadVS);
 
 	const D3D11_INPUT_ELEMENT_DESC quadlayout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	hr = _Device->CreateInputLayout( quadlayout, 2, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &g_pQuadLayout ) ;
+	hr = _Device->CreateInputLayout( quadlayout, 2, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &_QuadLayout ) ;
 	if( FAILED( hr ) )
 		assert(false);
 	if(pBlob) pBlob->Release();
-	SetD3DResourceDebugName("QuadLayout", g_pQuadLayout);
+	SetD3DResourceDebugName("QuadLayout", _QuadLayout);
 
-	D3D10_SHADER_MACRO DefinesVisNormal[] = {{"VIS_NORMAL", "1"},{0, 0} };
+	//D3D10_SHADER_MACRO DefinesVisNormal[] = {{"VIS_NORMAL", "1"},{0, 0} };
+	//
+	//ID3DBlob* pPSBlob = NULL;
+	//hr = CompileShaderFromFile(L"QuadShader.fx", DefinesVisNormal, "PS", "ps_4_0", &pPSBlob );
+	//if( FAILED( hr ) )
+	//{
+	//	MessageBox( NULL,
+	//		L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
+	//	assert(false);
+	//}
+
+	//hr = _Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &_VisNormalPS );
+	//pPSBlob->Release();
+	//if( FAILED( hr ) )
+	//	assert(false);
+
+	//SetD3DResourceDebugName("_VisNormalPS", _VisNormalPS);
+
 	
-	ID3DBlob* pPSBlob = NULL;
-	hr = CompileShaderFromFile(L"QuadShader.fx", DefinesVisNormal, "PS", "ps_4_0", &pPSBlob );
-	if( FAILED( hr ) )
-	{
-		MessageBox( NULL,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-		assert(false);
-	}
-
-	hr = _Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &_VisNormalPS );
-	pPSBlob->Release();
-	if( FAILED( hr ) )
-		assert(false);
-
-	SetD3DResourceDebugName("_VisNormalPS", _VisNormalPS);
-
-	D3D10_SHADER_MACRO DefinesVisDepth[] = {{"VIS_DEPTH", "1"},{0, 0} };
-	
-	pPSBlob = NULL;
+	/*pPSBlob = NULL;
 	hr = CompileShaderFromFile(L"QuadShader.fx", DefinesVisDepth, "PS", "ps_4_0", &pPSBlob );
 	if( FAILED( hr ) )
 	{
@@ -354,14 +352,16 @@ void Engine::InitDevice()
 	if( FAILED( hr ) )
 		assert(false);
 
-	SetD3DResourceDebugName("_VisDpethPSCB", _VisDpethPSCB);
+	SetD3DResourceDebugName("_VisDpethPSCB", _VisDpethPSCB);*/
+	D3D10_SHADER_MACRO DefinesVisNormal[] = {{"VIS_NORMAL", "1"},{0, 0} };
+	_VisNormalPS = new VisualizeSimplePixelShader("QuadShader.fx", "PS", DefinesVisNormal);
 
-	
-	_CombineLitPS = CreatePixelShaderSimple("ComblineShader.fx");
-
+	D3D10_SHADER_MACRO DefinesVisDepth[] = {{"VIS_DEPTH", "1"},{0, 0} };
+	_VisDepthPS = new VisualizeDepthPixelShader("QuadShader.fx", "PS", DefinesVisDepth);
 	_DeferredDirPS  = new DeferredDirLightPixelShader("DeferredDirectional.fx", "PS");
 	_DeferredPointPS = new DeferredPointLightPixelShader("DeferredPoint.fx", "PS");
 	_DeferredShadowPS = new DeferredShadowPixelShader("DeferredShadow.fx", "PS");
+	_CombineLitPS = new CombineLitPixelShader("CombineShader.fx", "PS");
 
 	/////////////
 	_SimpleDrawer = new SimpleDrawingPolicy;
@@ -447,9 +447,9 @@ ID3D11PixelShader* Engine::CreatePixelShaderSimple( char* szFileName, char* szFu
 	ID3D11PixelShader* PS;
 	HRESULT hr;
 	int nLen = strlen(szFileName)+1;
-	wchar_t WFileName[1024];
+	wchar_t WFileName[MAX_PATH];
 	size_t RetSize;
-	mbstowcs_s(&RetSize, WFileName, 1024, szFileName, nLen);
+	mbstowcs_s(&RetSize, WFileName, MAX_PATH, szFileName, nLen);
 
 	ID3DBlob* pPSBlob = NULL;
 	hr = CompileShaderFromFile(WFileName, pDefines,szFuncName, "ps_4_0", &pPSBlob );
@@ -489,13 +489,13 @@ void Engine::DrawFullScreenQuad11( ID3D11PixelShader* pPS, float Width, float He
 
 	UINT strides = sizeof( SCREEN_VERTEX );
 	UINT offsets = 0;
-	ID3D11Buffer* pBuffers[1] = { g_pScreenQuadVB };
+	ID3D11Buffer* pBuffers[1] = { _ScreenQuadVB };
 
-	_ImmediateContext->IASetInputLayout( g_pQuadLayout );
+	_ImmediateContext->IASetInputLayout( _QuadLayout );
 	_ImmediateContext->IASetVertexBuffers( 0, 1, pBuffers, &strides, &offsets );
 	_ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP );
 
-	_ImmediateContext->VSSetShader( g_pQuadVS, NULL, 0 );
+	_ImmediateContext->VSSetShader( _QuadVS, NULL, 0 );
 	_ImmediateContext->PSSetShader( pPS, NULL, 0 );
 	_ImmediateContext->Draw( 4, 0 );
 
@@ -643,8 +643,7 @@ void Engine::Render()
 
 	ID3D11ShaderResourceView* aSRVCombine[2] = {_SceneColorTexture->GetSRV(), _LitTexture->GetSRV()};
 	_ImmediateContext->PSSetShaderResources( 0, 2, aSRVCombine );
-	DrawFullScreenQuad11(_CombineLitPS, _Width, _Height);
-
+	DrawFullScreenQuad11(_CombineLitPS->GetPixelShader(), _Width, _Height);
 }
 
 void Engine::EndRendering()
@@ -657,23 +656,14 @@ void Engine::EndRendering()
 	_VisualizeDepth = true;
 	if(_VisualizeDepth)
 	{
-		float Near = _CurrentCamera->GetNear();
-		float Far = _CurrentCamera->GetFar();
-		VisDepthPSCBStruct cbVisDepth;
-		cbVisDepth.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
-		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-		cbVisDepth.ProjectionParams.x = Far/(Far - Near);
-		cbVisDepth.ProjectionParams.y = Near/(Near - Far);
-		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
-		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
-
-		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, _Width*0.75f, 0);
+		_VisDepthPS->SetShaderParameter();
+		DrawFullScreenQuad11(_VisDepthPS->GetPixelShader(), _Width/4, _Height/4, _Width*0.75f, 0);
 	}
 
 	_VisualizeWorldNormal = true;
 	if(_VisualizeWorldNormal)
 	{
-		DrawFullScreenQuad11(_VisNormalPS, _Width/4, _Height/4);
+		DrawFullScreenQuad11(_VisNormalPS->GetPixelShader(), _Width/4, _Height/4);
 	}
 
 	bool _VisualizeShadow = true;
@@ -681,36 +671,25 @@ void Engine::EndRendering()
 	{
 		ID3D11ShaderResourceView* aSRVVis[1] = {_DeferredShadowTexture->GetSRV(), };
 		_ImmediateContext->PSSetShaderResources( 0, 1, aSRVVis );
-		DrawFullScreenQuad11(_VisNormalPS, _Width/4, _Height/4, _Width*0.75f, _Height*0.75f);
+		DrawFullScreenQuad11(_VisNormalPS->GetPixelShader(), _Width/4, _Height/4, _Width*0.75f, _Height*0.75f);
 	}
 
 	bool _VisualizeShadowMap = true;
 	if(_VisualizeShadowMap)
 	{
-		float Near = _CurrentCamera->GetNear();
-		float Far = _CurrentCamera->GetFar();
-		
-
-		VisDepthPSCBStruct cbVisDepth;
-		cbVisDepth.mView = XMMatrixTranspose( XMLoadFloat4x4( &_ViewMat ));
-		cbVisDepth.mProjection = XMMatrixTranspose( XMLoadFloat4x4(&GEngine->_ProjectionMat));
-		cbVisDepth.ProjectionParams.x = Far/(Far - Near);
-		cbVisDepth.ProjectionParams.y = Near/(Near - Far);
-
-		_ImmediateContext->UpdateSubresource( _VisDpethPSCB, 0, NULL, &cbVisDepth, 0, 0 );
-		_ImmediateContext->PSSetConstantBuffers( 0, 1, &_VisDpethPSCB );
-
 		ID3D11ShaderResourceView* aSRVVis[2] = {NULL, _CascadeArray[0]->_ShadowDepthTexture->GetSRV()};
 		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis );
-		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, 0.f, _Height*0.75f);
+
+		_VisDepthPS->SetShaderParameter();
+		DrawFullScreenQuad11(_VisDepthPS->GetPixelShader(), _Width/4, _Height/4, 0.f, _Height*0.75f);
 
 		ID3D11ShaderResourceView* aSRVVis2[2] = {NULL, _CascadeArray[1]->_ShadowDepthTexture->GetSRV()};
 		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis2 );
-		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, 0.f, _Height*0.5f);
+		DrawFullScreenQuad11(_VisDepthPS->GetPixelShader(), _Width/4, _Height/4, 0.f, _Height*0.5f);
 
 		ID3D11ShaderResourceView* aSRVVis3[2] = {NULL, _CascadeArray[2]->_ShadowDepthTexture->GetSRV()};
 		_ImmediateContext->PSSetShaderResources( 0, 2, aSRVVis3 );
-		DrawFullScreenQuad11(_VisDpethPS, _Width/4, _Height/4, _Width*0.25f, _Height*0.75f);
+		DrawFullScreenQuad11(_VisDepthPS->GetPixelShader(), _Width/4, _Height/4, _Width*0.25f, _Height*0.75f);
 	}
 	
 	_SwapChain->Present( 0, 0 );

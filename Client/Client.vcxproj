@@ -378,7 +378,7 @@
     <ResourceCompile Include="Client.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\ComblineShader.fx" />
+    <None Include="Shaders\CombineShader.fx" />
     <None Include="Shaders\Common.hlsl" />
     <None Include="Shaders\DeferredDirectional.fx" />
     <None Include="Shaders\DeferredPoint.fx" />

@@ -148,6 +148,18 @@
     <ClCompile Include="xnacollision.cpp">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
+    <ClCompile Include="CombineLitPixelShader.cpp">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="VisualizeDepthPixelShader.cpp">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="VisualizeSimplePixelShader.cpp">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="VertexShader.cpp">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine.h">
@@ -275,6 +287,18 @@
     </ClInclude>
     <ClInclude Include="xnacollision.h">
       <Filter>Source Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="CombineLitPixelShader.h">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="VisualizeDepthPixelShader.h">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="VisualizeSimplePixelShader.h">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexShader.h">
+      <Filter>Source Files\Rendering\Shader</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
