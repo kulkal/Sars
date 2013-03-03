@@ -47,7 +47,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;FBXSDK_NEW_API;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -96,9 +96,13 @@
     <ClCompile Include="LightComponent.cpp" />
     <ClCompile Include="LineBatcher.cpp" />
     <ClCompile Include="MathUtil.cpp" />
+    <ClCompile Include="MeshPixelShader.cpp" />
+    <ClCompile Include="MeshShader.cpp" />
+    <ClCompile Include="MeshVertexShader.cpp" />
     <ClCompile Include="OutputDebug.cpp" />
     <ClCompile Include="PixelShader.cpp" />
     <ClCompile Include="PointLightComponent.cpp" />
+    <ClCompile Include="QuadVertexShader.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="ShaderRes.cpp" />
     <ClCompile Include="SimpleDrawingPolicy.cpp" />
@@ -140,9 +144,13 @@
     <ClInclude Include="LightComponent.h" />
     <ClInclude Include="LineBatcher.h" />
     <ClInclude Include="MathUtil.h" />
+    <ClInclude Include="MeshPixelShader.h" />
+    <ClInclude Include="MeshShader.h" />
+    <ClInclude Include="MeshVertexShader.h" />
     <ClInclude Include="OutputDebug.h" />
     <ClInclude Include="PixelShader.h" />
     <ClInclude Include="PointLightComponent.h" />
+    <ClInclude Include="QuadVertexShader.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="ShaderRes.h" />

@@ -1,43 +1,69 @@
-#include <cassert>
-#include <vector>
-#include "ShaderRes.h"
-#include "Engine.h"
+#include "MeshVertexShader.h"
 
-ShaderRes::ShaderRes(void)
-	:VertexLayout(NULL),
-	VertexShader(NULL),
-	PixelShader(NULL)
+
+MeshVertexShader::MeshVertexShader( char* szFileName, char* szFuncName)
+	:VertexShader(szFileName, szFuncName)
+	,_FileName(szFileName)
+	,_FuncName(szFuncName)
 {
 }
 
 
-ShaderRes::~ShaderRes(void)
+MeshVertexShader::~MeshVertexShader(void)
 {
-	if(VertexLayout) VertexLayout->Release();
-	if(VertexShader) VertexShader->Release();
-	if(PixelShader) PixelShader->Release();
+	std::map<VertexShaderKey, VertexShaderRes*>::iterator it;
+	for(it=_ShaderMap.begin();it!=_ShaderMap.end();it++)
+	{
+		delete it->second;
+	}
 }
 
-void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
+void MeshVertexShader::SetShader(EMeshType MeshType, int NumTexcoord )
+{
+	VertexShaderKey Key;
+	Key.MeshType = MeshType;
+	Key.NumTexcoord = NumTexcoord;
+
+	VertexShaderRes* pShaderRes = GetShaderRes(Key);
+	pShaderRes->SetShader();
+}
+
+VertexShaderRes* MeshVertexShader::GetShaderRes( VertexShaderKey& Key )
+{
+	std::map<VertexShaderKey, VertexShaderRes*>::iterator it;
+	it = _ShaderMap.find(Key);
+	if (it != _ShaderMap.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		VertexShaderRes* pShaderRes = new VertexShaderRes(_FileName.c_str(), _FuncName.c_str(), Key);
+		_ShaderMap.insert(std::pair<VertexShaderKey, VertexShaderRes*>(Key, pShaderRes));
+		return pShaderRes;
+	}
+}
+
+VertexShaderRes::VertexShaderRes( const char* FileName, const char* FuncName, VertexShaderKey& SKey )
 {
 	std::vector<D3D10_SHADER_MACRO> Defines;
-	if(SKey.NumTex == 0)
+	if(SKey.NumTexcoord == 0)
 	{
 		D3D10_SHADER_MACRO Define = {"TEXCOORD", "0"};
 		Defines.push_back(Define);
 	}
-	else if(SKey.NumTex == 1)
+	else if(SKey.NumTexcoord == 1)
 	{
 		D3D10_SHADER_MACRO Define = {"TEXCOORD", "1"};
 		Defines.push_back(Define);
 	}
 
-	if(SKey.VertexProcessingType == GpuSkinVertex)
+	if(SKey.MeshType == GpuSkin)
 	{
 		D3D10_SHADER_MACRO Define = {"GPUSKINNING", "1"};
 		Defines.push_back(Define);
 	}
-	else if(SKey.VertexProcessingType == StaticVertex)
+	else if(SKey.MeshType == Static)
 	{
 		D3D10_SHADER_MACRO Define = {"GPUSKINNING", "0"};
 		Defines.push_back(Define);
@@ -46,7 +72,7 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 	D3D10_SHADER_MACRO Define;
 	memset(&Define, 0, sizeof(D3D10_SHADER_MACRO));
 	Defines.push_back(Define);
-	
+
 	int nLen = strlen(FileName)+1;
 
 	wchar_t WFileName[1024];
@@ -64,7 +90,7 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 	}
 
 	// Create the vertex shader
-	hr = GEngine->_Device->CreateVertexShader( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &VertexShader );
+	hr = GEngine->_Device->CreateVertexShader( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &_VertexShader );
 	if( FAILED( hr ) )
 	{	
 
@@ -72,9 +98,9 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 		assert(false);
 	}
 
-	if(SKey.NumTex == 0)
+	if(SKey.NumTexcoord == 0)
 	{
-		if(SKey.VertexProcessingType == StaticVertex)
+		if(SKey.MeshType == Static)
 		{
 			D3D11_INPUT_ELEMENT_DESC layout[] =
 			{
@@ -85,9 +111,9 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 
 			// Create the input layout
 			hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
-				pVSBlob->GetBufferSize(), &VertexLayout );
+				pVSBlob->GetBufferSize(), &_VertexLayout );
 		}
-		else if(SKey.VertexProcessingType == GpuSkinVertex)
+		else if(SKey.MeshType == GpuSkin)
 		{
 			D3D11_INPUT_ELEMENT_DESC layout[] =
 			{
@@ -100,12 +126,12 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 
 			// Create the input layout
 			hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
-				pVSBlob->GetBufferSize(), &VertexLayout );
+				pVSBlob->GetBufferSize(), &_VertexLayout );
 		}
 	}
-	else if(SKey.NumTex == 1)
+	else if(SKey.NumTexcoord == 1)
 	{
-		if(SKey.VertexProcessingType == StaticVertex)
+		if(SKey.MeshType == Static)
 		{
 			D3D11_INPUT_ELEMENT_DESC layout[] =
 			{
@@ -117,9 +143,9 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 
 			// Create the input layout
 			hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
-				pVSBlob->GetBufferSize(), &VertexLayout );
+				pVSBlob->GetBufferSize(), &_VertexLayout );
 		}
-		else if(SKey.VertexProcessingType == GpuSkinVertex)
+		else if(SKey.MeshType == GpuSkin)
 		{
 			D3D11_INPUT_ELEMENT_DESC layout[] =
 			{
@@ -133,37 +159,24 @@ void ShaderRes::CreateShader(const char* FileName, ShaderMapKey& SKey)
 
 			// Create the input layout
 			hr = GEngine->_Device->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
-				pVSBlob->GetBufferSize(), &VertexLayout );
+				pVSBlob->GetBufferSize(), &_VertexLayout );
 		}
 	}
-	
+
 
 	pVSBlob->Release();
 	if( FAILED( hr ) )
 		assert(false);
-
-	// Set the input layout
-
-	// Compile the pixel shader
-	ID3DBlob* pPSBlob = NULL;
-	hr = GEngine->CompileShaderFromFile(WFileName, &Defines.at(0), "PS", "ps_4_0", &pPSBlob );
-	if( FAILED( hr ) )
-	{
-		MessageBox( NULL,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-		assert(false);
-	}
-
-	// Create the pixel shader
-	hr = GEngine->_Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &PixelShader );
-	pPSBlob->Release();
-	if( FAILED( hr ) )
-		assert(false);
 }
 
-void ShaderRes::SetShaderRes()
+VertexShaderRes::~VertexShaderRes()
 {
-	GEngine->_ImmediateContext->IASetInputLayout( VertexLayout );
-	//GEngine->_ImmediateContext->VSSetShader( VertexShader, NULL, 0 );
-	GEngine->_ImmediateContext->PSSetShader( PixelShader, NULL, 0 );
+	if(_VertexShader) _VertexShader->Release();
+	if(_VertexLayout) _VertexLayout->Release();
+}
+
+void VertexShaderRes::SetShader()
+{
+	GEngine->_ImmediateContext->IASetInputLayout( _VertexLayout );
+	GEngine->_ImmediateContext->VSSetShader( _VertexShader, NULL, 0 );
 }

@@ -160,6 +160,18 @@
     <ClCompile Include="VertexShader.cpp">
       <Filter>Source Files\Rendering\Shader</Filter>
     </ClCompile>
+    <ClCompile Include="MeshVertexShader.cpp">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshPixelShader.cpp">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshShader.cpp">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadVertexShader.cpp">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine.h">
@@ -298,6 +310,18 @@
       <Filter>Source Files\Rendering\Shader</Filter>
     </ClInclude>
     <ClInclude Include="VertexShader.h">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshVertexShader.h">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshPixelShader.h">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshShader.h">
+      <Filter>Source Files\Rendering\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadVertexShader.h">
       <Filter>Source Files\Rendering\Shader</Filter>
     </ClInclude>
   </ItemGroup>

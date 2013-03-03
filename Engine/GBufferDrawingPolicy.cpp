@@ -10,6 +10,7 @@ struct ConstantBufferStruct
 
 GBufferDrawingPolicy::GBufferDrawingPolicy(void)
 	:ConstantBuffer(NULL)
+	,_VertexShader(NULL)
 {
 	FileName = "GBufferShader.fx";
 
@@ -26,12 +27,16 @@ GBufferDrawingPolicy::GBufferDrawingPolicy(void)
 		assert(false);
 
 	SetD3DResourceDebugName("GBufferDrawingPolicyConstantBuffer", ConstantBuffer);
+
+	_VertexShader = new GBufferVertexShader("GBufferShader.fx", "VS");
+
 }
 
 
 GBufferDrawingPolicy::~GBufferDrawingPolicy(void)
 {
 	if(ConstantBuffer) ConstantBuffer->Release();
+	if(_VertexShader) delete _VertexShader;
 }
 
 void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMMATRIX& ViewMat, XMMATRIX& ProjectionMat )
@@ -48,6 +53,8 @@ void GBufferDrawingPolicy::DrawStaticMesh( StaticMesh* pMesh, XMMATRIX& ViewMat,
 
 
 	pShaderRes->SetShaderRes();
+
+	_VertexShader->SetShader(Static, pMesh->_NumTexCoord);
 
 	UINT offset = 0;
 	GEngine->_ImmediateContext->IASetVertexBuffers( 0, 1, &pMesh->_VertexBuffer, &pMesh->_VertexStride, &offset );

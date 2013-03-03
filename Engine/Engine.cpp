@@ -22,6 +22,7 @@
 #include "CombineLitPixelShader.h"
 #include "VisualizeDepthPixelShader.h"
 #include "VisualizeSimplePixelShader.h"
+#include "QuadVertexShader.h"
 
 struct SCREEN_VERTEX
 {
@@ -65,6 +66,7 @@ Engine::Engine(void)
 	,_DeferredDirPS(NULL)
 	,_DeferredPointPS(NULL)
 	,_DeferredShadowPS(NULL)
+	,_QuadVS(NULL)
 	
 {
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -84,9 +86,8 @@ Engine::~Engine(void)
 	if( _ImmediateContext ) _ImmediateContext->Release();
 	if( _Device ) _Device->Release();
 
-	if(_QuadVS) _QuadVS->Release();
+	if(_QuadVS) delete _QuadVS;
 	if(_ScreenQuadVB) _ScreenQuadVB->Release();
-	if(_QuadLayout) _QuadLayout->Release();
 	
 	if(_DeferredShadowPS) delete _DeferredShadowPS;
 	if(_DeferredPointPS) delete _DeferredPointPS;
@@ -289,70 +290,14 @@ void Engine::InitDevice()
 	InitData.SysMemSlicePitch = 0;
 	_Device->CreateBuffer( &vbdesc, &InitData, &_ScreenQuadVB ) ;
 
-	ID3DBlob* pBlob = NULL;
-	CompileShaderFromFile( L"QuadShader.fx", NULL, "QuadVS", "vs_4_0", &pBlob ) ;
-	hr = _Device->CreateVertexShader( pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &_QuadVS ) ;
-	if( FAILED( hr ) )
-		assert(false);
-	SetD3DResourceDebugName("QuadVS", _QuadVS);
-
 	const D3D11_INPUT_ELEMENT_DESC quadlayout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	hr = _Device->CreateInputLayout( quadlayout, 2, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &_QuadLayout ) ;
-	if( FAILED( hr ) )
-		assert(false);
-	if(pBlob) pBlob->Release();
-	SetD3DResourceDebugName("QuadLayout", _QuadLayout);
 
-	//D3D10_SHADER_MACRO DefinesVisNormal[] = {{"VIS_NORMAL", "1"},{0, 0} };
-	//
-	//ID3DBlob* pPSBlob = NULL;
-	//hr = CompileShaderFromFile(L"QuadShader.fx", DefinesVisNormal, "PS", "ps_4_0", &pPSBlob );
-	//if( FAILED( hr ) )
-	//{
-	//	MessageBox( NULL,
-	//		L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-	//	assert(false);
-	//}
+	_QuadVS = new QuadVertexShader("QuadShader.fx", "QuadVS", quadlayout, 2);
 
-	//hr = _Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &_VisNormalPS );
-	//pPSBlob->Release();
-	//if( FAILED( hr ) )
-	//	assert(false);
-
-	//SetD3DResourceDebugName("_VisNormalPS", _VisNormalPS);
-
-	
-	/*pPSBlob = NULL;
-	hr = CompileShaderFromFile(L"QuadShader.fx", DefinesVisDepth, "PS", "ps_4_0", &pPSBlob );
-	if( FAILED( hr ) )
-	{
-		MessageBox( NULL,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-		assert(false);
-	}
-
-	hr = _Device->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &_VisDpethPS );
-	pPSBlob->Release();
-	if( FAILED( hr ) )
-		assert(false);
-
-	SetD3DResourceDebugName("_VisDpethPS", _VisDpethPS);
-	
-	D3D11_BUFFER_DESC bdc;
-	ZeroMemory( &bdc, sizeof(bdc) );
-	bdc.Usage = D3D11_USAGE_DEFAULT;
-	bdc.ByteWidth = sizeof(VisDepthPSCBStruct);
-	bdc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bdc.CPUAccessFlags = 0;
-	hr = GEngine->_Device->CreateBuffer( &bdc, NULL, &_VisDpethPSCB );
-	if( FAILED( hr ) )
-		assert(false);
-
-	SetD3DResourceDebugName("_VisDpethPSCB", _VisDpethPSCB);*/
 	D3D10_SHADER_MACRO DefinesVisNormal[] = {{"VIS_NORMAL", "1"},{0, 0} };
 	_VisNormalPS = new VisualizeSimplePixelShader("QuadShader.fx", "PS", DefinesVisNormal);
 
@@ -491,11 +436,11 @@ void Engine::DrawFullScreenQuad11( ID3D11PixelShader* pPS, float Width, float He
 	UINT offsets = 0;
 	ID3D11Buffer* pBuffers[1] = { _ScreenQuadVB };
 
-	_ImmediateContext->IASetInputLayout( _QuadLayout );
 	_ImmediateContext->IASetVertexBuffers( 0, 1, pBuffers, &strides, &offsets );
 	_ImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP );
 
-	_ImmediateContext->VSSetShader( _QuadVS, NULL, 0 );
+	_QuadVS->SetShader();
+
 	_ImmediateContext->PSSetShader( pPS, NULL, 0 );
 	_ImmediateContext->Draw( 4, 0 );
 

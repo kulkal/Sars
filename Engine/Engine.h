@@ -34,6 +34,8 @@ class CombineLitPixelShader;
 class VisualizeDepthPixelShader;
 class VisualizeSimplePixelShader;
 
+class QuadVertexShader;
+
 struct ShadowCascadeInfo
 {
 	bool				_bEnabled;
@@ -93,8 +95,8 @@ public:
 
 	// full sqreen quad
 	ID3D11Buffer*               _ScreenQuadVB;
-	ID3D11InputLayout*          _QuadLayout;
-	ID3D11VertexShader*         _QuadVS;
+
+	QuadVertexShader*			_QuadVS;
 
 	VisualizeSimplePixelShader*	_VisNormalPS;
 	VisualizeDepthPixelShader*	_VisDepthPS;
